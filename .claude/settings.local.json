@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(wait)",
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc -p tsconfig.server.json --noEmit)",
+      "Bash(./node_modules/.bin/prisma generate *)",
+      "Bash(./node_modules/.bin/vite build *)"
+    ]
+  }
+}

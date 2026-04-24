@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables (ห้าม commit เด็ดขาด)
+.env
+.env.local
+.env.*.local
+
+# Prisma generated client
+node_modules/.prisma/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+
+# Old folders (ลบได้ทีหลัง)
+backend/
+frontend/
