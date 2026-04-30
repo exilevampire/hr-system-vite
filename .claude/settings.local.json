@@ -6,7 +6,9 @@
       "Bash(npx tsc *)",
       "Bash(./node_modules/.bin/tsc -p tsconfig.server.json --noEmit)",
       "Bash(./node_modules/.bin/prisma generate *)",
-      "Bash(./node_modules/.bin/vite build *)"
+      "Bash(./node_modules/.bin/vite build *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
