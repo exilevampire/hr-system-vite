@@ -43,16 +43,39 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="font-semibold text-slate-700 mb-4">พนักงานแยกตามหน่วยงาน</h2>
+              <h2 className="font-semibold text-slate-700 mb-4">
+                พนักงานแยกตามหน่วยงาน
+                <span className="ml-2 text-xs font-normal text-slate-400">(Top 10)</span>
+              </h2>
               {stats?.byBureau && stats.byBureau.length > 0 ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={stats.byBureau}>
-                    <XAxis dataKey="bureau" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-3">
+                  {stats.byBureau.map((item, i) => {
+                    const max = stats.byBureau[0].count;
+                    const pct = Math.round((item.count / max) * 100);
+                    const barColor =
+                      i === 0 ? "bg-blue-500" :
+                      i === 1 ? "bg-blue-400" :
+                      i === 2 ? "bg-blue-300" : "bg-slate-300";
+                    const rankColor =
+                      i === 0 ? "text-blue-600 font-bold" :
+                      i === 1 ? "text-blue-500 font-bold" :
+                      i === 2 ? "text-blue-400 font-bold" : "text-slate-400";
+                    return (
+                      <div key={item.bureau} className="flex items-center gap-3">
+                        <span className={`text-xs w-5 text-right flex-shrink-0 ${rankColor}`}>{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm text-slate-700 truncate" title={item.bureau}>{item.bureau}</span>
+                            <span className="text-sm font-semibold text-slate-800 ml-3 flex-shrink-0">{item.count.toLocaleString()}</span>
+                          </div>
+                          <div className="h-2 bg-slate-100 rounded-full">
+                            <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
                 <div className="h-48 flex items-center justify-center text-slate-400 text-sm">ยังไม่มีข้อมูล</div>
               )}
