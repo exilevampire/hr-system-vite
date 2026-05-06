@@ -21,6 +21,14 @@ interface SearchResult {
   };
 }
 
+const itFields = [
+  { key: "fmis", label: "FMIS" },
+  { key: "eMeeting", label: "eMeeting" },
+  { key: "website", label: "Website" },
+  { key: "phone3cx", label: "3CX" },
+  { key: "intranet", label: "Intranet" },
+];
+
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -38,24 +46,17 @@ export default function SearchPage() {
 
   function formatDate(d?: string | null) {
     if (!d) return "-";
-    return new Date(d).toLocaleDateString("th-TH");
+    const parsed = new Date(d);
+    if (isNaN(parsed.getTime())) return "-";
+    return parsed.toLocaleDateString("th-TH");
   }
-
-  const itFields = [
-    { key: "fmis", label: "FMIS" },
-    { key: "eMeeting", label: "eMeeting" },
-    { key: "website", label: "Website" },
-    { key: "phone3cx", label: "3CX" },
-    { key: "intranet", label: "Intranet" },
-    { key: "hrSent", label: "บค. ส่ง" },
-  ];
 
   return (
     <AppLayout>
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-800">ค้นหาข้อมูลผู้พ้นสภาพรายบุคคล</h1>
-          <p className="text-slate-500 text-sm mt-1">ค้นหาด้วยชื่อ, ชื่อภาษาอังกฤษ หรือรหัสประจำตัว</p>
+          <p className="text-slate-500 text-sm mt-1">ค้นหาด้วยชื่อ-สกุล (ไทย/อังกฤษ) หรือรหัสประจำตัว</p>
         </div>
 
         <form onSubmit={handleSearch} className="flex gap-3 mb-8">
@@ -96,10 +97,11 @@ export default function SearchPage() {
                 <div className="bg-white rounded-lg p-4 space-y-3">
                   <Row label="รหัสพนักงาน" value={result.employee?.employeeId} />
                   <Row label="ชื่อ-สกุล (ไทย)" value={result.employee?.nameTh} />
-                  <Row label="Name-Eng" value={result.employee?.nameEn} />
+                  <Row label="ชื่อ-สกุล (อังกฤษ)" value={result.employee?.nameEn} />
                   <Row label="ตำแหน่ง" value={result.employee?.position} />
                   <Row label="หน่วยงาน" value={result.employee?.bureau} />
                   <Row label="วันที่พ้นสภาพ" value={formatDate(result.employee?.endDate)} />
+                  <Row label="บค. ส่ง" value={formatDate(result.employee?.hrSent)} />
                   {result.employee?.remarks && (
                     <Row label="หมายเหตุ" value={result.employee.remarks} highlight />
                   )}
@@ -110,11 +112,14 @@ export default function SearchPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {itFields.map((f) => {
                       const val = result.employee?.[f.key as keyof typeof result.employee];
-                      const cleared = val && String(val).trim() !== "";
+                      const isDone = val === "ดำเนินการแล้ว";
                       return (
-                        <div key={f.key} className={`rounded-lg p-3 text-center text-sm ${cleared ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                        <div
+                          key={f.key}
+                          className={`rounded-lg p-3 text-center text-sm ${isDone ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
+                        >
                           <div className="font-medium">{f.label}</div>
-                          <div className="text-lg mt-1">{cleared ? "✓" : "✕"}</div>
+                          <div className="text-xs mt-1">{isDone ? "ดำเนินการแล้ว" : "ยังไม่ดำเนินการ"}</div>
                         </div>
                       );
                     })}
@@ -132,7 +137,7 @@ export default function SearchPage() {
 function Row({ label, value, highlight }: { label: string; value?: string | null; highlight?: boolean }) {
   return (
     <div className="flex gap-3 text-sm">
-      <span className="text-slate-500 w-36 shrink-0">{label}</span>
+      <span className="text-slate-500 w-40 shrink-0">{label}</span>
       <span className={`font-medium ${highlight ? "text-red-700" : "text-slate-800"}`}>{value || "-"}</span>
     </div>
   );

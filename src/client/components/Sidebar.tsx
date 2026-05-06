@@ -46,10 +46,12 @@ export function Sidebar() {
           ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
         <div className="px-6 py-5 border-b border-blue-700 flex items-center gap-3">
-          <RedCrossIcon size={36} />
+          <div className="bg-white rounded-lg p-1 flex-shrink-0">
+            <RedCrossIcon size={36} />
+          </div>
           <div>
             <div className="text-xs font-bold text-blue-200 uppercase tracking-wider leading-tight">ระบบจัดเก็บและรายงาน</div>
-            <div className="text-sm font-bold leading-snug">ข้อมูลพ้นสภาพของบุคคล</div>
+            <div className="text-sm font-bold leading-snug">ข้อมูลพ้นสภาพ</div>
           </div>
         </div>
 

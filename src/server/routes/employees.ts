@@ -35,11 +35,36 @@ function parseDate(val: unknown): Date | null {
   if (!val) return null;
   if (val instanceof Date) return val;
   if (typeof val === "number") {
+    // Excel serial number — always CE, no BE conversion needed
     const d = XLSX.SSF.parse_date_code(val);
     if (d) return new Date(d.y, d.m - 1, d.d);
   }
   const s = String(val).trim();
   if (!s) return null;
+
+  // Thai format: DD/MM/YYYY (e.g. "17/6/2567" or "17/06/2567")
+  const slashMatch = s.match(/^(\d{1,2})[/](\d{1,2})[/](\d{4})$/);
+  if (slashMatch) {
+    const day = parseInt(slashMatch[1]);
+    const month = parseInt(slashMatch[2]);
+    let year = parseInt(slashMatch[3]);
+    if (year > 2500) year -= 543; // BE → CE
+    const date = new Date(year, month - 1, day);
+    if (!isNaN(date.getTime())) return date;
+  }
+
+  // ISO / Thai-ISO: YYYY-MM-DD or YYYY/MM/DD (e.g. "2567-06-17")
+  const isoMatch = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (isoMatch) {
+    let year = parseInt(isoMatch[1]);
+    const month = parseInt(isoMatch[2]);
+    const day = parseInt(isoMatch[3]);
+    if (year > 2500) year -= 543; // BE → CE
+    const date = new Date(year, month - 1, day);
+    if (!isNaN(date.getTime())) return date;
+  }
+
+  // Fallback: let JS try to parse
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -49,6 +74,7 @@ router.get("/", async (req, res) => {
   const pageSize = parseInt(String(req.query.pageSize ?? "20"));
   const search = String(req.query.search ?? "");
   const bureau = String(req.query.bureau ?? "");
+  const position = String(req.query.position ?? "");
 
   const where: Record<string, unknown> = {};
   const conditions = [];
@@ -63,6 +89,7 @@ router.get("/", async (req, res) => {
     });
   }
   if (bureau) conditions.push({ bureau: { contains: bureau } });
+  if (position) conditions.push({ position: { contains: position } });
   if (conditions.length > 0) where.AND = conditions;
 
   const [data, total] = await Promise.all([
@@ -183,7 +210,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
           website: String(raw.website ?? "").trim() || null,
           phone3cx: String(raw.phone3cx ?? "").trim() || null,
           intranet: String(raw.intranet ?? "").trim() || null,
-          hrSent: String(raw.hrSent ?? "").trim() || null,
+          hrSent: (() => { const d = parseDate(raw.hrSent); return d ? d.toISOString().split("T")[0] : null; })(),
           createdBy: adminUser,
           updatedBy: adminUser,
         },
@@ -196,6 +223,27 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
   }
 
   res.json({ success, skipped, errors });
+});
+
+router.get("/meta", async (_req, res) => {
+  const [positions, bureaus] = await Promise.all([
+    prisma.employee.findMany({
+      where: { position: { not: null } },
+      select: { position: true },
+      distinct: ["position"],
+      orderBy: { position: "asc" },
+    }),
+    prisma.employee.findMany({
+      where: { bureau: { not: null } },
+      select: { bureau: true },
+      distinct: ["bureau"],
+      orderBy: { bureau: "asc" },
+    }),
+  ]);
+  res.json({
+    positions: positions.map((p) => p.position).filter(Boolean) as string[],
+    bureaus: bureaus.map((b) => b.bureau).filter(Boolean) as string[],
+  });
 });
 
 router.get("/:employeeId", async (req, res) => {

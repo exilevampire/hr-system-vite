@@ -25,13 +25,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-blue-700 px-4">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-900 to-blue-700 px-4">
+      <div className="flex-1 flex items-center justify-center">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <RedCrossIcon size={72} />
+          <div className="flex justify-center mb-5">
+            <div className="bg-white rounded-2xl px-10 py-6 shadow-lg inline-flex flex-col items-center">
+              <RedCrossIcon size={80} />
+              <p className="text-xl font-bold text-gray-900 mt-3" style={{ fontFamily: "'Sarabun', 'Noto Serif Thai', serif" }}>
+                สภากาชาดไทย
+              </p>
+              <p className="text-xs font-semibold text-gray-700 mt-1" style={{ letterSpacing: "0.18em" }}>
+                THAI RED CROSS SOCIETY
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-white">ระบบจัดเก็บและรายงานข้อมูลพ้นสภาพของบุคคล</h1>
+          <h1 className="text-xl font-bold text-white">ระบบจัดเก็บและรายงานข้อมูลพ้นสภาพ</h1>
           <p className="text-blue-200 mt-2 text-sm">สำหรับเจ้าหน้าที่ที่ได้รับอนุญาตเท่านั้น</p>
         </div>
 
@@ -81,6 +90,29 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+      </div>
+
+      <footer className="py-5 px-4 text-center">
+        <div className="flex flex-wrap justify-center items-center gap-x-2 gap-y-1 text-xs text-blue-200">
+          <span>สงวนลิขสิทธิ์ โดย สภากาชาดไทย</span>
+          <span className="text-blue-400">|</span>
+          <a href="https://www.redcross.or.th/trcs-pdpa" target="_blank" rel="noopener noreferrer" className="hover:text-white underline underline-offset-2">
+            นโยบายการคุ้มครองข้อมูลส่วนบุคคล
+          </a>
+          <span className="text-blue-400">|</span>
+          <a href="https://www.redcross.or.th/cookie-policy/" target="_blank" rel="noopener noreferrer" className="hover:text-white underline underline-offset-2">
+            นโยบายคุกกี้
+          </a>
+          <span className="text-blue-400">|</span>
+          <a href="https://www.redcross.or.th/terms-of-use" target="_blank" rel="noopener noreferrer" className="hover:text-white underline underline-offset-2">
+            ข้อตกลงการใช้งาน
+          </a>
+          <span className="text-blue-400">|</span>
+          <a href="https://redcross.or.th/trcs-privacy-safeguard" target="_blank" rel="noopener noreferrer" className="hover:text-white underline underline-offset-2">
+            มาตรการรักษาความมั่นคงปลอดภัยข้อมูลส่วนบุคคล
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
