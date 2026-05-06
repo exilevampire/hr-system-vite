@@ -6,8 +6,6 @@ import AllRecordsPage from "./pages/records/AllRecordsPage";
 import AddRecordPage from "./pages/records/AddRecordPage";
 import EditRecordPage from "./pages/records/EditRecordPage";
 import ImportPage from "./pages/records/ImportPage";
-import SearchPage from "./pages/screening/SearchPage";
-import BulkCheckPage from "./pages/screening/BulkCheckPage";
 import LogsPage from "./pages/LogsPage";
 import SettingsPage from "./pages/SettingsPage";
 
@@ -35,8 +33,6 @@ function AppRoutes() {
       <Route path="/records/add" element={<ProtectedRoute><AddRecordPage /></ProtectedRoute>} />
       <Route path="/records/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
       <Route path="/records/:employeeId/edit" element={<ProtectedRoute><EditRecordPage /></ProtectedRoute>} />
-      <Route path="/screening/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
-      <Route path="/screening/bulk-check" element={<ProtectedRoute><BulkCheckPage /></ProtectedRoute>} />
       <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
     </Routes>
