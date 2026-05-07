@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
-import speakeasy from "speakeasy";
+import { generateSecret, generateTOTP, verifyTOTP, buildOtpauthURL } from "../lib/totp";
 import QRCode from "qrcode";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -9,7 +9,7 @@ import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET ?? "change-me";
-const APP_NAME = process.env.APP_NAME ?? "HR System - สภากาชาดไทย";
+const APP_ISSUER = "HR-RedCross";
 
 function generateBackupCodes(): string[] {
   return Array.from({ length: 10 }, () =>
@@ -21,7 +21,7 @@ function formatBackupCode(raw: string): string {
   return `${raw.slice(0, 4)}-${raw.slice(4)}`;
 }
 
-function normalizeCode(input: string): string {
+function normalizeBackupCode(input: string): string {
   return input.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
 }
 
@@ -43,9 +43,16 @@ router.post("/setup", authMiddleware, async (req: AuthenticatedRequest, res) => 
   if (!user) { res.status(404).json({ error: "ไม่พบผู้ใช้" }); return; }
   if (user.totpEnabled) { res.status(400).json({ error: "2FA เปิดใช้งานอยู่แล้ว" }); return; }
 
-  const generated = speakeasy.generateSecret({ name: `${APP_NAME}:${user.email}`, issuer: APP_NAME, length: 20 });
-  const secret = generated.base32;
-  const otpauth = generated.otpauth_url!;
+  const secret = generateSecret();
+
+  // Self-test: verify the secret works before storing
+  const testToken = generateTOTP(secret);
+  if (!verifyTOTP(secret, testToken)) {
+    res.status(500).json({ error: "เกิดข้อผิดพลาดภายใน กรุณาลองใหม่" });
+    return;
+  }
+
+  const otpauth = buildOtpauthURL(APP_ISSUER, user.email, secret);
   const qrDataUrl = await QRCode.toDataURL(otpauth, { width: 256, margin: 2 });
 
   await prisma.user.update({ where: { id: user.id }, data: { totpSecret: secret } });
@@ -62,10 +69,12 @@ router.post("/enable", authMiddleware, async (req: AuthenticatedRequest, res) =>
   if (!user || !user.totpSecret) { res.status(400).json({ error: "กรุณาตั้งค่า 2FA ก่อน" }); return; }
   if (user.totpEnabled) { res.status(400).json({ error: "2FA เปิดใช้งานอยู่แล้ว" }); return; }
 
-  const isValid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code, window: 2 });
+  const secret = user.totpSecret.trim();
+  const isValid = verifyTOTP(secret, code.trim());
   if (!isValid) {
-    console.warn(`[2FA] enable failed for user ${user.email} at ${new Date().toISOString()}`);
-    res.status(400).json({ error: "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่" }); return;
+    console.warn(`[2FA] enable failed for ${user.email} at ${new Date().toISOString()}`);
+    res.status(400).json({ error: "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่" });
+    return;
   }
 
   const plainCodes = generateBackupCodes();
@@ -91,27 +100,28 @@ router.post("/disable", authMiddleware, async (req: AuthenticatedRequest, res) =
 
   // Try TOTP (6-digit)
   if (/^\d{6}$/.test(code.trim()) && user.totpSecret) {
-    valid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code.trim(), window: 1 });
+    valid = verifyTOTP(user.totpSecret.trim(), code.trim());
   }
 
   // Try backup code
   if (!valid && user.backupCodes) {
-    const normalized = normalizeCode(code);
+    const normalized = normalizeBackupCode(code);
     const hashed: string[] = JSON.parse(user.backupCodes);
     for (let i = 0; i < hashed.length; i++) {
       if (await bcrypt.compare(normalized, hashed[i])) {
         hashed.splice(i, 1);
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { backupCodes: JSON.stringify(hashed) },
-        });
+        await prisma.user.update({ where: { id: user.id }, data: { backupCodes: JSON.stringify(hashed) } });
         valid = true;
         break;
       }
     }
   }
 
-  if (!valid) { res.status(400).json({ error: "รหัสไม่ถูกต้อง" }); return; }
+  if (!valid) {
+    console.warn(`[2FA] disable failed for ${user.email} at ${new Date().toISOString()}`);
+    res.status(400).json({ error: "รหัสไม่ถูกต้อง" });
+    return;
+  }
 
   await prisma.user.update({
     where: { id: user.id },
@@ -130,7 +140,7 @@ router.post("/verify", async (req, res) => {
   try {
     payload = jwt.verify(tempToken, JWT_SECRET) as typeof payload;
   } catch {
-    res.status(401).json({ error: "Token หมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่" });
+    res.status(401).json({ error: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่" });
     return;
   }
   if (payload.type !== "2fa_pending") {
@@ -146,22 +156,19 @@ router.post("/verify", async (req, res) => {
 
   let valid = false;
 
-  // Try TOTP
+  // Try TOTP (6-digit)
   if (/^\d{6}$/.test(code.trim())) {
-    valid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code.trim(), window: 2 });
+    valid = verifyTOTP(user.totpSecret.trim(), code.trim());
   }
 
   // Try backup code
   if (!valid && user.backupCodes) {
-    const normalized = normalizeCode(code);
+    const normalized = normalizeBackupCode(code);
     const hashed: string[] = JSON.parse(user.backupCodes);
     for (let i = 0; i < hashed.length; i++) {
       if (await bcrypt.compare(normalized, hashed[i])) {
         hashed.splice(i, 1);
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { backupCodes: JSON.stringify(hashed) },
-        });
+        await prisma.user.update({ where: { id: user.id }, data: { backupCodes: JSON.stringify(hashed) } });
         valid = true;
         break;
       }
@@ -169,8 +176,9 @@ router.post("/verify", async (req, res) => {
   }
 
   if (!valid) {
-    console.warn(`[2FA] verify failed for user ${user.email} at ${new Date().toISOString()}`);
-    res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง" }); return;
+    console.warn(`[2FA] login verify failed for ${user.email} at ${new Date().toISOString()}`);
+    res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง" });
+    return;
   }
 
   const token = jwt.sign(

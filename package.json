@@ -34,7 +34,6 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.3",
     "recharts": "^3.8.1",
-    "speakeasy": "^2.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -49,7 +48,6 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/speakeasy": "^2.0.10",
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.1.2",
     "tailwindcss": "^4",
