@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 
 import authRouter from "./routes/auth";
@@ -15,11 +17,46 @@ const app = express();
 const PORT = parseInt(process.env.PORT ?? "3001");
 const isProd = process.env.NODE_ENV === "production";
 
+// ── Warn on weak JWT secret ────────────────────────────────────────────
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "change-me") {
+  console.warn("⚠️  WARNING: JWT_SECRET is not set or is using the default value. Set a strong secret in .env");
+}
+
+// ── Security headers ───────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "same-origin" },
+  contentSecurityPolicy: isProd ? undefined : false,
+}));
+
+// ── CORS ───────────────────────────────────────────────────────────────
 if (!isProd) {
   app.use(cors({ origin: process.env.FRONTEND_URL ?? "http://localhost:5173", credentials: true }));
 }
 
-app.use(express.json());
+// ── Body size limit ────────────────────────────────────────────────────
+app.use(express.json({ limit: "1mb" }));
+
+// ── Rate limiting ──────────────────────────────────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: "พยายามเข้าสู่ระบบมากเกินไป กรุณารอ 15 นาที" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const twoFALimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 10,
+  message: { error: "พยายามยืนยัน OTP มากเกินไป กรุณารอ 5 นาที" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ── Routes ─────────────────────────────────────────────────────────────
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/2fa/verify", twoFALimiter);
+app.use("/api/auth/2fa/enable", twoFALimiter);
 
 app.use("/api/auth", authRouter);
 app.use("/api/auth/2fa", twofaRouter);

@@ -16,12 +16,14 @@ router.post("/login", async (req, res) => {
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
+    console.warn(`[Auth] login failed - unknown email: ${email} from IP: ${req.ip} at ${new Date().toISOString()}`);
     res.status(401).json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
     return;
   }
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) {
+    console.warn(`[Auth] login failed - wrong password for: ${email} from IP: ${req.ip} at ${new Date().toISOString()}`);
     res.status(401).json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
     return;
   }

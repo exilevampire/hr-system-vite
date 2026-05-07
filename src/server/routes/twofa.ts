@@ -62,8 +62,11 @@ router.post("/enable", authMiddleware, async (req: AuthenticatedRequest, res) =>
   if (!user || !user.totpSecret) { res.status(400).json({ error: "กรุณาตั้งค่า 2FA ก่อน" }); return; }
   if (user.totpEnabled) { res.status(400).json({ error: "2FA เปิดใช้งานอยู่แล้ว" }); return; }
 
-  const isValid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code, window: 1 });
-  if (!isValid) { res.status(400).json({ error: "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่" }); return; }
+  const isValid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code, window: 2 });
+  if (!isValid) {
+    console.warn(`[2FA] enable failed for user ${user.email} at ${new Date().toISOString()}`);
+    res.status(400).json({ error: "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่" }); return;
+  }
 
   const plainCodes = generateBackupCodes();
   const hashedCodes = await Promise.all(plainCodes.map((c) => bcrypt.hash(c, 10)));
@@ -145,7 +148,7 @@ router.post("/verify", async (req, res) => {
 
   // Try TOTP
   if (/^\d{6}$/.test(code.trim())) {
-    valid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code.trim(), window: 1 });
+    valid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code.trim(), window: 2 });
   }
 
   // Try backup code
@@ -165,7 +168,10 @@ router.post("/verify", async (req, res) => {
     }
   }
 
-  if (!valid) { res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง" }); return; }
+  if (!valid) {
+    console.warn(`[2FA] verify failed for user ${user.email} at ${new Date().toISOString()}`);
+    res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง" }); return;
+  }
 
   const token = jwt.sign(
     { id: user.id, email: user.email, name: user.name, role: user.role },

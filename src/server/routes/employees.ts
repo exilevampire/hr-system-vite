@@ -6,7 +6,17 @@ import multer from "multer";
 import * as XLSX from "xlsx";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.originalname.match(/\.(xlsx|xls)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error("อนุญาตเฉพาะไฟล์ Excel (.xlsx, .xls) เท่านั้น"));
+    }
+  },
+});
 
 const HEADER_MAP: Record<string, string> = {
   "รหัสประจำตัว": "employeeId",
@@ -69,7 +79,7 @@ function parseDate(val: unknown): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   const page = parseInt(String(req.query.page ?? "1"));
   const pageSize = parseInt(String(req.query.pageSize ?? "20"));
   const search = String(req.query.search ?? "");
@@ -225,7 +235,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
   res.json({ success, skipped, errors });
 });
 
-router.get("/meta", async (_req, res) => {
+router.get("/meta", authMiddleware, async (_req, res) => {
   const [positions, bureaus] = await Promise.all([
     prisma.employee.findMany({
       where: { position: { not: null } },
@@ -246,7 +256,7 @@ router.get("/meta", async (_req, res) => {
   });
 });
 
-router.get("/:employeeId", async (req, res) => {
+router.get("/:employeeId", authMiddleware, async (req, res) => {
   const { employeeId } = req.params;
   const employee = await prisma.employee.findUnique({ where: { employeeId } });
   if (!employee) {

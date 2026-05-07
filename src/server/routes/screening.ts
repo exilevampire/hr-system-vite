@@ -5,7 +5,17 @@ import multer from "multer";
 import * as XLSX from "xlsx";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.originalname.match(/\.(xlsx|xls)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error("อนุญาตเฉพาะไฟล์ Excel (.xlsx, .xls) เท่านั้น"));
+    }
+  },
+});
 
 router.get("/", authMiddleware, async (req, res) => {
   const q = String(req.query.q ?? "");

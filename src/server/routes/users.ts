@@ -4,6 +4,7 @@ import { authMiddleware, requireRole, AuthenticatedRequest } from "../middleware
 import bcrypt from "bcryptjs";
 
 const router = Router();
+const VALID_ROLES = ["SUPER_ADMIN", "HR_ADMIN", "VIEWER"];
 
 router.get("/", authMiddleware, requireRole("SUPER_ADMIN"), async (_req, res) => {
   const users = await prisma.user.findMany({
@@ -17,6 +18,14 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) =>
   const { name, email, password, role } = req.body;
   if (!email || !password) {
     res.status(400).json({ error: "Email และรหัสผ่านจำเป็น" });
+    return;
+  }
+  if (typeof password !== "string" || password.length < 8) {
+    res.status(400).json({ error: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" });
+    return;
+  }
+  if (role && !VALID_ROLES.includes(role)) {
+    res.status(400).json({ error: "บทบาทไม่ถูกต้อง" });
     return;
   }
 
@@ -37,9 +46,14 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) =>
 
 router.patch("/:id", authMiddleware, requireRole("SUPER_ADMIN"), async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
+  const { role } = req.body;
+  if (!VALID_ROLES.includes(role)) {
+    res.status(400).json({ error: "บทบาทไม่ถูกต้อง" });
+    return;
+  }
   const user = await prisma.user.update({
     where: { id },
-    data: { role: req.body.role },
+    data: { role },
     select: { id: true, name: true, email: true, role: true },
   });
   res.json(user);
