@@ -2,6 +2,15 @@ import { prisma } from "./prisma";
 
 type AuditAction = "CREATE" | "UPDATE" | "DELETE";
 
+const SKIP_FIELDS = new Set(["createdAt", "updatedAt", "updatedBy", "createdBy", "id"]);
+
+function normalizeValue(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+}
+
 export async function createAuditLog(
   employeeId: string,
   action: AuditAction,
@@ -14,8 +23,9 @@ export async function createAuditLog(
   if (action === "UPDATE" && oldData && newData) {
     changedFields = {};
     for (const key of Object.keys(newData)) {
-      if (oldData[key] !== newData[key]) {
-        changedFields[key] = { old: oldData[key], new: newData[key] };
+      if (SKIP_FIELDS.has(key)) continue;
+      if (normalizeValue(oldData[key]) !== normalizeValue(newData[key])) {
+        changedFields[key] = { old: oldData[key] ?? null, new: newData[key] ?? null };
       }
     }
     if (Object.keys(changedFields).length === 0) return;
