@@ -26,6 +26,12 @@ router.post("/login", async (req, res) => {
     return;
   }
 
+  if (user.totpEnabled) {
+    const tempToken = jwt.sign({ id: user.id, type: "2fa_pending" }, JWT_SECRET, { expiresIn: "5m" });
+    res.json({ requires2fa: true, tempToken });
+    return;
+  }
+
   const token = jwt.sign(
     { id: user.id, email: user.email, name: user.name, role: user.role },
     JWT_SECRET,

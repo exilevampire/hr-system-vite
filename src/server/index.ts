@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 
 import authRouter from "./routes/auth";
+import twofaRouter from "./routes/twofa";
 import employeesRouter from "./routes/employees";
 import dashboardRouter from "./routes/dashboard";
 import screeningRouter from "./routes/screening";
@@ -21,6 +22,7 @@ if (!isProd) {
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
+app.use("/api/auth/2fa", twofaRouter);
 app.use("/api/employees", employeesRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/screening", screeningRouter);

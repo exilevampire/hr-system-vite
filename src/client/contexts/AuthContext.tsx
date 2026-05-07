@@ -11,7 +11,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
+  login: (email: string, password: string) => Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }>;
+  verify2FA: (tempToken: string, code: string) => Promise<{ error?: string }>;
   logout: () => void;
 }
 
@@ -52,22 +53,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token, fetchMe]);
 
-  async function login(email: string, password: string): Promise<{ error?: string }> {
+  async function login(email: string, password: string): Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }> {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem("token", data.token);
-      setToken(data.token);
-      setUser(data.user);
-      return {};
-    } else {
-      return { error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" };
+    const data = await res.json();
+
+    if (!res.ok) return { error: data.error ?? "อีเมลหรือรหัสผ่านไม่ถูกต้อง" };
+
+    if (data.requires2fa) {
+      return { requires2fa: true, tempToken: data.tempToken };
     }
+
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
+    setUser(data.user);
+    return {};
+  }
+
+  async function verify2FA(tempToken: string, code: string): Promise<{ error?: string }> {
+    const res = await fetch("/api/auth/2fa/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tempToken, code }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) return { error: data.error ?? "รหัสไม่ถูกต้อง" };
+
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
+    setUser(data.user);
+    return {};
   }
 
   function logout() {
@@ -77,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, verify2FA, logout }}>
       {children}
     </AuthContext.Provider>
   );

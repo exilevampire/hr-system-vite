@@ -104,7 +104,7 @@ export default function DashboardPage() {
                             <Cell fill="#10b981" />
                             <Cell fill="#f59e0b" />
                           </Pie>
-                          <Tooltip formatter={(v: number) => v.toLocaleString()} />
+                          <Tooltip formatter={(v) => (v as number).toLocaleString()} />
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -151,7 +151,7 @@ export default function DashboardPage() {
                       <Tooltip
                         cursor={{ fill: "#f1f5f9" }}
                         contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13 }}
-                        formatter={(v: number) => [v.toLocaleString(), "จำนวน"]}
+                        formatter={(v) => [(v as number).toLocaleString(), "จำนวน"]}
                       />
                       <Bar dataKey="count" fill="#6366f1" radius={[6, 6, 0, 0]} />
                     </BarChart>

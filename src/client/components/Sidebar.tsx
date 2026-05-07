@@ -10,6 +10,7 @@ const navItems = [
   { to: "/records/import", label: "นำเข้า Excel", icon: "📥", roles: ["SUPER_ADMIN", "HR_ADMIN"] },
   { to: "/logs", label: "Audit Log", icon: "📝", roles: ["SUPER_ADMIN", "HR_ADMIN"] },
   { to: "/settings", label: "จัดการผู้ใช้งาน", icon: "⚙️", roles: ["SUPER_ADMIN"] },
+  { to: "/account", label: "บัญชีของฉัน / 2FA", icon: "🔐" },
 ];
 
 export function Sidebar() {
