@@ -8,7 +8,27 @@
       "Bash(./node_modules/.bin/prisma generate *)",
       "Bash(./node_modules/.bin/vite build *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "PowerShell(head -30)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Website\\\\hr-system-vite\" | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Website\\\\hr-system-vite\\\\src\" -Recurse | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Website\\\\hr-system-vite\\\\frontend\\\\src\" -Recurse | ForEach-Object { $_.FullName } | Select-Object -First 50)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Website\\\\hr-system-vite\\\\frontend\\\\public\" -Recurse | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Website\\\\hr-system-vite\\\\public\" -Recurse | ForEach-Object { $_.FullName })",
+      "WebFetch(domain:ebook.redcross.or.th)",
+      "Bash(git -C \"c:\\\\Website\\\\hr-system-vite\" status)",
+      "Bash(git -C \"c:\\\\Website\\\\hr-system-vite\" log --oneline -5)",
+      "Bash(git -C \"c:\\\\Website\\\\hr-system-vite\" diff --stat)",
+      "Bash(git -C \"c:\\\\Website\\\\hr-system-vite\" remote -v)",
+      "Bash(Remove-Item -Path \"c:\\\\Website\\\\hr-system-vite\\\\src\\\\client\\\\pages\\\\screening\\\\SearchPage.tsx\", \"c:\\\\Website\\\\hr-system-vite\\\\src\\\\client\\\\pages\\\\screening\\\\BulkCheckPage.tsx\" -Force)",
+      "Bash(git reset *)",
+      "Bash(npx prisma *)",
+      "Bash(node -e \"const o = require\\('otplib'\\); console.log\\(Object.keys\\(o\\)\\); console.log\\(typeof o.authenticator\\);\")",
+      "Bash(node -e \"const o = require\\('otplib'\\); console.log\\(typeof o.TOTP\\); const t = new o.TOTP\\(\\); console.log\\(Object.getOwnPropertyNames\\(Object.getPrototypeOf\\(t\\)\\)\\);\")",
+      "Bash(node -e ' *)",
+      "Bash(npm uninstall *)"
     ]
   }
 }

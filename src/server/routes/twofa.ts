@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
-import { authenticator } from "otplib";
+import speakeasy from "speakeasy";
 import QRCode from "qrcode";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -9,7 +9,7 @@ import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET ?? "change-me";
-const APP_NAME = process.env.APP_NAME ?? "HR System";
+const APP_NAME = process.env.APP_NAME ?? "HR System - สภากาชาดไทย";
 
 function generateBackupCodes(): string[] {
   return Array.from({ length: 10 }, () =>
@@ -43,8 +43,9 @@ router.post("/setup", authMiddleware, async (req: AuthenticatedRequest, res) => 
   if (!user) { res.status(404).json({ error: "ไม่พบผู้ใช้" }); return; }
   if (user.totpEnabled) { res.status(400).json({ error: "2FA เปิดใช้งานอยู่แล้ว" }); return; }
 
-  const secret = authenticator.generateSecret();
-  const otpauth = authenticator.keyuri(user.email, APP_NAME, secret);
+  const generated = speakeasy.generateSecret({ name: `${APP_NAME}:${user.email}`, issuer: APP_NAME, length: 20 });
+  const secret = generated.base32;
+  const otpauth = generated.otpauth_url!;
   const qrDataUrl = await QRCode.toDataURL(otpauth, { width: 256, margin: 2 });
 
   await prisma.user.update({ where: { id: user.id }, data: { totpSecret: secret } });
@@ -61,7 +62,7 @@ router.post("/enable", authMiddleware, async (req: AuthenticatedRequest, res) =>
   if (!user || !user.totpSecret) { res.status(400).json({ error: "กรุณาตั้งค่า 2FA ก่อน" }); return; }
   if (user.totpEnabled) { res.status(400).json({ error: "2FA เปิดใช้งานอยู่แล้ว" }); return; }
 
-  const isValid = authenticator.verify({ token: code, secret: user.totpSecret });
+  const isValid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code, window: 1 });
   if (!isValid) { res.status(400).json({ error: "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่" }); return; }
 
   const plainCodes = generateBackupCodes();
@@ -87,7 +88,7 @@ router.post("/disable", authMiddleware, async (req: AuthenticatedRequest, res) =
 
   // Try TOTP (6-digit)
   if (/^\d{6}$/.test(code.trim()) && user.totpSecret) {
-    valid = authenticator.verify({ token: code.trim(), secret: user.totpSecret });
+    valid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code.trim(), window: 1 });
   }
 
   // Try backup code
@@ -144,7 +145,7 @@ router.post("/verify", async (req, res) => {
 
   // Try TOTP
   if (/^\d{6}$/.test(code.trim())) {
-    valid = authenticator.verify({ token: code.trim(), secret: user.totpSecret });
+    valid = speakeasy.totp.verify({ secret: user.totpSecret, encoding: "base32", token: code.trim(), window: 1 });
   }
 
   // Try backup code
