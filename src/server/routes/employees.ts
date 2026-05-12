@@ -41,6 +41,13 @@ const HEADER_MAP: Record<string, string> = {
   "บค.ส่ง": "hrSent",
 };
 
+const VALID_IT_VALUES = new Set(["ดำเนินการแล้ว", "ยังไม่ดำเนินการ"]);
+
+function normalizeITStatus(val: unknown): string | null {
+  const s = String(val ?? "").trim();
+  return VALID_IT_VALUES.has(s) ? s : null;
+}
+
 function parseDate(val: unknown): Date | null {
   if (!val) return null;
   if (val instanceof Date) return val;
@@ -215,11 +222,11 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
           receivedDate: parseDate(raw.receivedDate),
           remarks: String(raw.remarks ?? "").trim() || null,
           email: String(raw.email ?? "").trim() || null,
-          fmis: String(raw.fmis ?? "").trim() || null,
-          eMeeting: String(raw.eMeeting ?? "").trim() || null,
-          website: String(raw.website ?? "").trim() || null,
-          phone3cx: String(raw.phone3cx ?? "").trim() || null,
-          intranet: String(raw.intranet ?? "").trim() || null,
+          fmis: normalizeITStatus(raw.fmis),
+          eMeeting: normalizeITStatus(raw.eMeeting),
+          website: normalizeITStatus(raw.website),
+          phone3cx: normalizeITStatus(raw.phone3cx),
+          intranet: normalizeITStatus(raw.intranet),
           hrSent: (() => { const d = parseDate(raw.hrSent); return d ? d.toISOString().split("T")[0] : null; })(),
           createdBy: adminUser,
           updatedBy: adminUser,

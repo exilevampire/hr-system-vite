@@ -57,6 +57,9 @@ export default function ImportPage() {
             <p className="text-xs text-blue-600 font-mono">
               รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ระดับตำแหน่ง | ฝ่าย/กลุ่มงาน | หน่วยงาน/สำนัก | วันเริ่มงาน | วันที่พ้นสภาพ | วันที่ได้รับข้อมูล | หมายเหตุ | email | FMIS | eMeeting | Website | 3CX | intranet | บค. ส่ง
             </p>
+            <p className="text-xs text-blue-500 mt-1.5">
+              ⚠️ คอลัมน์ FMIS, eMeeting, Website, 3CX, intranet รับเฉพาะ <span className="font-semibold">ดำเนินการแล้ว</span> หรือ <span className="font-semibold">ยังไม่ดำเนินการ</span> เท่านั้น (ค่าอื่นจะถูกละเว้น)
+            </p>
           </div>
           <a
             href="/employee_import_template.xlsx"
