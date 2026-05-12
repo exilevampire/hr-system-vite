@@ -57,6 +57,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token, fetchMe]);
 
+  async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 10000): Promise<Response> {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
   function saveToken(t: string, rememberMe: boolean) {
     if (rememberMe) {
       localStorage.setItem("token", t);
@@ -68,40 +78,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function login(email: string, password: string, rememberMe = false): Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }> {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetchWithTimeout("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) return { error: data.error ?? "อีเมลหรือรหัสผ่านไม่ถูกต้อง" };
+      if (!res.ok) {
+        if (res.status === 503) return { error: data.error ?? "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่ภายหลัง" };
+        return { error: data.error ?? "อีเมลหรือรหัสผ่านไม่ถูกต้อง" };
+      }
 
-    if (data.requires2fa) {
-      return { requires2fa: true, tempToken: data.tempToken };
+      if (data.requires2fa) {
+        return { requires2fa: true, tempToken: data.tempToken };
+      }
+
+      saveToken(data.token, rememberMe);
+      setToken(data.token);
+      setUser(data.user);
+      return {};
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return { error: "การเชื่อมต่อหมดเวลา (10 วินาที) กรุณาลองใหม่อีกครั้ง" };
+      }
+      return { error: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต" };
     }
-
-    saveToken(data.token, rememberMe);
-    setToken(data.token);
-    setUser(data.user);
-    return {};
   }
 
   async function verify2FA(tempToken: string, code: string, rememberMe = false): Promise<{ error?: string }> {
-    const res = await fetch("/api/auth/2fa/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tempToken, code }),
-    });
+    try {
+      const res = await fetchWithTimeout("/api/auth/2fa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tempToken, code }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) return { error: data.error ?? "รหัสไม่ถูกต้อง" };
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 503) return { error: data.error ?? "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่ภายหลัง" };
+        return { error: data.error ?? "รหัสไม่ถูกต้อง" };
+      }
 
-    saveToken(data.token, rememberMe);
-    setToken(data.token);
-    setUser(data.user);
-    return {};
+      saveToken(data.token, rememberMe);
+      setToken(data.token);
+      setUser(data.user);
+      return {};
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return { error: "การเชื่อมต่อหมดเวลา (10 วินาที) กรุณาลองใหม่อีกครั้ง" };
+      }
+      return { error: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต" };
+    }
   }
 
   function logout() {

@@ -14,7 +14,15 @@ router.post("/login", async (req, res) => {
     return;
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  let user;
+  try {
+    user = await prisma.user.findUnique({ where: { email } });
+  } catch (err) {
+    console.error("[Auth] database error during login:", err);
+    res.status(503).json({ error: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่ภายหลัง" });
+    return;
+  }
+
   if (!user) {
     console.warn(`[Auth] login failed - unknown email: ${email} from IP: ${req.ip} at ${new Date().toISOString()}`);
     res.status(401).json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
