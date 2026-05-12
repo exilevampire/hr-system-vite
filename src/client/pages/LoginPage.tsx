@@ -9,6 +9,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +28,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const result = await login(email, password);
+    const result = await login(email, password, rememberMe);
     setLoading(false);
     if (result.error) {
       setError(result.error);
@@ -44,7 +45,7 @@ export default function LoginPage() {
     if (!otpCode.trim()) return;
     setLoading(true);
     setError("");
-    const result = await verify2FA(tempToken, otpCode.trim());
+    const result = await verify2FA(tempToken, otpCode.trim(), rememberMe);
     setLoading(false);
     if (result.error) {
       setError(result.error);
@@ -106,6 +107,15 @@ export default function LoginPage() {
                       placeholder="••••••••"
                     />
                   </div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <span className="text-sm text-slate-600">จดจำการเข้าสู่ระบบ</span>
+                  </label>
                   <button
                     type="submit"
                     disabled={loading}

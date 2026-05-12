@@ -11,8 +11,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }>;
-  verify2FA: (tempToken: string, code: string) => Promise<{ error?: string }>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }>;
+  verify2FA: (tempToken: string, code: string, rememberMe?: boolean) => Promise<{ error?: string }>;
   logout: () => void;
 }
 
@@ -20,7 +20,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem("token") ?? sessionStorage.getItem("token")
+  );
   const [loading, setLoading] = useState(true);
 
   const fetchMe = useCallback(async (t: string) => {
@@ -35,11 +37,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(null);
         setUser(null);
         localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
       }
     } catch {
       setToken(null);
       setUser(null);
       localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
     } finally {
       setLoading(false);
     }
@@ -53,7 +57,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token, fetchMe]);
 
-  async function login(email: string, password: string): Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }> {
+  function saveToken(t: string, rememberMe: boolean) {
+    if (rememberMe) {
+      localStorage.setItem("token", t);
+      sessionStorage.removeItem("token");
+    } else {
+      sessionStorage.setItem("token", t);
+      localStorage.removeItem("token");
+    }
+  }
+
+  async function login(email: string, password: string, rememberMe = false): Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }> {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -68,13 +82,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { requires2fa: true, tempToken: data.tempToken };
     }
 
-    localStorage.setItem("token", data.token);
+    saveToken(data.token, rememberMe);
     setToken(data.token);
     setUser(data.user);
     return {};
   }
 
-  async function verify2FA(tempToken: string, code: string): Promise<{ error?: string }> {
+  async function verify2FA(tempToken: string, code: string, rememberMe = false): Promise<{ error?: string }> {
     const res = await fetch("/api/auth/2fa/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -84,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await res.json();
     if (!res.ok) return { error: data.error ?? "รหัสไม่ถูกต้อง" };
 
-    localStorage.setItem("token", data.token);
+    saveToken(data.token, rememberMe);
     setToken(data.token);
     setUser(data.user);
     return {};
@@ -92,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function logout() {
     localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setToken(null);
     setUser(null);
   }
