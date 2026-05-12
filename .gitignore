@@ -23,7 +23,3 @@ Thumbs.db
 # Editor
 .vscode/
 *.swp
-
-# Old folders (ลบได้ทีหลัง)
-backend/
-frontend/
