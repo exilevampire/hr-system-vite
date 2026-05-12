@@ -1,10 +1,14 @@
+function getToken(): string | null {
+  return localStorage.getItem("token") ?? sessionStorage.getItem("token");
+}
+
 export function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   const headers: Record<string, string> = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string> ?? {}),

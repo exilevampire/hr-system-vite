@@ -36,8 +36,8 @@ export default function DashboardPage() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <StatCard label="พนักงานทั้งหมด" value={stats?.total ?? 0} icon="👥" color="blue" />
-            <StatCard label="ปิดสิทธิ์แล้ว" value={stats?.itStatus.cleared ?? 0} icon="✅" color="green" />
-            <StatCard label="รอดำเนินการ" value={stats?.itStatus.pending ?? 0} icon="⏳" color="yellow" />
+            <StatCard label="ปิดสิทธิ์แล้ว" value={stats?.itStatus?.cleared ?? 0} icon="✅" color="green" />
+            <StatCard label="รอดำเนินการ" value={stats?.itStatus?.pending ?? 0} icon="⏳" color="yellow" />
             <StatCard label="หน่วยงาน" value={stats?.byBureau.length ?? 0} icon="🏢" color="purple" />
           </div>
 
