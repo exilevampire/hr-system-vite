@@ -156,6 +156,7 @@ export default function AllRecordsPage() {
   const [colWidths, setColWidths] = useState<number[]>(DEFAULT_WIDTHS);
   const [positionOptions, setPositionOptions] = useState<string[]>([]);
   const [bureauOptions, setBureauOptions] = useState<string[]>([]);
+  const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
 
   // Fetch dropdown options once on mount
   useEffect(() => {
@@ -343,7 +344,7 @@ export default function AllRecordsPage() {
                   </td>
                   <TCell className="text-slate-400 text-center">{(page - 1) * PAGE_SIZE + i + 1}</TCell>
                   <TCell title={emp.employeeId} className="font-mono text-xs text-slate-600">{emp.employeeId}</TCell>
-                  <TCell title={emp.nameTh} className="font-medium text-slate-800">{emp.nameTh}</TCell>
+                  <TCell title={emp.nameTh} className="font-medium text-blue-700 cursor-pointer hover:underline" onClick={() => setSelectedEmp(emp)}>{emp.nameTh}</TCell>
                   <TCell title={emp.nameEn ?? "-"} className="text-slate-500">{emp.nameEn ?? "-"}</TCell>
                   <TCell title={emp.position ?? "-"}>{emp.position ?? "-"}</TCell>
                   <TCell title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>
@@ -475,6 +476,7 @@ export default function AllRecordsPage() {
           </div>
         </div>
       )}
+      {selectedEmp && <EmployeeDetailModal emp={selectedEmp} onClose={() => setSelectedEmp(null)} />}
     </AppLayout>
   );
 }
@@ -497,16 +499,19 @@ function TCell({
   children,
   title,
   className = "",
+  onClick,
 }: {
   children: React.ReactNode;
   title?: string;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
     <td
       className={`px-3 py-3 text-slate-600 overflow-hidden ${className}`}
       style={{ whiteSpace: "nowrap", textOverflow: "ellipsis", maxWidth: 0 }}
       title={title ?? (typeof children === "string" ? children : undefined)}
+      onClick={onClick}
     >
       {children}
     </td>
@@ -524,5 +529,102 @@ function ITStatusCell({ value }: { value?: string | null }) {
         <span className="inline-block text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full whitespace-nowrap">ยังไม่ดำเนินการ</span>
       )}
     </td>
+  );
+}
+
+function ITBadge({ value }: { value?: string | null }) {
+  const isDone = value === "ดำเนินการแล้ว";
+  return isDone ? (
+    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">ดำเนินการแล้ว</span>
+  ) : (
+    <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">ยังไม่ดำเนินการ</span>
+  );
+}
+
+function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => void }) {
+  // Close on ESC
+  const handleKey = (e: React.KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+
+  const Row = ({ label, value }: { label: string; value?: string | null }) => (
+    <div className="flex gap-2 py-1.5 border-b border-slate-100 last:border-0">
+      <span className="text-slate-400 text-xs w-36 shrink-0">{label}</span>
+      <span className="text-slate-700 text-xs break-all">{value || "-"}</span>
+    </div>
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      onClick={onClose}
+      onKeyDown={handleKey}
+      tabIndex={-1}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-200">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">{emp.nameTh}</h2>
+            {emp.nameEn && <p className="text-sm text-slate-500 mt-0.5">{emp.nameEn}</p>}
+            <p className="text-xs text-slate-400 font-mono mt-1">{emp.employeeId}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors text-lg leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* ตำแหน่ง */}
+          <section>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ตำแหน่งงาน</h3>
+            <Row label="ตำแหน่ง" value={emp.position} />
+            <Row label="ระดับตำแหน่ง" value={emp.level} />
+            <Row label="ฝ่าย/กลุ่มงาน" value={emp.department} />
+            <Row label="หน่วยงาน/สำนัก" value={emp.bureau} />
+          </section>
+
+          {/* วันที่ */}
+          <section>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">วันที่</h3>
+            <Row label="วันเริ่มงาน" value={formatDate(emp.startDate)} />
+            <Row label="วันที่พ้นสภาพ" value={formatDate(emp.endDate)} />
+            <Row label="วันที่ได้รับข้อมูล" value={formatDate(emp.receivedDate)} />
+            <Row label="บค. ส่ง" value={formatDate(emp.hrSent)} />
+          </section>
+
+          {/* สถานะ IT */}
+          <section>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">สถานะการปิดสิทธิ์ IT</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+              {([["FMIS", emp.fmis], ["eMeeting", emp.eMeeting], ["Website", emp.website], ["3CX", emp.phone3cx], ["Intranet", emp.intranet]] as [string, string | undefined][]).map(([label, val]) => (
+                <div key={label} className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-500">{label}</span>
+                  <ITBadge value={val} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ติดต่อ */}
+          <section>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ติดต่อ</h3>
+            <Row label="Email" value={emp.email} />
+          </section>
+
+          {/* หมายเหตุ */}
+          {emp.remarks && (
+            <section>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">หมายเหตุ</h3>
+              <p className="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 rounded-lg p-3">{emp.remarks}</p>
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
