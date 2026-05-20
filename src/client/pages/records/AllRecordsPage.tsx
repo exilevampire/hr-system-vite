@@ -143,6 +143,12 @@ function formatDate(d?: string | null) {
   return date.toLocaleDateString("th-TH");
 }
 
+function isFullyClosed(emp: Employee): boolean {
+  const itFields = [emp.fmis, emp.eMeeting, emp.website, emp.phone3cx, emp.intranet];
+  const allHandled = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
+  return allHandled && !!emp.hrSent;
+}
+
 export default function AllRecordsPage() {
   const { user } = useAuth();
   const role = user?.role ?? "VIEWER";
@@ -362,7 +368,23 @@ export default function AllRecordsPage() {
                   </td>
                   <TCell className="text-slate-400 text-center">{(page - 1) * PAGE_SIZE + i + 1}</TCell>
                   <TCell title={emp.employeeId} className="font-mono text-xs text-slate-600">{emp.employeeId}</TCell>
-                  <TCell title={emp.nameTh} className="font-medium text-blue-700 cursor-pointer hover:underline" onClick={() => setSelectedEmp(emp)}>{emp.nameTh}</TCell>
+                  <td
+                    className="px-3 py-3 overflow-hidden cursor-pointer"
+                    style={{ maxWidth: 0 }}
+                    title={emp.nameTh}
+                    onClick={() => setSelectedEmp(emp)}
+                  >
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      <span className="font-medium text-blue-700 hover:underline overflow-hidden text-ellipsis whitespace-nowrap flex-1 min-w-0">
+                        {emp.nameTh}
+                      </span>
+                      {isFullyClosed(emp) && (
+                        <span className="shrink-0 text-xs bg-green-600 text-white px-1.5 py-px rounded font-semibold leading-tight whitespace-nowrap">
+                          ปิด
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <TCell title={emp.nameEn ?? "-"} className="text-slate-500">{emp.nameEn ?? "-"}</TCell>
                   <TCell title={emp.position ?? "-"}>{emp.position ?? "-"}</TCell>
                   <TCell title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>
@@ -400,7 +422,12 @@ export default function AllRecordsPage() {
               {/* Header: ชื่อ + รหัส + ปุ่มแก้ไข */}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-semibold text-slate-800 truncate">{emp.nameTh}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-slate-800 truncate">{emp.nameTh}</span>
+                    {isFullyClosed(emp) && (
+                      <span className="shrink-0 text-xs bg-green-600 text-white px-1.5 py-px rounded font-semibold leading-tight">ปิด</span>
+                    )}
+                  </div>
                   <div className="text-xs text-slate-500 truncate">{emp.nameEn || "-"}</div>
                   <div className="text-xs text-slate-400 font-mono mt-0.5">{emp.employeeId}</div>
                 </div>
@@ -458,19 +485,18 @@ export default function AllRecordsPage() {
               <div className="border-t border-slate-100 pt-3">
                 <div className="text-xs text-slate-400 mb-2 font-medium">สถานะการปิดสิทธิ์ IT</div>
                 <div className="grid grid-cols-2 gap-y-1.5 gap-x-3">
-                  {itFields.map(({ label, value }) => {
-                    const isDone = value === "ดำเนินการแล้ว";
-                    return (
-                      <div key={label} className="flex items-center justify-between gap-1">
-                        <span className="text-xs text-slate-500 shrink-0">{label}</span>
-                        {isDone ? (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">ดำเนินการแล้ว</span>
-                        ) : (
-                          <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full whitespace-nowrap">ยังไม่ดำเนินการ</span>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {itFields.map(({ label, value }) => (
+                    <div key={label} className="flex items-center justify-between gap-1">
+                      <span className="text-xs text-slate-500 shrink-0">{label}</span>
+                      {!value ? (
+                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่พบบัญชี</span>
+                      ) : value === "ดำเนินการแล้ว" ? (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">ดำเนินการแล้ว</span>
+                      ) : (
+                        <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full whitespace-nowrap">ยังไม่ดำเนินการ</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -537,10 +563,16 @@ function TCell({
 }
 
 function ITStatusCell({ value }: { value?: string | null }) {
+  if (!value) {
+    return (
+      <td className="px-3 py-3 text-left overflow-hidden" title="ไม่พบบัญชี">
+        <span className="inline-block text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่พบบัญชี</span>
+      </td>
+    );
+  }
   const isDone = value === "ดำเนินการแล้ว";
-  const label = isDone ? "ดำเนินการแล้ว" : "ยังไม่ดำเนินการ";
   return (
-    <td className="px-3 py-3 text-left overflow-hidden" title={label}>
+    <td className="px-3 py-3 text-left overflow-hidden" title={value}>
       {isDone ? (
         <span className="inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">ดำเนินการแล้ว</span>
       ) : (
@@ -551,8 +583,10 @@ function ITStatusCell({ value }: { value?: string | null }) {
 }
 
 function ITBadge({ value }: { value?: string | null }) {
-  const isDone = value === "ดำเนินการแล้ว";
-  return isDone ? (
+  if (!value) {
+    return <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">ไม่พบบัญชี</span>;
+  }
+  return value === "ดำเนินการแล้ว" ? (
     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">ดำเนินการแล้ว</span>
   ) : (
     <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">ยังไม่ดำเนินการ</span>
@@ -584,7 +618,14 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-200">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">{emp.nameTh}</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-bold text-slate-800">{emp.nameTh}</h2>
+              {isFullyClosed(emp) && (
+                <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full font-semibold">
+                  ✓ ปิดสำเร็จ
+                </span>
+              )}
+            </div>
             {emp.nameEn && <p className="text-sm text-slate-500 mt-0.5">{emp.nameEn}</p>}
             <p className="text-xs text-slate-400 font-mono mt-1">{emp.employeeId}</p>
           </div>
