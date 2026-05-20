@@ -34,9 +34,10 @@ function isItCleared(e: {
   intranet: string | null;
   hrSent: string | null;
 }): boolean {
-  return [e.fmis, e.eMeeting, e.website, e.phone3cx, e.intranet, e.hrSent].every(
-    (f) => f && f.trim() !== ""
-  );
+  const itFields = [e.fmis, e.eMeeting, e.website, e.phone3cx, e.intranet];
+  const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
+  const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
+  return noneIsPending && atLeastOneDone && !!e.hrSent;
 }
 
 function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {

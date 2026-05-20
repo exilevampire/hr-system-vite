@@ -36,8 +36,10 @@ router.get("/", authMiddleware, async (_req, res) => {
 
   let cleared = 0;
   for (const e of allEmployees) {
-    const itFields = [e.fmis, e.eMeeting, e.website, e.phone3cx, e.intranet, e.hrSent];
-    if (itFields.every((f) => f && f.trim() !== "")) cleared++;
+    const itFields = [e.fmis, e.eMeeting, e.website, e.phone3cx, e.intranet];
+    const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
+    const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
+    if (noneIsPending && atLeastOneDone && !!e.hrSent) cleared++;
   }
   const itStatus = { cleared, pending: total - cleared };
 
