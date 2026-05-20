@@ -60,7 +60,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-5">
-              <img src="/logo.png" alt="สภากาชาดไทย" className="h-48 object-contain drop-shadow-md" />
+              <img src="/logo.png" alt="สภากาชาดไทย" className="h-48 object-contain drop-shadow-md pt-3" />
             </div>
             <h1 className="text-xl font-bold text-white">ระบบจัดเก็บและรายงานข้อมูลพ้นสภาพ</h1>
           </div>
