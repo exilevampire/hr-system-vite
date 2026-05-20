@@ -145,8 +145,9 @@ function formatDate(d?: string | null) {
 
 function isFullyClosed(emp: Employee): boolean {
   const itFields = [emp.fmis, emp.eMeeting, emp.website, emp.phone3cx, emp.intranet];
-  const allHandled = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
-  return allHandled && !!emp.hrSent;
+  const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
+  const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
+  return noneIsPending && atLeastOneDone && !!emp.hrSent;
 }
 
 export default function AllRecordsPage() {
