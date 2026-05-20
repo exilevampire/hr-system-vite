@@ -24,7 +24,7 @@ export default function ImportPage() {
   useEffect(() => {
     if (countdown === null) return;
     if (countdown === 0) {
-      navigate("/records");
+      navigate("/records/all");
       return;
     }
     countdownRef.current = setInterval(() => {
@@ -52,7 +52,7 @@ export default function ImportPage() {
     setLoading(false);
     if (res.ok) {
       setResult(data);
-      setCountdown(3);
+      setCountdown(10);
     } else {
       setError(data.error ?? "เกิดข้อผิดพลาด");
     }
@@ -141,7 +141,7 @@ export default function ImportPage() {
                     <button
                       onClick={() => {
                         if (countdownRef.current) clearInterval(countdownRef.current);
-                        navigate("/records");
+                        navigate("/records/all");
                       }}
                       className="shrink-0 text-xs font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors"
                     >
@@ -152,7 +152,7 @@ export default function ImportPage() {
                   <div className="w-full h-1.5 bg-green-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500 rounded-full transition-all duration-1000 ease-linear"
-                      style={{ width: `${(countdown / 3) * 100}%` }}
+                      style={{ width: `${(countdown / 10) * 100}%` }}
                     />
                   </div>
                 </div>
