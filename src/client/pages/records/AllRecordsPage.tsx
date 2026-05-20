@@ -131,6 +131,8 @@ const HEADERS = [
   "FMIS", "eMeeting", "Website", "3CX", "Intranet", "บค.ส่ง",
 ];
 
+const NAME_COL_INDEX = 3;
+
 // Default widths matching the natural content layout (px)
 const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 175, 120, 100, 100, 100, 100, 100, 100];
 
@@ -296,7 +298,23 @@ export default function AllRecordsPage() {
                     key={i}
                     className="px-3 py-3 text-left font-semibold text-slate-600 whitespace-nowrap relative select-none overflow-hidden"
                   >
-                    <span className="block overflow-hidden text-ellipsis pr-2">{h}</span>
+                    {i === NAME_COL_INDEX ? (
+                      <span className="flex items-center gap-1.5 pr-2">
+                        <span className="overflow-hidden text-ellipsis">{h}</span>
+                        <span
+                          className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-normal text-blue-500 bg-blue-50 border border-blue-200 rounded px-1 py-px leading-none"
+                          title="คลิกที่ชื่อเพื่อดูรายละเอียด"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
+                          กดดูข้อมูล
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="block overflow-hidden text-ellipsis pr-2">{h}</span>
+                    )}
                     {/* Resize handle — skip first (actions) column */}
                     {i > 0 && (
                       <ResizeHandle onMouseDown={(e) => startResize(i, e)} />
@@ -617,12 +635,12 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
           </section>
 
           {/* หมายเหตุ */}
-          {emp.remarks && (
-            <section>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">หมายเหตุ</h3>
-              <p className="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 rounded-lg p-3">{emp.remarks}</p>
-            </section>
-          )}
+          <section>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">หมายเหตุ</h3>
+            <p className="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 rounded-lg p-3 min-h-[2.5rem]">
+              {emp.remarks || "-"}
+            </p>
+          </section>
         </div>
       </div>
     </div>
