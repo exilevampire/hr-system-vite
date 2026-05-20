@@ -10,107 +10,108 @@
 
     body {
       font-family: 'Sarabun', 'TH Sarabun New', 'Segoe UI', sans-serif;
-      font-size: 14px;
-      line-height: 1.7;
+      font-size: 16px;
+      line-height: 1.8;
       color: #1e293b;
       background: #f8fafc;
     }
 
     .page {
-      max-width: 800px;
+      max-width: 860px;
       margin: 0 auto;
       background: #fff;
-      padding: 48px 56px;
+      padding: 56px 64px;
     }
 
     /* ── Header ── */
     .doc-header {
       border-bottom: 3px solid #dc2626;
-      padding-bottom: 20px;
-      margin-bottom: 32px;
+      padding-bottom: 22px;
+      margin-bottom: 36px;
     }
-    .doc-header .org { font-size: 13px; color: #64748b; margin-bottom: 4px; }
-    .doc-header h1 { font-size: 22px; font-weight: 700; color: #0f172a; line-height: 1.3; }
-    .doc-header .subtitle { font-size: 13px; color: #475569; margin-top: 6px; }
-    .doc-header .meta { margin-top: 12px; display: flex; gap: 24px; font-size: 12px; color: #94a3b8; }
+    .doc-header .org { font-size: 15px; color: #64748b; margin-bottom: 6px; }
+    .doc-header h1 { font-size: 26px; font-weight: 700; color: #0f172a; line-height: 1.35; }
+    .doc-header .subtitle { font-size: 15px; color: #475569; margin-top: 8px; }
+    .doc-header .meta { margin-top: 14px; display: flex; gap: 24px; font-size: 13px; color: #94a3b8; }
 
     /* ── Section ── */
     h2 {
-      font-size: 15px;
+      font-size: 17px;
       font-weight: 700;
       color: #1e40af;
-      margin: 32px 0 12px;
-      padding: 6px 12px;
+      margin: 36px 0 14px;
+      padding: 8px 14px;
       background: #eff6ff;
       border-left: 4px solid #2563eb;
       border-radius: 0 4px 4px 0;
     }
     h3 {
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 600;
       color: #374151;
-      margin: 18px 0 8px;
+      margin: 20px 0 10px;
     }
 
-    p { margin-bottom: 10px; }
+    p { margin-bottom: 12px; font-size: 15px; }
 
     /* ── Code ── */
     pre {
       background: #0f172a;
       color: #e2e8f0;
       border-radius: 6px;
-      padding: 14px 16px;
-      font-size: 12px;
+      padding: 16px 18px;
+      font-size: 13.5px;
       font-family: 'Consolas', 'Courier New', monospace;
       overflow-x: auto;
-      margin: 10px 0 16px;
-      line-height: 1.6;
+      margin: 12px 0 18px;
+      line-height: 1.7;
     }
     code {
       background: #f1f5f9;
       color: #dc2626;
-      padding: 1px 5px;
+      padding: 2px 6px;
       border-radius: 3px;
-      font-size: 12px;
+      font-size: 13.5px;
       font-family: 'Consolas', 'Courier New', monospace;
     }
     pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
 
     /* ── Table ── */
-    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 13px; }
-    th { background: #1e40af; color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
-    td { padding: 7px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14.5px; }
+    th { background: #1e40af; color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; font-size: 14px; }
+    td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
     tr:nth-child(even) td { background: #f8fafc; }
 
     /* ── Callout boxes ── */
     .warn, .info, .danger {
       border-radius: 6px;
-      padding: 10px 14px;
-      margin: 12px 0;
-      font-size: 13px;
+      padding: 12px 16px;
+      margin: 14px 0;
+      font-size: 14.5px;
+      line-height: 1.7;
     }
     .warn  { background: #fffbeb; border-left: 4px solid #f59e0b; color: #78350f; }
     .info  { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e3a5f; }
     .danger{ background: #fef2f2; border-left: 4px solid #ef4444; color: #7f1d1d; }
-    .warn strong, .info strong, .danger strong { display: block; margin-bottom: 2px; }
+    .warn strong, .info strong, .danger strong { display: block; margin-bottom: 4px; font-size: 15px; }
 
     /* ── Checklist ── */
-    .checklist { list-style: none; padding: 0; margin: 10px 0; }
+    .checklist { list-style: none; padding: 0; margin: 12px 0; }
     .checklist li {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
-      padding: 5px 0;
+      gap: 12px;
+      padding: 7px 0;
       border-bottom: 1px dashed #e2e8f0;
-      font-size: 13px;
+      font-size: 14.5px;
     }
     .checklist li:last-child { border: none; }
     .checklist .box {
-      width: 16px; height: 16px;
+      width: 18px; height: 18px;
       border: 2px solid #94a3b8;
       border-radius: 3px;
       flex-shrink: 0;
-      margin-top: 2px;
+      margin-top: 3px;
     }
 
     /* ── Step badge ── */
@@ -118,34 +119,35 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 26px; height: 26px;
+      width: 28px; height: 28px;
       background: #2563eb;
       color: #fff;
       border-radius: 50%;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 700;
       margin-right: 8px;
       flex-shrink: 0;
+      vertical-align: middle;
     }
 
     /* ── Role badge ── */
-    .role { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .role { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12.5px; font-weight: 600; }
     .role-super { background: #fef3c7; color: #92400e; }
     .role-hr    { background: #dbeafe; color: #1e40af; }
     .role-view  { background: #f1f5f9; color: #475569; }
 
     /* ── TOC ── */
-    .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin-bottom: 32px; }
-    .toc h2 { margin: 0 0 10px; background: none; border: none; padding: 0; color: #374151; font-size: 14px; }
-    .toc ol { padding-left: 18px; }
-    .toc li { margin: 4px 0; font-size: 13px; color: #2563eb; }
+    .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 24px; margin-bottom: 36px; }
+    .toc h2 { margin: 0 0 12px; background: none; border: none; padding: 0; color: #374151; font-size: 15px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin: 5px 0; font-size: 14.5px; color: #2563eb; }
 
     /* ── Footer ── */
     .doc-footer {
-      margin-top: 48px;
-      padding-top: 16px;
+      margin-top: 56px;
+      padding-top: 18px;
       border-top: 1px solid #e2e8f0;
-      font-size: 11px;
+      font-size: 12.5px;
       color: #94a3b8;
       display: flex;
       justify-content: space-between;
@@ -153,13 +155,16 @@
 
     /* ── Print ── */
     @media print {
-      body { background: #fff; font-size: 12px; }
-      .page { padding: 0; max-width: 100%; }
-      h2 { break-before: avoid; }
-      pre { break-inside: avoid; }
+      body { background: #fff; font-size: 13px; }
+      .page { padding: 10mm 14mm; max-width: 100%; }
+      h2 { break-before: avoid; font-size: 14px; }
+      h3 { font-size: 13px; }
+      p, td, li { font-size: 12px; }
+      pre { font-size: 11px; break-inside: avoid; }
       table { break-inside: avoid; }
       .no-break { break-inside: avoid; }
       .page-break { break-before: page; }
+      .doc-footer { font-size: 10px; }
     }
   </style>
 </head>
