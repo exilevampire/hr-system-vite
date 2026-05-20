@@ -126,13 +126,13 @@ interface Employee {
 const PAGE_SIZE = 20;
 
 const HEADERS = [
-  "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
+  "", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
   "ตำแหน่ง", "หน่วยงาน", "วันพ้นสภาพ",
-  "FMIS", "eMeeting", "Website", "3CX", "Intranet", "บค.ส่ง", "",
+  "FMIS", "eMeeting", "Website", "3CX", "Intranet", "บค.ส่ง",
 ];
 
 // Default widths matching the natural content layout (px)
-const DEFAULT_WIDTHS = [48, 88, 210, 210, 185, 175, 120, 100, 100, 100, 100, 100, 100, 80];
+const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 175, 120, 100, 100, 100, 100, 100, 100];
 
 function formatDate(d?: string | null) {
   if (!d) return "-";
@@ -296,8 +296,8 @@ export default function AllRecordsPage() {
                     className="px-3 py-3 text-left font-semibold text-slate-600 whitespace-nowrap relative select-none overflow-hidden"
                   >
                     <span className="block overflow-hidden text-ellipsis pr-2">{h}</span>
-                    {/* Resize handle — skip last (actions) column */}
-                    {i < HEADERS.length - 1 && (
+                    {/* Resize handle — skip first (actions) column */}
+                    {i > 0 && (
                       <ResizeHandle onMouseDown={(e) => startResize(i, e)} />
                     )}
                   </th>
@@ -311,6 +311,16 @@ export default function AllRecordsPage() {
                 <tr><td colSpan={HEADERS.length} className="py-12 text-center text-slate-400">ไม่พบข้อมูล</td></tr>
               ) : employees.map((emp, i) => (
                 <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-3 py-3 whitespace-nowrap overflow-hidden">
+                    {canEdit && (
+                      <div className="flex gap-2">
+                        <Link to={`/records/${emp.employeeId}/edit`} className="text-blue-600 hover:underline text-xs">แก้ไข</Link>
+                        {role === "SUPER_ADMIN" && (
+                          <button onClick={() => handleDelete(emp.employeeId)} className="text-red-500 hover:underline text-xs">ลบ</button>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <TCell className="text-slate-400 text-center">{(page - 1) * PAGE_SIZE + i + 1}</TCell>
                   <TCell title={emp.employeeId} className="font-mono text-xs text-slate-600">{emp.employeeId}</TCell>
                   <TCell title={emp.nameTh} className="font-medium text-slate-800">{emp.nameTh}</TCell>
@@ -324,16 +334,6 @@ export default function AllRecordsPage() {
                   <ITStatusCell value={emp.phone3cx} />
                   <ITStatusCell value={emp.intranet} />
                   <TCell title={formatDate(emp.hrSent)}>{formatDate(emp.hrSent)}</TCell>
-                  <td className="px-3 py-3 whitespace-nowrap overflow-hidden">
-                    {canEdit && (
-                      <div className="flex gap-2">
-                        <Link to={`/records/${emp.employeeId}/edit`} className="text-blue-600 hover:underline text-xs">แก้ไข</Link>
-                        {role === "SUPER_ADMIN" && (
-                          <button onClick={() => handleDelete(emp.employeeId)} className="text-red-500 hover:underline text-xs">ลบ</button>
-                        )}
-                      </div>
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>
