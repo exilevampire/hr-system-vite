@@ -1,7 +1,7 @@
 import { AppLayout } from "../../components/AppLayout";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { authHeaders } from "../../lib/api";
 
 interface ImportResult {
@@ -18,6 +18,20 @@ export default function ImportPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState("");
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      navigate("/records");
+      return;
+    }
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, [countdown, navigate]);
 
   async function handleImport() {
     if (!file) return;
@@ -38,6 +52,7 @@ export default function ImportPage() {
     setLoading(false);
     if (res.ok) {
       setResult(data);
+      setCountdown(3);
     } else {
       setError(data.error ?? "เกิดข้อผิดพลาด");
     }
@@ -102,10 +117,10 @@ export default function ImportPage() {
 
           {result && (
             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-              <p className="font-semibold text-green-700 mb-2">✅ นำเข้าสำเร็จ</p>
-              <div className="text-sm text-green-600 space-y-1">
-                <p>นำเข้าสำเร็จ: {result.success} รายการ</p>
-                <p>ข้ามรายการซ้ำ: {result.skipped} รายการ</p>
+              <p className="font-semibold text-green-700 mb-3">✅ นำเข้าสำเร็จ</p>
+              <div className="text-sm text-green-600 space-y-1 mb-4">
+                <p>นำเข้าสำเร็จ: <span className="font-semibold">{result.success}</span> รายการ</p>
+                <p>ข้ามรายการซ้ำ: <span className="font-semibold">{result.skipped}</span> รายการ</p>
                 {result.errors.length > 0 && (
                   <div className="mt-2">
                     <p className="text-red-600 font-medium">ข้อผิดพลาด:</p>
@@ -115,19 +130,61 @@ export default function ImportPage() {
                   </div>
                 )}
               </div>
+
+              {/* Countdown + redirect */}
+              {countdown !== null && (
+                <div className="border-t border-green-200 pt-3">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="text-xs text-green-600">
+                      กำลังนำทางไปหน้าข้อมูลพ้นสภาพใน <span className="font-bold text-green-700">{countdown}</span> วินาที...
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (countdownRef.current) clearInterval(countdownRef.current);
+                        navigate("/records");
+                      }}
+                      className="shrink-0 text-xs font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      ไปเลย →
+                    </button>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full h-1.5 bg-green-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500 rounded-full transition-all duration-1000 ease-linear"
+                      style={{ width: `${(countdown / 3) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           <div className="mt-6 flex gap-3 justify-end">
-            <button
-              onClick={() => navigate(-1)}
-              className="px-5 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              ยกเลิก
-            </button>
+            {result ? (
+              <button
+                onClick={() => {
+                  if (countdownRef.current) clearInterval(countdownRef.current);
+                  setResult(null);
+                  setFile(null);
+                  setCountdown(null);
+                  if (fileRef.current) fileRef.current.value = "";
+                }}
+                className="px-5 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                นำเข้าไฟล์ใหม่
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate(-1)}
+                className="px-5 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                ยกเลิก
+              </button>
+            )}
             <button
               onClick={handleImport}
-              disabled={!file || loading}
+              disabled={!file || loading || !!result}
               className="px-5 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg transition-colors"
             >
               {loading ? "กำลังนำเข้า..." : "นำเข้าข้อมูล"}
