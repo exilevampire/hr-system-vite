@@ -10,108 +10,108 @@
 
     body {
       font-family: 'Sarabun', 'TH Sarabun New', 'Segoe UI', sans-serif;
-      font-size: 16px;
-      line-height: 1.8;
+      font-size: 20px;
+      line-height: 1.9;
       color: #1e293b;
       background: #f8fafc;
     }
 
     .page {
-      max-width: 860px;
+      max-width: 960px;
       margin: 0 auto;
       background: #fff;
-      padding: 56px 64px;
+      padding: 60px 72px;
     }
 
     /* ── Header ── */
     .doc-header {
       border-bottom: 3px solid #dc2626;
-      padding-bottom: 22px;
-      margin-bottom: 36px;
+      padding-bottom: 24px;
+      margin-bottom: 40px;
     }
-    .doc-header .org { font-size: 15px; color: #64748b; margin-bottom: 6px; }
-    .doc-header h1 { font-size: 26px; font-weight: 700; color: #0f172a; line-height: 1.35; }
-    .doc-header .subtitle { font-size: 15px; color: #475569; margin-top: 8px; }
-    .doc-header .meta { margin-top: 14px; display: flex; gap: 24px; font-size: 13px; color: #94a3b8; }
+    .doc-header .org { font-size: 18px; color: #64748b; margin-bottom: 8px; }
+    .doc-header h1 { font-size: 30px; font-weight: 700; color: #0f172a; line-height: 1.35; }
+    .doc-header .subtitle { font-size: 18px; color: #475569; margin-top: 10px; }
+    .doc-header .meta { margin-top: 14px; display: flex; gap: 24px; font-size: 15px; color: #94a3b8; }
 
     /* ── Section ── */
     h2 {
-      font-size: 17px;
+      font-size: 21px;
       font-weight: 700;
       color: #1e40af;
-      margin: 36px 0 14px;
-      padding: 8px 14px;
+      margin: 40px 0 16px;
+      padding: 10px 16px;
       background: #eff6ff;
-      border-left: 4px solid #2563eb;
+      border-left: 5px solid #2563eb;
       border-radius: 0 4px 4px 0;
     }
     h3 {
-      font-size: 15px;
+      font-size: 18px;
       font-weight: 600;
       color: #374151;
-      margin: 20px 0 10px;
+      margin: 24px 0 12px;
     }
 
-    p { margin-bottom: 12px; font-size: 15px; }
+    p { margin-bottom: 14px; font-size: 19px; }
 
     /* ── Code ── */
     pre {
       background: #0f172a;
       color: #e2e8f0;
       border-radius: 6px;
-      padding: 16px 18px;
-      font-size: 13.5px;
+      padding: 18px 20px;
+      font-size: 15px;
       font-family: 'Consolas', 'Courier New', monospace;
       overflow-x: auto;
-      margin: 12px 0 18px;
-      line-height: 1.7;
+      margin: 14px 0 20px;
+      line-height: 1.75;
     }
     code {
       background: #f1f5f9;
       color: #dc2626;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 3px;
-      font-size: 13.5px;
+      font-size: 15px;
       font-family: 'Consolas', 'Courier New', monospace;
     }
     pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
 
     /* ── Table ── */
-    table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14.5px; }
-    th { background: #1e40af; color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; font-size: 14px; }
-    td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 17px; }
+    th { background: #1e40af; color: #fff; padding: 11px 16px; text-align: left; font-weight: 600; font-size: 17px; }
+    td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
     tr:nth-child(even) td { background: #f8fafc; }
 
     /* ── Callout boxes ── */
     .warn, .info, .danger {
       border-radius: 6px;
-      padding: 12px 16px;
-      margin: 14px 0;
-      font-size: 14.5px;
-      line-height: 1.7;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 18px;
+      line-height: 1.8;
     }
-    .warn  { background: #fffbeb; border-left: 4px solid #f59e0b; color: #78350f; }
-    .info  { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e3a5f; }
-    .danger{ background: #fef2f2; border-left: 4px solid #ef4444; color: #7f1d1d; }
-    .warn strong, .info strong, .danger strong { display: block; margin-bottom: 4px; font-size: 15px; }
+    .warn  { background: #fffbeb; border-left: 5px solid #f59e0b; color: #78350f; }
+    .info  { background: #eff6ff; border-left: 5px solid #3b82f6; color: #1e3a5f; }
+    .danger{ background: #fef2f2; border-left: 5px solid #ef4444; color: #7f1d1d; }
+    .warn strong, .info strong, .danger strong { display: block; margin-bottom: 6px; font-size: 19px; }
 
     /* ── Checklist ── */
-    .checklist { list-style: none; padding: 0; margin: 12px 0; }
+    .checklist { list-style: none; padding: 0; margin: 14px 0; }
     .checklist li {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      padding: 7px 0;
+      gap: 14px;
+      padding: 9px 0;
       border-bottom: 1px dashed #e2e8f0;
-      font-size: 14.5px;
+      font-size: 18px;
     }
     .checklist li:last-child { border: none; }
     .checklist .box {
-      width: 18px; height: 18px;
+      width: 20px; height: 20px;
       border: 2px solid #94a3b8;
       border-radius: 3px;
       flex-shrink: 0;
-      margin-top: 3px;
+      margin-top: 4px;
     }
 
     /* ── Step badge ── */
@@ -119,35 +119,35 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px; height: 28px;
+      width: 32px; height: 32px;
       background: #2563eb;
       color: #fff;
       border-radius: 50%;
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 700;
-      margin-right: 8px;
+      margin-right: 10px;
       flex-shrink: 0;
       vertical-align: middle;
     }
 
     /* ── Role badge ── */
-    .role { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12.5px; font-weight: 600; }
+    .role { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 15px; font-weight: 600; }
     .role-super { background: #fef3c7; color: #92400e; }
     .role-hr    { background: #dbeafe; color: #1e40af; }
     .role-view  { background: #f1f5f9; color: #475569; }
 
     /* ── TOC ── */
-    .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 24px; margin-bottom: 36px; }
-    .toc h2 { margin: 0 0 12px; background: none; border: none; padding: 0; color: #374151; font-size: 15px; }
-    .toc ol { padding-left: 20px; }
-    .toc li { margin: 5px 0; font-size: 14.5px; color: #2563eb; }
+    .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px 28px; margin-bottom: 40px; }
+    .toc h2 { margin: 0 0 14px; background: none; border: none; padding: 0; color: #374151; font-size: 18px; }
+    .toc ol { padding-left: 22px; }
+    .toc li { margin: 7px 0; font-size: 17px; color: #2563eb; }
 
     /* ── Footer ── */
     .doc-footer {
-      margin-top: 56px;
-      padding-top: 18px;
+      margin-top: 60px;
+      padding-top: 20px;
       border-top: 1px solid #e2e8f0;
-      font-size: 12.5px;
+      font-size: 14px;
       color: #94a3b8;
       display: flex;
       justify-content: space-between;
@@ -155,16 +155,17 @@
 
     /* ── Print ── */
     @media print {
-      body { background: #fff; font-size: 13px; }
+      body { background: #fff; font-size: 14px; }
       .page { padding: 10mm 14mm; max-width: 100%; }
-      h2 { break-before: avoid; font-size: 14px; }
-      h3 { font-size: 13px; }
-      p, td, li { font-size: 12px; }
-      pre { font-size: 11px; break-inside: avoid; }
+      h2 { break-before: avoid; font-size: 15px; }
+      h3 { font-size: 14px; }
+      p { font-size: 13px; }
+      td, li { font-size: 13px; }
+      pre { font-size: 12px; break-inside: avoid; }
       table { break-inside: avoid; }
       .no-break { break-inside: avoid; }
       .page-break { break-before: page; }
-      .doc-footer { font-size: 10px; }
+      .doc-footer { font-size: 11px; }
     }
   </style>
 </head>
