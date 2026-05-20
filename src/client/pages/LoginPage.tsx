@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { RedCrossIcon } from "../components/RedCrossIcon";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -61,18 +60,9 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-5">
-              <div className="bg-white rounded-2xl px-10 py-6 shadow-lg inline-flex flex-col items-center">
-                <RedCrossIcon size={80} />
-                <p className="text-xl font-bold text-gray-900 mt-3" style={{ fontFamily: "'Sarabun', 'Noto Serif Thai', serif" }}>
-                  สภากาชาดไทย
-                </p>
-                <p className="text-xs font-semibold text-gray-700 mt-1" style={{ letterSpacing: "0.18em" }}>
-                  THAI RED CROSS SOCIETY
-                </p>
-              </div>
+              <img src="/logo.png" alt="สภากาชาดไทย" className="h-48 object-contain drop-shadow-md" />
             </div>
             <h1 className="text-xl font-bold text-white">ระบบจัดเก็บและรายงานข้อมูลพ้นสภาพ</h1>
-            <p className="text-blue-200 mt-2 text-sm">สำหรับเจ้าหน้าที่ที่ได้รับอนุญาตเท่านั้น</p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-2xl p-8">
