@@ -23,7 +23,7 @@ const fields: Field[] = [
   { key: "department",   label: "ฝ่าย/กลุ่มงาน",        type: "text" },
   { key: "bureau",       label: "หน่วยงาน/สำนัก",       type: "text" },
   { key: "startDate",    label: "วันเริ่มงาน",           type: "date" },
-  { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date",     required: true },
+  { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date" },
   { key: "receivedDate", label: "วันที่ได้รับข้อมูล",    type: "date" },
   { key: "email",        label: "Email",                 type: "email" },
   { key: "fmis",         label: "FMIS",                  type: "select",   options: IT_OPTS },
@@ -54,9 +54,6 @@ function validate(
   // ── Required ──────────────────────────────────────────────
   if (!form.nameTh?.trim())
     err.nameTh = "กรุณากรอกชื่อ-สกุล (ไทย)";
-
-  if (!form.endDate && !partialDates.endDate)
-    err.endDate = "กรุณาระบุวันที่พ้นสภาพ";
 
   // ── รูปแบบ Email ──────────────────────────────────────────
   const email = form.email?.trim();
