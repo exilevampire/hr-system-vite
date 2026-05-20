@@ -126,7 +126,7 @@ interface Employee {
 const PAGE_SIZE = 20;
 
 const HEADERS = [
-  "", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
+  "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
   "ตำแหน่ง", "หน่วยงาน", "วันพ้นสภาพ",
   "FMIS", "eMeeting", "Website", "3CX", "Intranet", "บค.ส่ง",
 ];
@@ -313,10 +313,30 @@ export default function AllRecordsPage() {
                 <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-3 py-3 whitespace-nowrap overflow-hidden">
                     {canEdit && (
-                      <div className="flex gap-2">
-                        <Link to={`/records/${emp.employeeId}/edit`} className="text-blue-600 hover:underline text-xs">แก้ไข</Link>
+                      <div className="flex gap-1.5">
+                        <Link
+                          to={`/records/${emp.employeeId}/edit`}
+                          title="แก้ไข"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-blue-600 hover:bg-blue-50 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                        </Link>
                         {role === "SUPER_ADMIN" && (
-                          <button onClick={() => handleDelete(emp.employeeId)} className="text-red-500 hover:underline text-xs">ลบ</button>
+                          <button
+                            onClick={() => handleDelete(emp.employeeId)}
+                            title="ลบ"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"/>
+                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                              <path d="M10 11v6M14 11v6"/>
+                              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                          </button>
                         )}
                       </div>
                     )}
@@ -366,10 +386,30 @@ export default function AllRecordsPage() {
                   <div className="text-xs text-slate-400 font-mono mt-0.5">{emp.employeeId}</div>
                 </div>
                 {canEdit && (
-                  <div className="flex gap-2 shrink-0">
-                    <Link to={`/records/${emp.employeeId}/edit`} className="text-xs text-blue-600 border border-blue-200 rounded px-2 py-1">แก้ไข</Link>
+                  <div className="flex gap-1.5 shrink-0">
+                    <Link
+                      to={`/records/${emp.employeeId}/edit`}
+                      title="แก้ไข"
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-md text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </Link>
                     {role === "SUPER_ADMIN" && (
-                      <button onClick={() => handleDelete(emp.employeeId)} className="text-xs text-red-500 border border-red-200 rounded px-2 py-1">ลบ</button>
+                      <button
+                        onClick={() => handleDelete(emp.employeeId)}
+                        title="ลบ"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-500 border border-red-200 hover:bg-red-50 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                          <path d="M10 11v6M14 11v6"/>
+                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                      </button>
                     )}
                   </div>
                 )}
