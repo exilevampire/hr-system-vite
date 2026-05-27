@@ -116,10 +116,15 @@ interface Employee {
   remarks?: string;
   email?: string;
   fmis?: string;
+  fmisDate?: string;
   eMeeting?: string;
+  eMeetingDate?: string;
   website?: string;
+  websiteDate?: string;
   phone3cx?: string;
+  phone3cxDate?: string;
   intranet?: string;
+  intranetDate?: string;
   hrSent?: string;
 }
 
@@ -127,14 +132,14 @@ const PAGE_SIZE = 20;
 
 const HEADERS = [
   "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
-  "ตำแหน่ง", "หน่วยงาน", "วันพ้นสภาพ",
+  "ตำแหน่ง", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
   "FMIS", "eMeeting", "Website", "3CX", "Intranet", "บค.ส่ง",
 ];
 
 const NAME_COL_INDEX = 3;
 
 // Default widths matching the natural content layout (px)
-const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 175, 120, 100, 100, 100, 100, 100, 100];
+const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 160, 175, 120, 100, 100, 100, 100, 100, 100];
 
 function formatDate(d?: string | null) {
   if (!d) return "-";
@@ -388,6 +393,7 @@ export default function AllRecordsPage() {
                   </td>
                   <TCell title={emp.nameEn ?? "-"} className="text-slate-500">{emp.nameEn ?? "-"}</TCell>
                   <TCell title={emp.position ?? "-"}>{emp.position ?? "-"}</TCell>
+                  <TCell title={emp.department ?? "-"}>{emp.department ?? "-"}</TCell>
                   <TCell title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>
                   <TCell title={formatDate(emp.endDate)}>{formatDate(emp.endDate)}</TCell>
                   <ITStatusCell value={emp.fmis} />
@@ -467,6 +473,10 @@ export default function AllRecordsPage() {
                 <div className="flex gap-2">
                   <span className="text-slate-400 w-24 shrink-0">ตำแหน่ง</span>
                   <span className="text-slate-700">{emp.position ?? "-"}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-slate-400 w-24 shrink-0">ฝ่าย/กลุ่มงาน</span>
+                  <span className="text-slate-700">{emp.department ?? "-"}</span>
                 </div>
                 <div className="flex gap-2">
                   <span className="text-slate-400 w-24 shrink-0">หน่วยงาน</span>
@@ -660,11 +670,22 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
           {/* สถานะ IT */}
           <section>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">สถานะการปิดสิทธิ์ IT</h3>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-              {([["FMIS", emp.fmis], ["eMeeting", emp.eMeeting], ["Website", emp.website], ["3CX", emp.phone3cx], ["Intranet", emp.intranet]] as [string, string | undefined][]).map(([label, val]) => (
+            <div className="space-y-2">
+              {([
+                ["FMIS",     emp.fmis,     emp.fmisDate],
+                ["eMeeting", emp.eMeeting, emp.eMeetingDate],
+                ["Website",  emp.website,  emp.websiteDate],
+                ["3CX",      emp.phone3cx, emp.phone3cxDate],
+                ["Intranet", emp.intranet, emp.intranetDate],
+              ] as [string, string | undefined, string | undefined][]).map(([label, val, dateVal]) => (
                 <div key={label} className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-slate-500">{label}</span>
-                  <ITBadge value={val} />
+                  <span className="text-xs text-slate-500 w-16 shrink-0">{label}</span>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {val === "ดำเนินการแล้ว" && dateVal && (
+                      <span className="text-xs text-slate-400">{formatDate(dateVal)}</span>
+                    )}
+                    <ITBadge value={val} />
+                  </div>
                 </div>
               ))}
             </div>

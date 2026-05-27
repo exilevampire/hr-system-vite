@@ -13,6 +13,7 @@ interface Field {
   type: "text" | "email" | "date" | "textarea" | "select";
   required?: boolean;
   options?: string[];
+  dateKey?: string;
 }
 
 const fields: Field[] = [
@@ -26,16 +27,17 @@ const fields: Field[] = [
   { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date" },
   { key: "receivedDate", label: "วันที่ได้รับข้อมูล",    type: "date" },
   { key: "email",        label: "Email",                 type: "email" },
-  { key: "fmis",         label: "FMIS",                  type: "select",   options: IT_OPTS },
-  { key: "eMeeting",     label: "eMeeting",              type: "select",   options: IT_OPTS },
-  { key: "website",      label: "Website",               type: "select",   options: IT_OPTS },
-  { key: "phone3cx",     label: "3CX",                   type: "select",   options: IT_OPTS },
-  { key: "intranet",     label: "Intranet",              type: "select",   options: IT_OPTS },
+  { key: "fmis",         label: "FMIS",                  type: "select",   options: IT_OPTS, dateKey: "fmisDate" },
+  { key: "eMeeting",     label: "eMeeting",              type: "select",   options: IT_OPTS, dateKey: "eMeetingDate" },
+  { key: "website",      label: "Website",               type: "select",   options: IT_OPTS, dateKey: "websiteDate" },
+  { key: "phone3cx",     label: "3CX",                   type: "select",   options: IT_OPTS, dateKey: "phone3cxDate" },
+  { key: "intranet",     label: "Intranet",              type: "select",   options: IT_OPTS, dateKey: "intranetDate" },
   { key: "hrSent",       label: "บค. ส่ง",               type: "date" },
   { key: "remarks",      label: "หมายเหตุ",              type: "textarea" },
 ];
 
-const DATE_FIELD_KEYS = fields.filter((f) => f.type === "date").map((f) => f.key);
+const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "websiteDate", "phone3cxDate", "intranetDate"];
+const DATE_FIELD_KEYS = [...fields.filter((f) => f.type === "date").map((f) => f.key), ...IT_DATE_KEYS];
 
 type FormErrors = Record<string, string>;
 
@@ -99,13 +101,27 @@ export default function EditRecordPage() {
           endDate:      toDateInput(d.endDate),
           receivedDate: toDateInput(d.receivedDate),
           hrSent:       toDateInput(d.hrSent),
+          fmisDate:     toDateInput(d.fmisDate),
+          eMeetingDate: toDateInput(d.eMeetingDate),
+          websiteDate:  toDateInput(d.websiteDate),
+          phone3cxDate: toDateInput(d.phone3cxDate),
+          intranetDate: toDateInput(d.intranetDate),
         });
         setLoading(false);
       });
   }, [employeeId]);
 
+  const IT_TO_DATE: Record<string, string> = {
+    fmis: "fmisDate", eMeeting: "eMeetingDate", website: "websiteDate",
+    phone3cx: "phone3cxDate", intranet: "intranetDate",
+  };
+
   function setField(key: string, val: string) {
-    setFormState((prev) => ({ ...prev, [key]: val }));
+    setFormState((prev) => {
+      const next: Record<string, string> = { ...prev, [key]: val };
+      if (IT_TO_DATE[key] && val !== "ดำเนินการแล้ว") next[IT_TO_DATE[key]] = "";
+      return next;
+    });
     if (errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
   }
 
@@ -185,13 +201,29 @@ export default function EditRecordPage() {
                       onChange={(e) => setField(f.key, e.target.value)}
                       className={baseCls} />
                   ) : f.type === "select" ? (
-                    <select value={form[f.key] ?? ""}
-                      onChange={(e) => setField(f.key, e.target.value)}
-                      className={`${baseCls} bg-white`}>
-                      {f.options!.map((opt) => (
-                        <option key={opt} value={opt}>{opt || "-- เลือกสถานะ --"}</option>
-                      ))}
-                    </select>
+                    <>
+                      <select value={form[f.key] ?? ""}
+                        onChange={(e) => setField(f.key, e.target.value)}
+                        className={`${baseCls} bg-white`}>
+                        {f.options!.map((opt) => (
+                          <option key={opt} value={opt}>{opt || "-- เลือกสถานะ --"}</option>
+                        ))}
+                      </select>
+                      {f.dateKey && form[f.key] === "ดำเนินการแล้ว" && (
+                        <div className="mt-2">
+                          <label className="block text-xs font-medium text-slate-500 mb-1">
+                            วันที่ดำเนินการ <span className="text-slate-400 font-normal">(พ.ศ.)</span>
+                          </label>
+                          <ThaiDateInput
+                            value={form[f.dateKey] ?? ""}
+                            onChange={(v) => setField(f.dateKey!, v)}
+                            onPartialChange={(p) => setPartial(f.dateKey!, p)}
+                            hasError={!!errors[f.dateKey]}
+                          />
+                          {errors[f.dateKey] && <p className="mt-1 text-xs text-red-600">{errors[f.dateKey]}</p>}
+                        </div>
+                      )}
+                    </>
                   ) : f.type === "date" ? (
                     <ThaiDateInput
                       value={form[f.key] ?? ""}
