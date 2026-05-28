@@ -68,12 +68,15 @@ export default function ImportPage() {
 
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-700 flex items-start justify-between gap-4">
           <div>
-            <p className="font-semibold mb-2">📋 รูปแบบไฟล์ Excel ที่รองรับ:</p>
+            <p className="font-semibold mb-2">📋 รูปแบบไฟล์ Excel ที่รองรับ (Template ใหม่):</p>
             <p className="text-xs text-blue-600 font-mono">
-              รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ระดับตำแหน่ง | ฝ่าย/กลุ่มงาน | หน่วยงาน/สำนัก | วันเริ่มงาน | วันที่พ้นสภาพ | วันที่ได้รับข้อมูล | หมายเหตุ | email | FMIS | eMeeting | Website | 3CX | intranet | บค. ส่ง
+              ชื่อแฟ้ม | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ระดับตำแหน่ง | ฝ่าย/กลุ่ม/งาน | หน่วยงาน | วันที่พ้นสภาพ
             </p>
             <p className="text-xs text-blue-500 mt-1.5">
-              ⚠️ คอลัมน์ FMIS, eMeeting, Website, 3CX, intranet รับเฉพาะ <span className="font-semibold">ดำเนินการแล้ว</span> หรือ <span className="font-semibold">ยังไม่ดำเนินการ</span> เท่านั้น (ค่าอื่นจะถูกละเว้น)
+              คอลัมน์ที่กำหนดต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นเป็น optional)
+            </p>
+            <p className="text-xs text-blue-400 mt-0.5">
+              รองรับทั้ง template เก่า (ฝ่าย/กลุ่มงาน, หน่วยงาน/สำนัก) และ template ใหม่
             </p>
           </div>
           <a
@@ -99,13 +102,13 @@ export default function ImportPage() {
             ) : (
               <div>
                 <p className="font-medium text-slate-600">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง</p>
-                <p className="text-sm text-slate-400 mt-1">รองรับไฟล์ .xlsx และ .xls</p>
+                <p className="text-sm text-slate-400 mt-1">รองรับไฟล์ .xlsx, .xls และ .csv</p>
               </div>
             )}
             <input
               ref={fileRef}
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.csv"
               className="hidden"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />

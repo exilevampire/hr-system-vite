@@ -1,6 +1,14 @@
 import { AppLayout } from "../components/AppLayout";
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
+import { ThaiDatePicker } from "../components/ThaiDatePicker";
+
+function toBEDisplay(iso: string) {
+  if (!iso) return "";
+  const p = iso.split("-");
+  if (p.length < 3) return iso;
+  return `${parseInt(p[2])}/${parseInt(p[1])}/${parseInt(p[0]) + 543}`;
+}
 
 interface Filters {
   dateFrom: string;
@@ -95,21 +103,11 @@ export default function ReportPage() {
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">ช่วงวันพ้นสภาพ</label>
               <div>
                 <label className="block text-xs text-slate-500 mb-1">ตั้งแต่วันที่</label>
-                <input
-                  type="date"
-                  value={filters.dateFrom}
-                  onChange={(e) => setFilter("dateFrom", e.target.value)}
-                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <ThaiDatePicker value={filters.dateFrom} onChange={(v) => setFilter("dateFrom", v)} className="w-full" />
               </div>
               <div>
                 <label className="block text-xs text-slate-500 mb-1">ถึงวันที่</label>
-                <input
-                  type="date"
-                  value={filters.dateTo}
-                  onChange={(e) => setFilter("dateTo", e.target.value)}
-                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <ThaiDatePicker value={filters.dateTo} onChange={(v) => setFilter("dateTo", v)} className="w-full" />
               </div>
             </div>
 
@@ -206,10 +204,10 @@ export default function ReportPage() {
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-2 text-xs">
               <span className="font-semibold text-amber-700">ตัวกรองที่ใช้:</span>
               {filters.dateFrom && (
-                <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">ตั้งแต่ {filters.dateFrom}</span>
+                <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">ตั้งแต่ {toBEDisplay(filters.dateFrom)}</span>
               )}
               {filters.dateTo && (
-                <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">ถึง {filters.dateTo}</span>
+                <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">ถึง {toBEDisplay(filters.dateTo)}</span>
               )}
               {filters.bureau !== "all" && (
                 <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{filters.bureau}</span>

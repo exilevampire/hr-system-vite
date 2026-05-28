@@ -20,9 +20,9 @@ const BLUE_MID = "FFDBEAFE";
 function toBE(date: Date | null | undefined): string {
   if (!date) return "";
   const d = new Date(date);
-  const day = d.getDate().toString().padStart(2, "0");
-  const month = (d.getMonth() + 1).toString().padStart(2, "0");
-  const year = d.getFullYear() + 543;
+  const day = d.getUTCDate().toString().padStart(2, "0");
+  const month = (d.getUTCMonth() + 1).toString().padStart(2, "0");
+  const year = d.getUTCFullYear() + 543;
   return `${day}/${month}/${year}`;
 }
 
@@ -32,12 +32,11 @@ function isItCleared(e: {
   website: string | null;
   phone3cx: string | null;
   intranet: string | null;
-  hrSent: string | null;
 }): boolean {
   const itFields = [e.fmis, e.eMeeting, e.website, e.phone3cx, e.intranet];
   const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
   const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
-  return noneIsPending && atLeastOneDone && !!e.hrSent;
+  return noneIsPending && atLeastOneDone;
 }
 
 function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {
@@ -98,7 +97,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   });
 
   // Title row (merged)
-  const TOTAL_COLS = 19;
+  const TOTAL_COLS = 15;
   ws.mergeCells(1, 1, 1, TOTAL_COLS);
   const titleCell = ws.getCell("A1");
   const now = new Date();
@@ -119,7 +118,6 @@ router.get("/employees", authMiddleware, async (req, res) => {
     { key: "level",      width: 10  },
     { key: "department", width: 20  },
     { key: "bureau",     width: 24  },
-    { key: "startDate",  width: 13  },
     { key: "endDate",    width: 13  },
     { key: "itStatus",   width: 13  },
     { key: "fmis",       width: 14  },
@@ -127,16 +125,13 @@ router.get("/employees", authMiddleware, async (req, res) => {
     { key: "website",    width: 14  },
     { key: "phone3cx",   width: 10  },
     { key: "intranet",   width: 12  },
-    { key: "hrSent",     width: 12  },
-    { key: "email",      width: 28  },
-    { key: "remarks",    width: 30  },
   ];
 
   const HEADERS = [
     "ลำดับ", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)", "ตำแหน่ง",
-    "ระดับ", "ฝ่าย/กลุ่มงาน", "หน่วยงาน/สำนัก", "วันเริ่มงาน", "วันพ้นสภาพ",
+    "ระดับ", "ฝ่าย/กลุ่มงาน", "หน่วยงาน/สำนัก", "วันพ้นสภาพ",
     "สถานะ IT", "FMIS", "eMeeting", "Website", "3CX",
-    "Intranet", "บค. ส่ง", "Email", "หมายเหตุ",
+    "Intranet",
   ];
 
   // Header row (row 2)
@@ -149,7 +144,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   });
 
   // Data rows (starting at row 3)
-  const CENTER_COLS = new Set([1, 2, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  const CENTER_COLS = new Set([1, 2, 8, 9, 10, 11, 12, 13, 14, 15]);
 
   filtered.forEach((e, idx) => {
     const cleared = isItCleared(e);
@@ -166,7 +161,6 @@ router.get("/employees", authMiddleware, async (req, res) => {
       e.level ?? "",
       e.department ?? "",
       e.bureau ?? "",
-      toBE(e.startDate),
       toBE(e.endDate),
       cleared ? "ปิดแล้ว" : "ยังไม่ปิด",
       e.fmis ?? "",
@@ -174,9 +168,6 @@ router.get("/employees", authMiddleware, async (req, res) => {
       e.website ?? "",
       e.phone3cx ?? "",
       e.intranet ?? "",
-      e.hrSent ?? "",
-      e.email ?? "",
-      e.remarks ?? "",
     ];
 
     const rowBg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
@@ -189,8 +180,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
     });
 
-    // IT status coloring (col 11)
-    const itCell = row.getCell(11);
+    // สถานะ IT coloring (col 10)
+    const itCell = row.getCell(10);
     itCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cleared ? GREEN_BG : ORANGE_BG } };
     itCell.font = { name: "TH SarabunPSK", size: 10, bold: true, color: { argb: cleared ? GREEN_FG : ORANGE_FG } };
   });

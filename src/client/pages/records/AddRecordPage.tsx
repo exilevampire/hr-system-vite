@@ -24,17 +24,12 @@ const fields: Field[] = [
   { key: "level",        label: "ระดับตำแหน่ง",         type: "text" },
   { key: "department",   label: "ฝ่าย/กลุ่มงาน",        type: "text" },
   { key: "bureau",       label: "หน่วยงาน/สำนัก",       type: "text" },
-  { key: "startDate",    label: "วันเริ่มงาน",           type: "date" },
   { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date" },
-  { key: "receivedDate", label: "วันที่ได้รับข้อมูล",    type: "date" },
-  { key: "email",        label: "Email",                 type: "email" },
   { key: "fmis",         label: "FMIS",                  type: "select",   options: IT_OPTS, dateKey: "fmisDate" },
   { key: "eMeeting",     label: "eMeeting",              type: "select",   options: IT_OPTS, dateKey: "eMeetingDate" },
   { key: "website",      label: "Website",               type: "select",   options: IT_OPTS, dateKey: "websiteDate" },
   { key: "phone3cx",     label: "3CX",                   type: "select",   options: IT_OPTS, dateKey: "phone3cxDate" },
   { key: "intranet",     label: "Intranet",              type: "select",   options: IT_OPTS, dateKey: "intranetDate" },
-  { key: "hrSent",       label: "บค. ส่ง",               type: "date" },
-  { key: "remarks",      label: "หมายเหตุ",              type: "textarea" },
 ];
 
 const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "websiteDate", "phone3cxDate", "intranetDate"];
@@ -61,17 +56,6 @@ function validate(
   if (!form.nameTh?.trim())
     err.nameTh = "กรุณากรอกชื่อ-สกุล (ไทย)";
 
-  // ── รูปแบบ Email ──────────────────────────────────────────
-  const email = form.email?.trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    err.email = "รูปแบบ Email ไม่ถูกต้อง";
-
-  // ── ความสัมพันธ์ของวันที่ ──────────────────────────────────
-  if (form.startDate && form.endDate && form.endDate < form.startDate)
-    err.endDate = "วันที่พ้นสภาพต้องไม่ก่อนวันเริ่มงาน";
-
-  if (form.endDate && form.hrSent && form.hrSent < form.endDate)
-    err.hrSent = "วันที่ บค.ส่ง ต้องไม่ก่อนวันที่พ้นสภาพ";
 
   return err;
 }

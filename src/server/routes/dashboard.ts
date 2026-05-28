@@ -8,7 +8,7 @@ router.get("/", authMiddleware, async (_req, res) => {
   const [total, allEmployees] = await Promise.all([
     prisma.employee.count(),
     prisma.employee.findMany({
-      select: { bureau: true, endDate: true, fmis: true, eMeeting: true, website: true, phone3cx: true, intranet: true, hrSent: true },
+      select: { bureau: true, endDate: true, fmis: true, eMeeting: true, website: true, phone3cx: true, intranet: true },
     }),
   ]);
 
@@ -39,7 +39,7 @@ router.get("/", authMiddleware, async (_req, res) => {
     const itFields = [e.fmis, e.eMeeting, e.website, e.phone3cx, e.intranet];
     const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
     const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
-    if (noneIsPending && atLeastOneDone && !!e.hrSent) cleared++;
+    if (noneIsPending && atLeastOneDone) cleared++;
   }
   const itStatus = { cleared, pending: total - cleared };
 

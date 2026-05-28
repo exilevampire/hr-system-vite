@@ -3,6 +3,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
+import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
 // ── Searchable dropdown ──────────────────────────────────────────────────────
 function SearchableSelect({
@@ -104,17 +105,15 @@ function SearchableSelect({
 interface Employee {
   id: number;
   employeeId: string;
+  sourceFile?: string;
   nameTh: string;
   nameEn?: string;
   position?: string;
   level?: string;
   department?: string;
   bureau?: string;
-  startDate?: string;
   endDate?: string;
   receivedDate?: string;
-  remarks?: string;
-  email?: string;
   fmis?: string;
   fmisDate?: string;
   eMeeting?: string;
@@ -125,34 +124,38 @@ interface Employee {
   phone3cxDate?: string;
   intranet?: string;
   intranetDate?: string;
-  hrSent?: string;
 }
 
 const PAGE_SIZE = 20;
 
 const HEADERS = [
   "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
-  "ตำแหน่ง", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
-  "FMIS", "eMeeting", "Website", "3CX", "Intranet", "บค.ส่ง",
+  "ตำแหน่ง", "ระดับตำแหน่ง", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
+  "FMIS", "eMeeting", "Website", "3CX", "Intranet",
 ];
 
 const NAME_COL_INDEX = 3;
 
 // Default widths matching the natural content layout (px)
-const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 160, 175, 120, 100, 100, 100, 100, 100, 100];
+const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 100, 100, 100, 100, 100];
 
 function formatDate(d?: string | null) {
   if (!d) return "-";
-  const date = new Date(d);
-  if (isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("th-TH");
+  const iso = d.split("T")[0];
+  const parts = iso.split("-");
+  if (parts.length < 3) return "-";
+  const year = parseInt(parts[0]);
+  const month = parseInt(parts[1]);
+  const day = parseInt(parts[2]);
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return "-";
+  return `${day}/${month}/${year + 543}`;
 }
 
 function isFullyClosed(emp: Employee): boolean {
   const itFields = [emp.fmis, emp.eMeeting, emp.website, emp.phone3cx, emp.intranet];
   const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
   const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
-  return noneIsPending && atLeastOneDone && !!emp.hrSent;
+  return noneIsPending && atLeastOneDone;
 }
 
 export default function AllRecordsPage() {
@@ -166,10 +169,24 @@ export default function AllRecordsPage() {
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState("");
   const [bureau, setBureau] = useState("");
+  const [level, setLevel] = useState("");
+  const [department, setDepartment] = useState("");
+  const [endDateFrom, setEndDateFrom] = useState("");
+  const [endDateTo, setEndDateTo] = useState("");
+  const [fmisStatus, setFmisStatus] = useState("");
+  const [eMeetingStatus, setEMeetingStatus] = useState("");
+  const [websiteStatus, setWebsiteStatus] = useState("");
+  const [phone3cxStatus, setPhone3cxStatus] = useState("");
+  const [intranetStatus, setIntranetStatus] = useState("");
+  const [itDateFrom, setItDateFrom] = useState("");
+  const [itDateTo, setItDateTo] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(true);
   const [colWidths, setColWidths] = useState<number[]>(DEFAULT_WIDTHS);
   const [positionOptions, setPositionOptions] = useState<string[]>([]);
   const [bureauOptions, setBureauOptions] = useState<string[]>([]);
+  const [levelOptions, setLevelOptions] = useState<string[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
 
   // Fetch dropdown options once on mount
@@ -179,6 +196,8 @@ export default function AllRecordsPage() {
       .then((d) => {
         setPositionOptions(d.positions ?? []);
         setBureauOptions(d.bureaus ?? []);
+        setLevelOptions(d.levels ?? []);
+        setDepartmentOptions(d.departments ?? []);
       })
       .catch(() => {});
   }, []);
@@ -230,13 +249,24 @@ export default function AllRecordsPage() {
       search,
       bureau,
       position,
+      level,
+      department,
+      endDateFrom,
+      endDateTo,
+      fmisStatus,
+      eMeetingStatus,
+      websiteStatus,
+      phone3cxStatus,
+      intranetStatus,
+      itDateFrom,
+      itDateTo,
     });
     const res = await apiFetch(`/api/employees?${params}`);
     const data = await res.json();
     setEmployees(data.data ?? []);
     setTotal(data.total ?? 0);
     setLoading(false);
-  }, [page, search, bureau, position]);
+  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, websiteStatus, phone3cxStatus, intranetStatus, itDateFrom, itDateTo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -278,10 +308,24 @@ export default function AllRecordsPage() {
           className="flex-1 border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <SearchableSelect
-          placeholder="ค้นหาตำแหน่ง..."
+          placeholder="กรองตำแหน่ง..."
           value={position}
           onChange={(v) => { setPosition(v); setPage(1); }}
           options={positionOptions}
+          className="w-full sm:w-48"
+        />
+        <SearchableSelect
+          placeholder="กรองระดับตำแหน่ง..."
+          value={level}
+          onChange={(v) => { setLevel(v); setPage(1); }}
+          options={levelOptions}
+          className="w-full sm:w-44"
+        />
+        <SearchableSelect
+          placeholder="กรองฝ่าย/กลุ่มงาน..."
+          value={department}
+          onChange={(v) => { setDepartment(v); setPage(1); }}
+          options={departmentOptions}
           className="w-full sm:w-52"
         />
         <SearchableSelect
@@ -289,9 +333,65 @@ export default function AllRecordsPage() {
           value={bureau}
           onChange={(v) => { setBureau(v); setPage(1); }}
           options={bureauOptions}
-          className="w-full sm:w-56"
+          className="w-full sm:w-52"
         />
+        <button
+          onClick={() => setShowAdvanced((v) => !v)}
+          className={`shrink-0 px-3 py-2 text-sm rounded-lg border transition-colors ${showAdvanced ? "bg-blue-50 border-blue-300 text-blue-700" : "border-slate-300 text-slate-500 hover:bg-slate-50"}`}
+        >
+          {showAdvanced ? "ซ่อนตัวกรอง ▲" : "ตัวกรองเพิ่มเติม ▼"}
+        </button>
       </div>
+
+      {/* Advanced filters */}
+      {showAdvanced && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 space-y-4">
+          {/* วันที่พ้นสภาพ */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-medium text-slate-500 w-32 shrink-0">วันที่พ้นสภาพ</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <ThaiDatePicker value={endDateFrom} onChange={(v) => { setEndDateFrom(v); setPage(1); }} className="w-48" />
+              <span className="text-slate-400 text-sm">ถึง</span>
+              <ThaiDatePicker value={endDateTo} onChange={(v) => { setEndDateTo(v); setPage(1); }} className="w-48" />
+            </div>
+          </div>
+
+          {/* IT status */}
+          <div className="flex flex-wrap items-start gap-3">
+            <span className="text-xs font-medium text-slate-500 w-32 shrink-0 mt-1.5">สถานะ IT</span>
+            <div className="flex flex-wrap gap-2">
+              {([
+                ["FMIS", fmisStatus, setFmisStatus],
+                ["eMeeting", eMeetingStatus, setEMeetingStatus],
+                ["Website", websiteStatus, setWebsiteStatus],
+                ["3CX", phone3cxStatus, setPhone3cxStatus],
+                ["Intranet", intranetStatus, setIntranetStatus],
+              ] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
+                <div key={label} className="flex flex-col gap-0.5">
+                  <span className="text-xs text-slate-400 px-1">{label}</span>
+                  <select value={val} onChange={(e) => { setter(e.target.value); setPage(1); }}
+                    className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="">ทั้งหมด</option>
+                    <option value="ดำเนินการแล้ว">ดำเนินการแล้ว</option>
+                    <option value="ยังไม่ดำเนินการ">ยังไม่ดำเนินการ</option>
+                    <option value="ไม่พบบัญชี">ไม่พบบัญชี</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* IT date range */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-medium text-slate-500 w-32 shrink-0">วันที่ดำเนินการ IT</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <ThaiDatePicker value={itDateFrom} onChange={(v) => { setItDateFrom(v); setPage(1); }} className="w-48" />
+              <span className="text-slate-400 text-sm">ถึง</span>
+              <ThaiDatePicker value={itDateTo} onChange={(v) => { setItDateTo(v); setPage(1); }} className="w-48" />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Desktop Table */}
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -393,6 +493,7 @@ export default function AllRecordsPage() {
                   </td>
                   <TCell title={emp.nameEn ?? "-"} className="text-slate-500">{emp.nameEn ?? "-"}</TCell>
                   <TCell title={emp.position ?? "-"}>{emp.position ?? "-"}</TCell>
+                  <TCell title={emp.level ?? "-"}>{emp.level ?? "-"}</TCell>
                   <TCell title={emp.department ?? "-"}>{emp.department ?? "-"}</TCell>
                   <TCell title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>
                   <TCell title={formatDate(emp.endDate)}>{formatDate(emp.endDate)}</TCell>
@@ -401,7 +502,6 @@ export default function AllRecordsPage() {
                   <ITStatusCell value={emp.website} />
                   <ITStatusCell value={emp.phone3cx} />
                   <ITStatusCell value={emp.intranet} />
-                  <TCell title={formatDate(emp.hrSent)}>{formatDate(emp.hrSent)}</TCell>
                 </tr>
               ))}
             </tbody>
@@ -486,10 +586,6 @@ export default function AllRecordsPage() {
                   <span className="text-slate-400 w-24 shrink-0">วันพ้นสภาพ</span>
                   <span className="text-slate-700">{formatDate(emp.endDate)}</span>
                 </div>
-                <div className="flex gap-2">
-                  <span className="text-slate-400 w-24 shrink-0">บค. ส่ง</span>
-                  <span className="text-slate-700">{formatDate(emp.hrSent)}</span>
-                </div>
               </div>
 
               {/* สถานะ IT — badges เหมือน desktop */}
@@ -511,12 +607,6 @@ export default function AllRecordsPage() {
                 </div>
               </div>
 
-              {/* หมายเหตุ (ถ้ามี) */}
-              {emp.remarks && (
-                <div className="border-t border-slate-100 pt-2 text-xs text-slate-600">
-                  <span className="text-slate-400">หมายเหตุ: </span>{emp.remarks}
-                </div>
-              )}
             </div>
           );
         })}
@@ -637,7 +727,6 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
                 </span>
               )}
             </div>
-            {emp.nameEn && <p className="text-sm text-slate-500 mt-0.5">{emp.nameEn}</p>}
             <p className="text-xs text-slate-400 font-mono mt-1">{emp.employeeId}</p>
           </div>
           <button
@@ -649,6 +738,13 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
         </div>
 
         <div className="p-5 space-y-5">
+          {/* ข้อมูลทั่วไป */}
+          <section>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ข้อมูลทั่วไป</h3>
+            <Row label="ชื่อ-สกุล (อังกฤษ)" value={emp.nameEn} />
+            <Row label="ชื่อไฟล์" value={emp.sourceFile} />
+          </section>
+
           {/* ตำแหน่ง */}
           <section>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ตำแหน่งงาน</h3>
@@ -661,10 +757,8 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
           {/* วันที่ */}
           <section>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">วันที่</h3>
-            <Row label="วันเริ่มงาน" value={formatDate(emp.startDate)} />
             <Row label="วันที่พ้นสภาพ" value={formatDate(emp.endDate)} />
             <Row label="วันที่ได้รับข้อมูล" value={formatDate(emp.receivedDate)} />
-            <Row label="บค. ส่ง" value={formatDate(emp.hrSent)} />
           </section>
 
           {/* สถานะ IT */}
@@ -678,8 +772,8 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
                 ["3CX",      emp.phone3cx, emp.phone3cxDate],
                 ["Intranet", emp.intranet, emp.intranetDate],
               ] as [string, string | undefined, string | undefined][]).map(([label, val, dateVal]) => (
-                <div key={label} className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-slate-500 w-16 shrink-0">{label}</span>
+                <div key={label} className="flex items-center justify-between gap-2 py-1.5 border-b border-slate-100 last:border-0">
+                  <span className="text-xs text-slate-400 w-36 shrink-0">{label}</span>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     {val === "ดำเนินการแล้ว" && dateVal && (
                       <span className="text-xs text-slate-400">{formatDate(dateVal)}</span>
@@ -691,19 +785,6 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
             </div>
           </section>
 
-          {/* ติดต่อ */}
-          <section>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ติดต่อ</h3>
-            <Row label="Email" value={emp.email} />
-          </section>
-
-          {/* หมายเหตุ */}
-          <section>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">หมายเหตุ</h3>
-            <p className="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 rounded-lg p-3 min-h-[2.5rem]">
-              {emp.remarks || "-"}
-            </p>
-          </section>
         </div>
       </div>
     </div>

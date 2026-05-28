@@ -22,6 +22,7 @@ model User {
 model Employee {
   id           Int       @id @default(autoincrement())
   employeeId   String    @unique
+  sourceFile   String?
   nameTh       String
   nameEn       String?
   position     String?
@@ -31,8 +32,6 @@ model Employee {
   startDate    DateTime?
   endDate      DateTime?
   receivedDate DateTime?
-  remarks      String?   @db.Text
-  email        String?
   fmis         String?
   fmisDate     DateTime?
   eMeeting     String?
@@ -43,7 +42,6 @@ model Employee {
   phone3cxDate DateTime?
   intranet     String?
   intranetDate DateTime?
-  hrSent       String?
   createdBy    String
   updatedBy    String
   createdAt    DateTime  @default(now())

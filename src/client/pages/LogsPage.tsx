@@ -22,17 +22,13 @@ const FIELD_LABELS: Record<string, string> = {
   level: "ระดับตำแหน่ง",
   department: "ฝ่าย/กลุ่มงาน",
   bureau: "หน่วยงาน/สำนัก",
-  startDate: "วันเริ่มงาน",
   endDate: "วันพ้นสภาพ",
   receivedDate: "วันที่ได้รับข้อมูล",
-  email: "Email",
   fmis: "FMIS",
   eMeeting: "eMeeting",
   website: "Website",
   phone3cx: "3CX",
   intranet: "Intranet",
-  hrSent: "บค. ส่ง",
-  remarks: "หมายเหตุ",
 };
 
 const ACTION_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
