@@ -128,7 +128,7 @@ export default function ReportPage() {
 
             {/* IT status */}
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">สถานะ IT</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">สถานะการดำเนินงาน</label>
               <div className="space-y-2">
                 {[
                   { val: "all", label: "ทั้งหมด" },
@@ -166,7 +166,7 @@ export default function ReportPage() {
                 <span className="text-blue-600 text-lg flex-shrink-0">📋</span>
                 <div>
                   <div className="text-sm font-medium text-blue-800">Sheet 1: รายงานพนักงาน</div>
-                  <div className="text-xs text-blue-600 mt-0.5">รายชื่อพนักงานพร้อมข้อมูลครบถ้วน — รหัส, ชื่อ, ตำแหน่ง, หน่วยงาน, วันพ้นสภาพ, สถานะ IT</div>
+                  <div className="text-xs text-blue-600 mt-0.5">รายชื่อพนักงานพร้อมข้อมูลครบถ้วน — รหัส, ชื่อ, ตำแหน่ง, หน่วยงาน, วันพ้นสภาพ, สถานะการดำเนินงาน</div>
                 </div>
               </div>
 
@@ -174,7 +174,7 @@ export default function ReportPage() {
                 <span className="text-purple-600 text-lg flex-shrink-0">📈</span>
                 <div>
                   <div className="text-sm font-medium text-purple-800">Sheet 2: สรุปตามหน่วยงาน</div>
-                  <div className="text-xs text-purple-600 mt-0.5">จำนวนพนักงานแต่ละหน่วยงาน พร้อมสถานะการปิดสิทธิ์ IT และเปอร์เซ็นต์</div>
+                  <div className="text-xs text-purple-600 mt-0.5">จำนวนพนักงานแต่ละหน่วยงาน พร้อมสถานะการดำเนินงาน และเปอร์เซ็นต์</div>
                 </div>
               </div>
             </div>

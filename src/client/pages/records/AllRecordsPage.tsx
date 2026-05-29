@@ -358,7 +358,7 @@ export default function AllRecordsPage() {
 
           {/* IT status */}
           <div className="flex flex-wrap items-start gap-3">
-            <span className="text-xs font-medium text-slate-500 w-32 shrink-0 mt-1.5">สถานะ IT</span>
+            <span className="text-xs font-medium text-slate-500 w-32 shrink-0 mt-1.5">สถานะการดำเนินงาน</span>
             <div className="flex flex-wrap gap-2">
               {([
                 ["FMIS", fmisStatus, setFmisStatus],
@@ -588,9 +588,9 @@ export default function AllRecordsPage() {
                 </div>
               </div>
 
-              {/* สถานะ IT — badges เหมือน desktop */}
+              {/* สถานะการดำเนินงาน — badges เหมือน desktop */}
               <div className="border-t border-slate-100 pt-3">
-                <div className="text-xs text-slate-400 mb-2 font-medium">สถานะการปิดสิทธิ์ IT</div>
+                <div className="text-xs text-slate-400 mb-2 font-medium">สถานะการดำเนินงาน</div>
                 <div className="grid grid-cols-2 gap-y-1.5 gap-x-3">
                   {itFields.map(({ label, value }) => (
                     <div key={label} className="flex items-center justify-between gap-1">
@@ -761,9 +761,9 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
             <Row label="วันที่ได้รับข้อมูล" value={formatDate(emp.receivedDate)} />
           </section>
 
-          {/* สถานะ IT */}
+          {/* สถานะการดำเนินงาน */}
           <section>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">สถานะการปิดสิทธิ์ IT</h3>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">สถานะการดำเนินงาน</h3>
             <div className="space-y-2">
               {([
                 ["FMIS",     emp.fmis,     emp.fmisDate],

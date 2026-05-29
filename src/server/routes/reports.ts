@@ -130,7 +130,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   const HEADERS = [
     "ลำดับ", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)", "ตำแหน่ง",
     "ระดับ", "ฝ่าย/กลุ่มงาน", "หน่วยงาน/สำนัก", "วันพ้นสภาพ",
-    "สถานะ IT", "FMIS", "eMeeting", "Website", "3CX",
+    "สถานะการดำเนินงาน", "FMIS", "eMeeting", "Website", "3CX",
     "Intranet",
   ];
 
@@ -180,7 +180,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
     });
 
-    // สถานะ IT coloring (col 10)
+    // สถานะการดำเนินงาน coloring (col 10)
     const itCell = row.getCell(10);
     itCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cleared ? GREEN_BG : ORANGE_BG } };
     itCell.font = { name: "TH SarabunPSK", size: 10, bold: true, color: { argb: cleared ? GREEN_FG : ORANGE_FG } };
@@ -204,7 +204,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   // Title
   ws2.mergeCells("A1:E1");
   const t2 = ws2.getCell("A1");
-  t2.value = `สรุปสถานะ IT ตามหน่วยงาน  —  ณ วันที่ ${reportDate}`;
+  t2.value = `สรุปสถานะการดำเนินงาน ตามหน่วยงาน  —  ณ วันที่ ${reportDate}`;
   t2.font = { name: "TH SarabunPSK", size: 14, bold: true, color: { argb: `FF${HEADER_DARK}` } };
   t2.alignment = { vertical: "middle", horizontal: "center" };
   t2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_MID } };
