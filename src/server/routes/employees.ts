@@ -26,7 +26,6 @@ const HEADER_MAP: Record<string, string> = {
   "name-eng": "nameEn",
   "name eng": "nameEn",
   "ตำแหน่ง": "position",
-  "ระดับตำแหน่ง": "level",
   "ประเภท": "level",
   "ฝ่าย/กลุ่ม/งาน": "department",
   "ฝ่าย/กลุ่มงาน": "department",
