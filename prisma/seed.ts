@@ -24,19 +24,19 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "superadmin@hr.local" },
-    update: { password },
+    update: {},
     create: { name: "Super Admin", email: "superadmin@hr.local", password, role: "SUPER_ADMIN" },
   });
 
   await prisma.user.upsert({
     where: { email: "hradmin@hr.local" },
-    update: { password },
+    update: {},
     create: { name: "HR Admin", email: "hradmin@hr.local", password, role: "HR_ADMIN" },
   });
 
   await prisma.user.upsert({
     where: { email: "viewer@hr.local" },
-    update: { password },
+    update: {},
     create: { name: "Viewer", email: "viewer@hr.local", password, role: "VIEWER" },
   });
 
