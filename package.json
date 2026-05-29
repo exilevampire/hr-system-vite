@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
-    "dev": "concurrently \"vite\" \"ts-node-dev --project tsconfig.server.json --respawn --transpile-only src/server/index.ts\"",
+    "dev": "concurrently --kill-others-on-fail \"vite\" \"ts-node-dev --project tsconfig.server.json --respawn --transpile-only src/server/index.ts\"",
+    "kill": "npx kill-port 3001 5173 5174",
     "build": "tsc -p tsconfig.server.json && vite build",
     "start": "node dist/server/index.js",
     "db:generate": "prisma generate",
@@ -51,6 +52,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.1.2",
+    "kill-port": "^2.0.1",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",

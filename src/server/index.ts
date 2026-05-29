@@ -74,6 +74,9 @@ if (isProd) {
   app.get("*", (_req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });
+} else {
+  const VITE_PORT = parseInt(process.env.VITE_PORT ?? "5173");
+  app.get("/", (_req, res) => res.redirect(`http://localhost:${VITE_PORT}`));
 }
 
 app.listen(PORT, () => {
