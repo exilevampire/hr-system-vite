@@ -4,10 +4,18 @@ import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { authHeaders } from "../../lib/api";
 
+interface UpdatedDetail {
+  employeeId: string;
+  nameTh: string;
+  changedFields: string[];
+}
+
 interface ImportResult {
-  success: number;
-  skipped: number;
+  created: number;
+  updated: number;
+  unchanged: number;
   errors: string[];
+  updatedDetails: UpdatedDetail[];
 }
 
 export default function ImportPage() {
@@ -20,13 +28,11 @@ export default function ImportPage() {
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [showUpdated, setShowUpdated] = useState(false);
 
   useEffect(() => {
     if (countdown === null) return;
-    if (countdown === 0) {
-      navigate("/records/all");
-      return;
-    }
+    if (countdown === 0) { navigate("/records/all"); return; }
     countdownRef.current = setInterval(() => {
       setCountdown((prev) => (prev !== null ? prev - 1 : null));
     }, 1000);
@@ -38,6 +44,7 @@ export default function ImportPage() {
     setLoading(true);
     setError("");
     setResult(null);
+    setShowUpdated(false);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -76,7 +83,7 @@ export default function ImportPage() {
               คอลัมน์ที่กำหนดต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นเป็น optional)
             </p>
             <p className="text-xs text-blue-400 mt-0.5">
-              รองรับทั้ง template เก่า (ฝ่าย/กลุ่มงาน, หน่วยงาน/สำนัก) และ template ใหม่
+              ถ้ารหัสพนักงานมีอยู่แล้ว ระบบจะอัปเดตข้อมูลทั่วไปอัตโนมัติ (สถานะการดำเนินงานจะไม่ถูกแตะ)
             </p>
           </div>
           <a
@@ -105,13 +112,8 @@ export default function ImportPage() {
                 <p className="text-sm text-slate-400 mt-1">รองรับไฟล์ .xlsx, .xls และ .csv</p>
               </div>
             )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </div>
 
           {error && (
@@ -119,44 +121,85 @@ export default function ImportPage() {
           )}
 
           {result && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-              <p className="font-semibold text-green-700 mb-3">✅ นำเข้าสำเร็จ</p>
-              <div className="text-sm text-green-600 space-y-1 mb-4">
-                <p>นำเข้าสำเร็จ: <span className="font-semibold">{result.success}</span> รายการ</p>
-                <p>ข้ามรายการซ้ำ: <span className="font-semibold">{result.skipped}</span> รายการ</p>
-                {result.errors.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-red-600 font-medium">ข้อผิดพลาด:</p>
-                    <ul className="list-disc list-inside text-red-500 text-xs mt-1">
-                      {result.errors.slice(0, 10).map((e, i) => <li key={i}>{e}</li>)}
-                    </ul>
-                  </div>
-                )}
+            <div className="mt-4 rounded-xl border border-green-200 overflow-hidden">
+              {/* Header */}
+              <div className="bg-green-50 px-4 py-3 border-b border-green-200">
+                <p className="font-semibold text-green-700">✅ นำเข้าสำเร็จ</p>
               </div>
 
-              {/* Countdown + redirect */}
+              {/* Summary grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-green-100">
+                <div className="px-4 py-3 text-center">
+                  <p className="text-2xl font-bold text-blue-600">{result.created}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">สร้างใหม่</p>
+                </div>
+                <div className="px-4 py-3 text-center">
+                  <p className="text-2xl font-bold text-amber-500">{result.updated}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">อัปเดตข้อมูล</p>
+                </div>
+                <div className="px-4 py-3 text-center">
+                  <p className="text-2xl font-bold text-slate-400">{result.unchanged}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">ไม่มีการเปลี่ยน</p>
+                </div>
+                <div className="px-4 py-3 text-center">
+                  <p className="text-2xl font-bold text-red-500">{result.errors.length}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">ข้อผิดพลาด</p>
+                </div>
+              </div>
+
+              {/* Updated details */}
+              {result.updatedDetails.length > 0 && (
+                <div className="border-t border-green-100">
+                  <button
+                    onClick={() => setShowUpdated((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+                  >
+                    <span className="font-medium">รายการที่อัปเดต ({result.updatedDetails.length} รายการ)</span>
+                    <span>{showUpdated ? "▲" : "▼"}</span>
+                  </button>
+                  {showUpdated && (
+                    <ul className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                      {result.updatedDetails.map((d) => (
+                        <li key={d.employeeId} className="px-4 py-2 flex items-start gap-3">
+                          <span className="text-xs font-mono text-slate-400 shrink-0 mt-0.5">{d.employeeId}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm text-slate-700 font-medium truncate">{d.nameTh}</p>
+                            <p className="text-xs text-amber-600 mt-0.5">{d.changedFields.join(", ")}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* Errors */}
+              {result.errors.length > 0 && (
+                <div className="border-t border-red-100 px-4 py-3 bg-red-50">
+                  <p className="text-xs font-medium text-red-600 mb-1">ข้อผิดพลาด:</p>
+                  <ul className="list-disc list-inside text-red-500 text-xs space-y-0.5">
+                    {result.errors.slice(0, 10).map((e, i) => <li key={i}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {/* Countdown */}
               {countdown !== null && (
-                <div className="border-t border-green-200 pt-3">
+                <div className="border-t border-green-200 px-4 py-3 bg-green-50">
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <p className="text-xs text-green-600">
-                      กำลังนำทางไปหน้าข้อมูลพ้นสภาพใน <span className="font-bold text-green-700">{countdown}</span> วินาที...
+                      นำทางไปหน้าข้อมูลพ้นสภาพใน <span className="font-bold text-green-700">{countdown}</span> วินาที...
                     </p>
                     <button
-                      onClick={() => {
-                        if (countdownRef.current) clearInterval(countdownRef.current);
-                        navigate("/records/all");
-                      }}
+                      onClick={() => { if (countdownRef.current) clearInterval(countdownRef.current); navigate("/records/all"); }}
                       className="shrink-0 text-xs font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors"
                     >
                       ไปเลย →
                     </button>
                   </div>
-                  {/* Progress bar */}
                   <div className="w-full h-1.5 bg-green-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 rounded-full transition-all duration-1000 ease-linear"
-                      style={{ width: `${(countdown / 10) * 100}%` }}
-                    />
+                    <div className="h-full bg-green-500 rounded-full transition-all duration-1000 ease-linear"
+                      style={{ width: `${(countdown / 10) * 100}%` }} />
                   </div>
                 </div>
               )}
@@ -168,9 +211,7 @@ export default function ImportPage() {
               <button
                 onClick={() => {
                   if (countdownRef.current) clearInterval(countdownRef.current);
-                  setResult(null);
-                  setFile(null);
-                  setCountdown(null);
+                  setResult(null); setFile(null); setCountdown(null); setShowUpdated(false);
                   if (fileRef.current) fileRef.current.value = "";
                 }}
                 className="px-5 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
@@ -178,18 +219,13 @@ export default function ImportPage() {
                 นำเข้าไฟล์ใหม่
               </button>
             ) : (
-              <button
-                onClick={() => navigate(-1)}
-                className="px-5 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
+              <button onClick={() => navigate(-1)}
+                className="px-5 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
                 ยกเลิก
               </button>
             )}
-            <button
-              onClick={handleImport}
-              disabled={!file || loading || !!result}
-              className="px-5 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg transition-colors"
-            >
+            <button onClick={handleImport} disabled={!file || loading || !!result}
+              className="px-5 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg transition-colors">
               {loading ? "กำลังนำเข้า..." : "นำเข้าข้อมูล"}
             </button>
           </div>

@@ -26,6 +26,7 @@ const HEADER_MAP: Record<string, string> = {
   "name eng": "nameEn",
   "ตำแหน่ง": "position",
   "ประเภท": "level",
+  "ระดับตำแหน่ง": "level",
   "ฝ่าย/กลุ่ม/งาน": "department",
   "ฝ่าย/กลุ่มงาน": "department",
   "หน่วยงาน": "bureau",
@@ -270,9 +271,22 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
   // strip UTF-8 BOM (﻿) ที่อาจติดมากับ CSV
   const headers = (rows[0] as string[]).map((h) => String(h ?? "").replace(/^﻿/, "").toLowerCase().trim());
 
-  let success = 0;
-  let skipped = 0;
+  const UPDATABLE_LABELS: Record<string, string> = {
+    nameTh: "ชื่อ-สกุล (ไทย)", nameEn: "ชื่อ-สกุล (อังกฤษ)", position: "ตำแหน่ง",
+    level: "ประเภท", department: "ฝ่าย/กลุ่มงาน", bureau: "หน่วยงาน/สำนัก",
+    endDate: "วันพ้นสภาพ", sourceFile: "ชื่อไฟล์",
+  };
+
+  function toDateStr(d: Date | null | undefined): string {
+    if (!d) return "";
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  let created = 0;
+  let updated = 0;
+  let unchanged = 0;
   const errors: string[] = [];
+  const updatedDetails: { employeeId: string; nameTh: string; changedFields: string[] }[] = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as unknown[];
@@ -281,7 +295,6 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
       const mapped = HEADER_MAP[h] ?? HEADER_MAP[h.replace(/\s+/g, " ")];
       if (!mapped) return;
       let v = row[idx];
-      // Convert XLSX Date objects → ISO string เพื่อป้องกัน M/D/Y misparse
       if (v instanceof Date) {
         v = `${v.getUTCFullYear()}-${String(v.getUTCMonth() + 1).padStart(2, "0")}-${String(v.getUTCDate()).padStart(2, "0")}`;
       }
@@ -296,40 +309,74 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
       continue;
     }
 
-    const exists = await prisma.employee.findUnique({ where: { employeeId } });
-    if (exists) { skipped++; continue; }
+    const newData = {
+      sourceFile: String(raw.sourceFile ?? "").trim() || null,
+      nameTh,
+      nameEn: String(raw.nameEn ?? "").trim() || null,
+      position: String(raw.position ?? "").trim() || null,
+      level: String(raw.level ?? "").trim() || null,
+      department: String(raw.department ?? "").trim() || null,
+      bureau: String(raw.bureau ?? "").trim() || null,
+      endDate: parseDate(raw.endDate),
+    };
 
     try {
-      const emp = await prisma.employee.create({
-        data: {
-          employeeId,
-          sourceFile: String(raw.sourceFile ?? "").trim() || null,
-          nameTh,
-          nameEn: String(raw.nameEn ?? "").trim() || null,
-          position: String(raw.position ?? "").trim() || null,
-          level: String(raw.level ?? "").trim() || null,
-          department: String(raw.department ?? "").trim() || null,
-          bureau: String(raw.bureau ?? "").trim() || null,
-          startDate: parseDate(raw.startDate),
-          endDate: parseDate(raw.endDate),
-          receivedDate: new Date(),
-          fmis: normalizeITStatus(raw.fmis),
-          eMeeting: normalizeITStatus(raw.eMeeting),
-          website: normalizeITStatus(raw.website),
-          phone3cx: normalizeITStatus(raw.phone3cx),
-          intranet: normalizeITStatus(raw.intranet),
-          createdBy: adminUser,
-          updatedBy: adminUser,
-        },
-      });
-      await createAuditLog(emp.employeeId, "CREATE", adminUser);
-      success++;
+      const exists = await prisma.employee.findUnique({ where: { employeeId } });
+
+      if (!exists) {
+        // ── สร้างใหม่ ──────────────────────────────────────────
+        const emp = await prisma.employee.create({
+          data: {
+            employeeId,
+            ...newData,
+            startDate: parseDate(raw.startDate),
+            receivedDate: new Date(),
+            fmis: normalizeITStatus(raw.fmis),
+            eMeeting: normalizeITStatus(raw.eMeeting),
+            website: normalizeITStatus(raw.website),
+            phone3cx: normalizeITStatus(raw.phone3cx),
+            intranet: normalizeITStatus(raw.intranet),
+            createdBy: adminUser,
+            updatedBy: adminUser,
+          },
+        });
+        await createAuditLog(emp.employeeId, "CREATE", adminUser);
+        created++;
+      } else {
+        // ── เปรียบเทียบ field ที่ update ได้ ──────────────────
+        const changedFields: string[] = [];
+        const normalize = (v: string | null | undefined) => (v ?? "").trim();
+
+        if (normalize(newData.nameTh) !== normalize(exists.nameTh)) changedFields.push(UPDATABLE_LABELS.nameTh);
+        if (normalize(newData.nameEn) !== normalize(exists.nameEn)) changedFields.push(UPDATABLE_LABELS.nameEn);
+        if (normalize(newData.position) !== normalize(exists.position)) changedFields.push(UPDATABLE_LABELS.position);
+        if (normalize(newData.level) !== normalize(exists.level)) changedFields.push(UPDATABLE_LABELS.level);
+        if (normalize(newData.department) !== normalize(exists.department)) changedFields.push(UPDATABLE_LABELS.department);
+        if (normalize(newData.bureau) !== normalize(exists.bureau)) changedFields.push(UPDATABLE_LABELS.bureau);
+        if (normalize(newData.sourceFile) !== normalize(exists.sourceFile)) changedFields.push(UPDATABLE_LABELS.sourceFile);
+        if (toDateStr(newData.endDate) !== toDateStr(exists.endDate)) changedFields.push(UPDATABLE_LABELS.endDate);
+
+        if (changedFields.length > 0) {
+          await prisma.employee.update({
+            where: { employeeId },
+            data: { ...newData, updatedBy: adminUser },
+          });
+          await createAuditLog(employeeId, "UPDATE", adminUser,
+            exists as unknown as Record<string, unknown>,
+            { ...exists, ...newData } as unknown as Record<string, unknown>
+          );
+          updatedDetails.push({ employeeId, nameTh, changedFields });
+          updated++;
+        } else {
+          unchanged++;
+        }
+      }
     } catch (err) {
       errors.push(`แถว ${i + 1} (${employeeId}): ${err instanceof Error ? err.message : "error"}`);
     }
   }
 
-  res.json({ success, skipped, errors });
+  res.json({ created, updated, unchanged, errors, updatedDetails });
 });
 
 router.get("/meta", authMiddleware, async (_req, res) => {
