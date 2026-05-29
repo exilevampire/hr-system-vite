@@ -20,7 +20,7 @@ const upload = multer({
 
 const HEADER_MAP: Record<string, string> = {
   "ชื่อไฟล์": "sourceFile",
-  "ชื่อแฟ้ม": "sourceFile",
+  "ชื่อไฟล์": "sourceFile",
   "รหัสประจำตัว": "employeeId",
   "ชื่อ-สกุล": "nameTh",
   "name-eng": "nameEn",
