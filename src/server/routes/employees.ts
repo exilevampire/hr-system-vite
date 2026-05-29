@@ -43,9 +43,9 @@ const HEADER_MAP: Record<string, string> = {
 
 const VALID_IT_VALUES = new Set(["ดำเนินการแล้ว", "ยังไม่ดำเนินการ"]);
 
-function normalizeITStatus(val: unknown): string | null {
+function normalizeITStatus(val: unknown): string {
   const s = String(val ?? "").trim();
-  return VALID_IT_VALUES.has(s) ? s : null;
+  return VALID_IT_VALUES.has(s) ? s : "ยังไม่ดำเนินการ";
 }
 
 function parseDate(val: unknown): Date | null {

@@ -1,7 +1,7 @@
 import { AppLayout } from "../../components/AppLayout";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../../lib/api";
 import { ThaiDateInput } from "../../components/ThaiDateInput";
 
@@ -10,49 +10,41 @@ const IT_OPTS = ["", "ดำเนินการแล้ว", "ยังไม
 interface Field {
   key: string;
   label: string;
-  type: "text" | "email" | "date" | "textarea" | "select";
+  type: "text" | "email" | "date" | "textarea" | "select" | "autocomplete";
   required?: boolean;
   options?: string[];
   dateKey?: string;
 }
 
 const fields: Field[] = [
-  { key: "nameTh",       label: "ชื่อ-สกุล (ไทย)",      type: "text",     required: true },
-  { key: "nameEn",       label: "ชื่อ-สกุล (อังกฤษ)",   type: "text" },
-  { key: "position",     label: "ตำแหน่ง",              type: "text" },
-  { key: "level",        label: "ประเภท",         type: "text" },
-  { key: "department",   label: "ฝ่าย/กลุ่มงาน",        type: "text" },
-  { key: "bureau",       label: "หน่วยงาน/สำนัก",       type: "text" },
-  { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date" },
-  { key: "fmis",         label: "FMIS",                  type: "select",   options: IT_OPTS, dateKey: "fmisDate" },
-  { key: "eMeeting",     label: "eMeeting",              type: "select",   options: IT_OPTS, dateKey: "eMeetingDate" },
-  { key: "website",      label: "Website",               type: "select",   options: IT_OPTS, dateKey: "websiteDate" },
-  { key: "phone3cx",     label: "3CX",                   type: "select",   options: IT_OPTS, dateKey: "phone3cxDate" },
-  { key: "intranet",     label: "Intranet",              type: "select",   options: IT_OPTS, dateKey: "intranetDate" },
+  { key: "nameTh",     label: "ชื่อ-สกุล (ไทย)",    type: "text",         required: true },
+  { key: "nameEn",     label: "ชื่อ-สกุล (อังกฤษ)", type: "text",         required: true },
+  { key: "position",   label: "ตำแหน่ง",             type: "text",         required: true },
+  { key: "level",      label: "ประเภท",              type: "text",         required: true },
+  { key: "department", label: "ฝ่าย/กลุ่มงาน",       type: "text",         required: true },
+  { key: "bureau",     label: "หน่วยงาน/สำนัก",      type: "autocomplete", required: true },
+  { key: "endDate",    label: "วันที่พ้นสภาพ",        type: "date",         required: true },
+  { key: "fmis",       label: "FMIS",                 type: "select",       options: IT_OPTS, dateKey: "fmisDate" },
+  { key: "eMeeting",   label: "eMeeting",             type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
+  { key: "website",    label: "Website",              type: "select",       options: IT_OPTS, dateKey: "websiteDate" },
+  { key: "phone3cx",   label: "3CX",                  type: "select",       options: IT_OPTS, dateKey: "phone3cxDate" },
+  { key: "intranet",   label: "Intranet",             type: "select",       options: IT_OPTS, dateKey: "intranetDate" },
 ];
 
 const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "websiteDate", "phone3cxDate", "intranetDate"];
 const DATE_FIELD_KEYS = [...fields.filter((f) => f.type === "date").map((f) => f.key), ...IT_DATE_KEYS];
+const REQUIRED_FIELDS = fields.filter((f) => f.required);
 
 type FormErrors = Record<string, string>;
 
-function validate(
-  form: Record<string, string>,
-  partialDates: Record<string, boolean>
-): FormErrors {
+function validate(form: Record<string, string>, partialDates: Record<string, boolean>): FormErrors {
   const err: FormErrors = {};
-
-  // ── วันที่กรอกค้าง (บางช่อง) ──────────────────────────────
   for (const key of DATE_FIELD_KEYS) {
-    if (partialDates[key])
-      err[key] = "กรุณากรอกวันที่ให้ครบทุกช่อง (วัน / เดือน / ปี พ.ศ.)";
+    if (partialDates[key]) err[key] = "กรุณากรอกวันที่ให้ครบทุกช่อง (วัน / เดือน / ปี พ.ศ.)";
   }
-
-  // ── Required ──────────────────────────────────────────────
-  if (!form.nameTh?.trim())
-    err.nameTh = "กรุณากรอกชื่อ-สกุล (ไทย)";
-
-
+  for (const f of REQUIRED_FIELDS) {
+    if (!form[f.key]?.trim()) err[f.key] = `กรุณากรอก${f.label}`;
+  }
   return err;
 }
 
@@ -61,6 +53,59 @@ function toDateInput(d?: string | null) {
   const parsed = new Date(d);
   if (isNaN(parsed.getTime())) return "";
   return parsed.toISOString().split("T")[0];
+}
+
+function BureauSelect({ value, onChange, options, hasError }: {
+  value: string; onChange: (v: string) => void; options: string[]; hasError: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState(value);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setQuery(value); }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQuery(value); }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open, value]);
+
+  const filtered = options.filter((o) => !query || o.toLowerCase().includes(query.toLowerCase()));
+  const border = hasError ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-blue-500";
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative flex items-center">
+        <input
+          type="text" value={query}
+          onChange={(e) => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="พิมพ์หรือเลือกหน่วยงาน..."
+          className={`w-full border rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 ${border}`}
+        />
+        {value ? (
+          <button type="button" onClick={() => { onChange(""); setQuery(""); setOpen(false); }}
+            className="absolute right-2 text-slate-400 hover:text-slate-600 text-base leading-none">×</button>
+        ) : (
+          <span className="absolute right-2 text-slate-400 text-xs pointer-events-none">▾</span>
+        )}
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+          {filtered.map((opt) => (
+            <button key={opt} type="button"
+              onMouseDown={(e) => { e.preventDefault(); onChange(opt); setQuery(opt); setOpen(false); }}
+              className={`w-full px-3 py-2 text-sm text-left hover:bg-blue-50 transition-colors ${opt === value ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-700"}`}>
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function EditRecordPage() {
@@ -74,6 +119,13 @@ export default function EditRecordPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [bureauOptions, setBureauOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    apiFetch("/api/employees/meta").then((r) => r.json()).then((d) => {
+      setBureauOptions(d.bureaus ?? []);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     apiFetch(`/api/employees/${employeeId}`)
@@ -116,8 +168,7 @@ export default function EditRecordPage() {
     const errs = validate(form, partialDates);
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
-      document.getElementById(`field-${Object.keys(errs)[0]}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById(`field-${Object.keys(errs)[0]}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     setSaving(true);
@@ -166,8 +217,8 @@ export default function EditRecordPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {fields.map((f) => {
               const hasErr = !!errors[f.key];
-              const borderCls = hasErr ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-blue-500";
-              const baseCls = `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${borderCls}`;
+              const border = hasErr ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-blue-500";
+              const baseCls = `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${border}`;
 
               return (
                 <div key={f.key} id={`field-${f.key}`} className={f.type === "textarea" ? "sm:col-span-2" : ""}>
@@ -177,10 +228,13 @@ export default function EditRecordPage() {
                     {f.type === "date" && <span className="ml-1 text-xs text-slate-400 font-normal">(พ.ศ.)</span>}
                   </label>
 
-                  {f.type === "textarea" ? (
-                    <textarea rows={3} value={form[f.key] ?? ""}
-                      onChange={(e) => setField(f.key, e.target.value)}
-                      className={baseCls} />
+                  {f.type === "autocomplete" ? (
+                    <BureauSelect
+                      value={form[f.key] ?? ""}
+                      onChange={(v) => setField(f.key, v)}
+                      options={bureauOptions}
+                      hasError={hasErr}
+                    />
                   ) : f.type === "select" ? (
                     <>
                       <select value={form[f.key] ?? ""}
