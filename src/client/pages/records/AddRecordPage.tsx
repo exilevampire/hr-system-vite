@@ -21,7 +21,7 @@ const fields: Field[] = [
   { key: "nameTh",       label: "ชื่อ-สกุล (ไทย)",      type: "text",     required: true },
   { key: "nameEn",       label: "ชื่อ-สกุล (อังกฤษ)",   type: "text" },
   { key: "position",     label: "ตำแหน่ง",              type: "text" },
-  { key: "level",        label: "ระดับตำแหน่ง",         type: "text" },
+  { key: "level",        label: "ประเภท",         type: "text" },
   { key: "department",   label: "ฝ่าย/กลุ่มงาน",        type: "text" },
   { key: "bureau",       label: "หน่วยงาน/สำนัก",       type: "text" },
   { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date" },

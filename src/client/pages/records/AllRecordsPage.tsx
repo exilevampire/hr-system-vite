@@ -130,7 +130,7 @@ const PAGE_SIZE = 20;
 
 const HEADERS = [
   "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
-  "ตำแหน่ง", "ระดับตำแหน่ง", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
+  "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
   "FMIS", "eMeeting", "Website", "3CX", "Intranet",
 ];
 
@@ -315,7 +315,7 @@ export default function AllRecordsPage() {
           className="w-full sm:w-48"
         />
         <SearchableSelect
-          placeholder="กรองระดับตำแหน่ง..."
+          placeholder="กรองประเภท..."
           value={level}
           onChange={(v) => { setLevel(v); setPage(1); }}
           options={levelOptions}
@@ -749,7 +749,7 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
           <section>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ตำแหน่งงาน</h3>
             <Row label="ตำแหน่ง" value={emp.position} />
-            <Row label="ระดับตำแหน่ง" value={emp.level} />
+            <Row label="ประเภท" value={emp.level} />
             <Row label="ฝ่าย/กลุ่มงาน" value={emp.department} />
             <Row label="หน่วยงาน/สำนัก" value={emp.bureau} />
           </section>

@@ -19,7 +19,7 @@ const FIELD_LABELS: Record<string, string> = {
   nameEn: "ชื่อ-สกุล (อังกฤษ)",
   employeeId: "รหัสพนักงาน",
   position: "ตำแหน่ง",
-  level: "ระดับตำแหน่ง",
+  level: "ประเภท",
   department: "ฝ่าย/กลุ่มงาน",
   bureau: "หน่วยงาน/สำนัก",
   endDate: "วันพ้นสภาพ",

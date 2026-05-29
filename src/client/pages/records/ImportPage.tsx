@@ -70,7 +70,7 @@ export default function ImportPage() {
           <div>
             <p className="font-semibold mb-2">📋 รูปแบบไฟล์ Excel ที่รองรับ (Template ใหม่):</p>
             <p className="text-xs text-blue-600 font-mono">
-              ชื่อแฟ้ม | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ระดับตำแหน่ง | ฝ่าย/กลุ่ม/งาน | หน่วยงาน | วันที่พ้นสภาพ
+              ชื่อแฟ้ม | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ประเภท | ฝ่าย/กลุ่ม/งาน | หน่วยงาน | วันที่พ้นสภาพ
             </p>
             <p className="text-xs text-blue-500 mt-1.5">
               คอลัมน์ที่กำหนดต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นเป็น optional)
