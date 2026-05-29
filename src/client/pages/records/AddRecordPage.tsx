@@ -214,7 +214,7 @@ export default function AddRecordPage() {
                         onChange={(e) => setField(f.key, e.target.value)}
                         className={`${baseCls} bg-white`}>
                         {f.options!.map((opt) => (
-                          <option key={opt} value={opt}>{opt || "-- เลือกสถานะ --"}</option>
+                          <option key={opt} value={opt}>{opt || "ไม่พบบัญชี"}</option>
                         ))}
                       </select>
                       {f.dateKey && form[f.key] === "ดำเนินการแล้ว" && (

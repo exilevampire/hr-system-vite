@@ -270,7 +270,7 @@ export default function EditRecordPage() {
                         className={`${baseCls} bg-white ${disabledCls}`}
                       >
                         {f.options!.map((opt) => (
-                          <option key={opt} value={opt}>{opt || "-- เลือกสถานะ --"}</option>
+                          <option key={opt} value={opt}>{opt || "ไม่พบบัญชี"}</option>
                         ))}
                       </select>
                       {f.dateKey && form[f.key] === "ดำเนินการแล้ว" && (
