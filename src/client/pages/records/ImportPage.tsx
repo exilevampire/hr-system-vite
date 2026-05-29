@@ -59,7 +59,7 @@ export default function ImportPage() {
     setLoading(false);
     if (res.ok) {
       setResult(data);
-      setCountdown(10);
+      setCountdown(60);
     } else {
       setError(data.error ?? "เกิดข้อผิดพลาด");
     }
@@ -199,7 +199,7 @@ export default function ImportPage() {
                   </div>
                   <div className="w-full h-1.5 bg-green-200 rounded-full overflow-hidden">
                     <div className="h-full bg-green-500 rounded-full transition-all duration-1000 ease-linear"
-                      style={{ width: `${(countdown / 10) * 100}%` }} />
+                      style={{ width: `${(countdown / 60) * 100}%` }} />
                   </div>
                 </div>
               )}
