@@ -21,12 +21,13 @@ export function ThaiDateInput({
   onChange,
   hasError = false,
   onPartialChange,
+  disabled = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   hasError?: boolean;
-  /** Called when the user has filled some but not all fields */
   onPartialChange?: (isPartial: boolean) => void;
+  disabled?: boolean;
 }) {
   const init = ceToParts(value);
   const [d, setD] = useState(init.d);
@@ -72,17 +73,18 @@ export function ThaiDateInput({
   const border = hasError
     ? "border-red-400 focus:ring-red-400"
     : "border-slate-300 focus:ring-blue-500";
-  const base = `border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 ${border}`;
+  const disabledCls = disabled ? "bg-slate-50 text-slate-400 cursor-not-allowed" : "";
+  const base = `border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 ${border} ${disabledCls}`;
 
   return (
     <div className="flex gap-1.5 items-center">
       <input
-        type="number" placeholder="วัน" value={d} min={1} max={31}
+        type="number" placeholder="วัน" value={d} min={1} max={31} disabled={disabled}
         onChange={(e) => { setD(e.target.value); emit(e.target.value, m, y); }}
         className={`${base} w-16 text-center`}
       />
       <select
-        value={m}
+        value={m} disabled={disabled}
         onChange={(e) => { setM(e.target.value); emit(d, e.target.value, y); }}
         className={`${base} flex-1 bg-white`}
       >
@@ -92,11 +94,11 @@ export function ThaiDateInput({
         ))}
       </select>
       <input
-        type="number" placeholder="พ.ศ." value={y} min={2400} max={2700}
+        type="number" placeholder="พ.ศ." value={y} min={2400} max={2700} disabled={disabled}
         onChange={(e) => { setY(e.target.value); emit(d, m, e.target.value); }}
         className={`${base} w-24 text-center`}
       />
-      {(d || m || y) && (
+      {!disabled && (d || m || y) && (
         <button type="button" onClick={clear} title="ล้างวันที่"
           className="text-slate-400 hover:text-red-500 transition-colors text-lg leading-none px-0.5">
           ×
