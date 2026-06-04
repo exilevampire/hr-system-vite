@@ -106,7 +106,13 @@ export default function AddRecordPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setFormState] = useState<Record<string, string>>({});
+  const [form, setFormState] = useState<Record<string, string>>({
+    fmis: "ยังไม่ดำเนินการ",
+    eMeeting: "ยังไม่ดำเนินการ",
+    website: "ยังไม่ดำเนินการ",
+    phone3cx: "ยังไม่ดำเนินการ",
+    intranet: "ยังไม่ดำเนินการ",
+  });
   const [partialDates, setPartialDates] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
