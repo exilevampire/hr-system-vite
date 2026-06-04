@@ -180,6 +180,8 @@ export default function AllRecordsPage() {
   const [intranetStatus, setIntranetStatus] = useState("");
   const [itDateFrom, setItDateFrom] = useState("");
   const [itDateTo, setItDateTo] = useState("");
+  const [sourceFile, setSourceFile] = useState("");
+  const [closedStatus, setClosedStatus] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(true);
   const [colWidths, setColWidths] = useState<number[]>(DEFAULT_WIDTHS);
@@ -187,6 +189,7 @@ export default function AllRecordsPage() {
   const [bureauOptions, setBureauOptions] = useState<string[]>([]);
   const [levelOptions, setLevelOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [sourceFileOptions, setSourceFileOptions] = useState<string[]>([]);
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
 
   // Fetch dropdown options once on mount
@@ -198,6 +201,7 @@ export default function AllRecordsPage() {
         setBureauOptions(d.bureaus ?? []);
         setLevelOptions(d.levels ?? []);
         setDepartmentOptions(d.departments ?? []);
+        setSourceFileOptions(d.sourceFiles ?? []);
       })
       .catch(() => {});
   }, []);
@@ -260,13 +264,15 @@ export default function AllRecordsPage() {
       intranetStatus,
       itDateFrom,
       itDateTo,
+      sourceFile,
+      closedStatus,
     });
     const res = await apiFetch(`/api/employees?${params}`);
     const data = await res.json();
     setEmployees(data.data ?? []);
     setTotal(data.total ?? 0);
     setLoading(false);
-  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, websiteStatus, phone3cxStatus, intranetStatus, itDateFrom, itDateTo]);
+  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, websiteStatus, phone3cxStatus, intranetStatus, itDateFrom, itDateTo, sourceFile, closedStatus]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -335,6 +341,13 @@ export default function AllRecordsPage() {
           options={bureauOptions}
           className="w-full sm:w-52"
         />
+        <SearchableSelect
+          placeholder="กรองชื่อไฟล์..."
+          value={sourceFile}
+          onChange={(v) => { setSourceFile(v); setPage(1); }}
+          options={sourceFileOptions}
+          className="w-full sm:w-52"
+        />
         <button
           onClick={() => setShowAdvanced((v) => !v)}
           className={`shrink-0 px-3 py-2 text-sm rounded-lg border transition-colors ${showAdvanced ? "bg-blue-50 border-blue-300 text-blue-700" : "border-slate-300 text-slate-500 hover:bg-slate-50"}`}
@@ -377,6 +390,34 @@ export default function AllRecordsPage() {
                     <option value="ไม่พบบัญชี">ไม่พบบัญชี</option>
                   </select>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* สถานะปิดสิทธิ์ */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-medium text-slate-500 w-32 shrink-0">สถานะปิดสิทธิ์</span>
+            <div className="flex gap-2">
+              {[
+                { val: "", label: "ทั้งหมด" },
+                { val: "closed", label: "✓ ปิดแล้ว" },
+                { val: "pending", label: "ยังไม่ปิด" },
+              ].map(({ val, label }) => (
+                <button
+                  key={val}
+                  onClick={() => { setClosedStatus(val); setPage(1); }}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                    closedStatus === val
+                      ? val === "closed"
+                        ? "bg-green-600 border-green-600 text-white"
+                        : val === "pending"
+                        ? "bg-orange-500 border-orange-500 text-white"
+                        : "bg-slate-700 border-slate-700 text-white"
+                      : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {label}
+                </button>
               ))}
             </div>
           </div>

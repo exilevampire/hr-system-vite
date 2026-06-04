@@ -105,6 +105,8 @@ router.get("/", authMiddleware, async (req, res) => {
   const intranetStatus = String(req.query.intranetStatus ?? "");
   const itDateFrom = String(req.query.itDateFrom ?? "");
   const itDateTo = String(req.query.itDateTo ?? "");
+  const sourceFile = String(req.query.sourceFile ?? "");
+  const closedStatus = String(req.query.closedStatus ?? "");
 
   const where: Record<string, unknown> = {};
   const conditions: unknown[] = [];
@@ -122,6 +124,32 @@ router.get("/", authMiddleware, async (req, res) => {
   if (position) conditions.push({ position: { contains: position } });
   if (level) conditions.push({ level: { contains: level } });
   if (department) conditions.push({ department: { contains: department } });
+  if (sourceFile) conditions.push({ sourceFile: { contains: sourceFile } });
+
+  if (closedStatus === "closed") {
+    conditions.push({
+      AND: [
+        { NOT: { fmis: "ยังไม่ดำเนินการ" } },
+        { NOT: { eMeeting: "ยังไม่ดำเนินการ" } },
+        { NOT: { website: "ยังไม่ดำเนินการ" } },
+        { NOT: { phone3cx: "ยังไม่ดำเนินการ" } },
+        { NOT: { intranet: "ยังไม่ดำเนินการ" } },
+        { OR: [
+          { fmis: "ดำเนินการแล้ว" }, { eMeeting: "ดำเนินการแล้ว" },
+          { website: "ดำเนินการแล้ว" }, { phone3cx: "ดำเนินการแล้ว" },
+          { intranet: "ดำเนินการแล้ว" },
+        ]},
+      ],
+    });
+  } else if (closedStatus === "pending") {
+    conditions.push({
+      OR: [
+        { fmis: "ยังไม่ดำเนินการ" }, { eMeeting: "ยังไม่ดำเนินการ" },
+        { website: "ยังไม่ดำเนินการ" }, { phone3cx: "ยังไม่ดำเนินการ" },
+        { intranet: "ยังไม่ดำเนินการ" },
+      ],
+    });
+  }
 
   // วันที่พ้นสภาพ range
   if (endDateFrom) conditions.push({ endDate: { gte: new Date(endDateFrom) } });
@@ -380,7 +408,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
 });
 
 router.get("/meta", authMiddleware, async (_req, res) => {
-  const [positions, bureaus, levels, departments] = await Promise.all([
+  const [positions, bureaus, levels, departments, sourceFiles] = await Promise.all([
     prisma.employee.findMany({
       where: { position: { not: null } },
       select: { position: true },
@@ -405,12 +433,19 @@ router.get("/meta", authMiddleware, async (_req, res) => {
       distinct: ["department"],
       orderBy: { department: "asc" },
     }),
+    prisma.employee.findMany({
+      where: { sourceFile: { not: null } },
+      select: { sourceFile: true },
+      distinct: ["sourceFile"],
+      orderBy: { sourceFile: "asc" },
+    }),
   ]);
   res.json({
     positions:   positions.map((p) => p.position).filter(Boolean) as string[],
     bureaus:     bureaus.map((b) => b.bureau).filter(Boolean) as string[],
     levels:      levels.map((l) => l.level).filter(Boolean) as string[],
     departments: departments.map((d) => d.department).filter(Boolean) as string[],
+    sourceFiles: sourceFiles.map((s) => s.sourceFile).filter(Boolean) as string[],
   });
 });
 
