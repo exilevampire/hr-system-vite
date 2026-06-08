@@ -17,10 +17,11 @@ router.get("/", authMiddleware, async (_req, res) => {
     const b = e.bureau ?? "ไม่ระบุ";
     bureauMap[b] = (bureauMap[b] ?? 0) + 1;
   }
-  const byBureau = Object.entries(bureauMap)
+  const sortedBureau = Object.entries(bureauMap)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
     .map(([bureau, count]) => ({ bureau, count }));
+  const byBureau = sortedBureau.slice(0, 10);
+  const allByBureau = sortedBureau;
 
   const monthMap: Record<string, number> = {};
   for (const e of allEmployees) {
@@ -29,10 +30,10 @@ router.get("/", authMiddleware, async (_req, res) => {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     monthMap[key] = (monthMap[key] ?? 0) + 1;
   }
-  const byMonth = Object.entries(monthMap)
+  const allByMonth = Object.entries(monthMap)
     .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-12)
     .map(([month, count]) => ({ month, count }));
+  const byMonth = allByMonth.slice(-12);
 
   let cleared = 0;
   for (const e of allEmployees) {
@@ -43,7 +44,7 @@ router.get("/", authMiddleware, async (_req, res) => {
   }
   const itStatus = { cleared, pending: total - cleared };
 
-  res.json({ total, byBureau, byMonth, itStatus });
+  res.json({ total, byBureau, allByBureau, byMonth, allByMonth, itStatus });
 });
 
 export default router;

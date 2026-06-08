@@ -46,14 +46,35 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) =>
 
 router.patch("/:id", authMiddleware, requireRole("SUPER_ADMIN"), async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
-  const { role } = req.body;
-  if (!VALID_ROLES.includes(role)) {
+  const { name, email, password, role } = req.body;
+
+  if (role !== undefined && !VALID_ROLES.includes(role)) {
     res.status(400).json({ error: "บทบาทไม่ถูกต้อง" });
     return;
   }
+  if (password !== undefined && password !== "") {
+    if (typeof password !== "string" || password.length < 8) {
+      res.status(400).json({ error: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" });
+      return;
+    }
+  }
+  if (email !== undefined) {
+    const conflict = await prisma.user.findFirst({ where: { email, NOT: { id } } });
+    if (conflict) {
+      res.status(400).json({ error: "Email นี้มีในระบบแล้ว" });
+      return;
+    }
+  }
+
+  const data: Record<string, unknown> = {};
+  if (name !== undefined) data.name = name || null;
+  if (email !== undefined) data.email = email;
+  if (role !== undefined) data.role = role;
+  if (password) data.password = await bcrypt.hash(password, 12);
+
   const user = await prisma.user.update({
     where: { id },
-    data: { role },
+    data,
     select: { id: true, name: true, email: true, role: true },
   });
   res.json(user);
