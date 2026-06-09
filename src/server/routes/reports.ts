@@ -97,7 +97,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   });
 
   // Title row (merged)
-  const TOTAL_COLS = 15;
+  const TOTAL_COLS = 21;
   ws.mergeCells(1, 1, 1, TOTAL_COLS);
   const titleCell = ws.getCell("A1");
   const now = new Date();
@@ -110,41 +110,60 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   // Column definitions (row 2 = headers)
   ws.columns = [
-    { key: "no",         width: 7   },
-    { key: "employeeId", width: 14  },
-    { key: "nameTh",     width: 28  },
-    { key: "nameEn",     width: 26  },
-    { key: "position",   width: 22  },
-    { key: "level",      width: 10  },
-    { key: "department", width: 20  },
-    { key: "bureau",     width: 24  },
-    { key: "endDate",    width: 13  },
-    { key: "itStatus",   width: 13  },
-    { key: "fmis",       width: 14  },
-    { key: "eMeeting",   width: 14  },
-    { key: "website",    width: 14  },
-    { key: "phone3cx",   width: 10  },
-    { key: "intranet",   width: 12  },
+    { key: "no",           width: 7   },
+    { key: "sourceFile",   width: 22  },
+    { key: "employeeId",   width: 14  },
+    { key: "nameTh",       width: 28  },
+    { key: "nameEn",       width: 26  },
+    { key: "position",     width: 22  },
+    { key: "level",        width: 10  },
+    { key: "department",   width: 20  },
+    { key: "bureau",       width: 24  },
+    { key: "endDate",      width: 13  },
+    { key: "itStatus",     width: 13  },
+    { key: "fmis",         width: 14  },
+    { key: "fmisDate",     width: 13  },
+    { key: "eMeeting",     width: 14  },
+    { key: "eMeetingDate", width: 13  },
+    { key: "website",      width: 14  },
+    { key: "websiteDate",  width: 13  },
+    { key: "phone3cx",     width: 10  },
+    { key: "phone3cxDate", width: 13  },
+    { key: "intranet",     width: 12  },
+    { key: "intranetDate", width: 13  },
   ];
 
+  // col index → is date sub-column (1-based)
+  const DATE_SUB_COLS = new Set([13, 15, 17, 19, 21]);
+
   const HEADERS = [
-    "ลำดับ", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)", "ตำแหน่ง",
-    "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน/สำนัก", "วันพ้นสภาพ",
-    "สถานะการดำเนินงาน", "FMIS", "eMeeting", "Website", "3CX",
-    "Intranet",
+    "ลำดับ", "ชื่อไฟล์", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
+    "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน/สำนัก", "วันพ้นสภาพ",
+    "สถานะการดำเนินงาน",
+    "FMIS", "วันที่ FMIS",
+    "eMeeting", "วันที่ eMeeting",
+    "Website", "วันที่ Website",
+    "3CX", "วันที่ 3CX",
+    "Intranet", "วันที่ Intranet",
   ];
 
   // Header row (row 2)
   const hRow = ws.getRow(2);
   hRow.height = 30;
   HEADERS.forEach((h, i) => {
-    const cell = hRow.getCell(i + 1);
+    const colNum = i + 1;
+    const cell = hRow.getCell(colNum);
     cell.value = h;
     applyHeaderStyle(cell);
+    // date sub-columns use slightly lighter header to signal they belong to the column before
+    if (DATE_SUB_COLS.has(colNum)) {
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_MID}` } };
+    }
   });
 
   // Data rows (starting at row 3)
-  const CENTER_COLS = new Set([1, 2, 8, 9, 10, 11, 12, 13, 14, 15]);
+  // centered cols: no(1), employeeId(3), endDate(10), itStatus(11), and all IT cols (12-21)
+  const CENTER_COLS = new Set([1, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
 
   filtered.forEach((e, idx) => {
     const cleared = isItCleared(e);
@@ -153,40 +172,47 @@ router.get("/employees", authMiddleware, async (req, res) => {
     row.height = 19;
 
     const values = [
-      idx + 1,
-      e.employeeId,
-      e.nameTh,
-      e.nameEn ?? "",
-      e.position ?? "",
-      e.level ?? "",
-      e.department ?? "",
-      e.bureau ?? "",
-      toBE(e.endDate),
-      cleared ? "ปิดแล้ว" : "ยังไม่ปิด",
-      e.fmis ?? "",
-      e.eMeeting ?? "",
-      e.website ?? "",
-      e.phone3cx ?? "",
-      e.intranet ?? "",
+      idx + 1,                              // 1  ลำดับ
+      e.sourceFile ?? "",                   // 2  ชื่อไฟล์
+      e.employeeId,                         // 3  รหัสพนักงาน
+      e.nameTh,                             // 4  ชื่อ-สกุล (ไทย)
+      e.nameEn ?? "",                       // 5  ชื่อ-สกุล (อังกฤษ)
+      e.position ?? "",                     // 6  ตำแหน่ง
+      e.level ?? "",                        // 7  ประเภท
+      e.department ?? "",                   // 8  ฝ่าย/กลุ่มงาน
+      e.bureau ?? "",                       // 9  หน่วยงาน/สำนัก
+      toBE(e.endDate),                      // 10 วันพ้นสภาพ
+      cleared ? "ปิดแล้ว" : "ยังไม่ปิด",  // 11 สถานะการดำเนินงาน
+      e.fmis ?? "",                         // 12 FMIS
+      toBE(e.fmisDate),                     // 13 วันที่ FMIS
+      e.eMeeting ?? "",                     // 14 eMeeting
+      toBE(e.eMeetingDate),                 // 15 วันที่ eMeeting
+      e.website ?? "",                      // 16 Website
+      toBE(e.websiteDate),                  // 17 วันที่ Website
+      e.phone3cx ?? "",                     // 18 3CX
+      toBE(e.phone3cxDate),                 // 19 วันที่ 3CX
+      e.intranet ?? "",                     // 20 Intranet
+      toBE(e.intranetDate),                 // 21 วันที่ Intranet
     ];
 
     const rowBg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
 
     values.forEach((val, ci) => {
-      const cell = row.getCell(ci + 1);
+      const colNum = ci + 1;
+      const cell = row.getCell(colNum);
       cell.value = val;
       cell.font = { name: "TH SarabunPSK", size: 10 };
-      cell.alignment = { vertical: "middle", horizontal: CENTER_COLS.has(ci + 1) ? "center" : "left" };
+      cell.alignment = { vertical: "middle", horizontal: CENTER_COLS.has(colNum) ? "center" : "left" };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
     });
 
-    // สถานะการดำเนินงาน coloring (col 10)
-    const itCell = row.getCell(10);
+    // สถานะการดำเนินงาน coloring (col 11)
+    const itCell = row.getCell(11);
     itCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cleared ? GREEN_BG : ORANGE_BG } };
     itCell.font = { name: "TH SarabunPSK", size: 10, bold: true, color: { argb: cleared ? GREEN_FG : ORANGE_FG } };
   });
 
-  ws.views = [{ state: "frozen", xSplit: 0, ySplit: 2, topLeftCell: "A3", activeCell: "A3" }];
+  ws.views = [{ state: "frozen", xSplit: 2, ySplit: 2, topLeftCell: "C3", activeCell: "C3" }];
   ws.autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: TOTAL_COLS } };
 
   // ── Sheet 2: Bureau summary ───────────────────────────────────────────
