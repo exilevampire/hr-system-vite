@@ -80,7 +80,7 @@ export default function ImportPage() {
               ข้อมูลต้นทาง | เดือน | ปี | วันที่ได้รับข้อมูล | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ประเภท | ฝ่าย/กลุ่ม/งาน | หน่วยงาน | วันที่พ้นสภาพ
             </p>
             <p className="text-xs text-blue-500 mt-1.5">
-              คอลัมน์ที่กำหนดต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นเป็น optional)
+              คอลัมน์ที่ต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นเป็น optional)
             </p>
             <p className="text-xs text-blue-400 mt-0.5">
               ถ้ารหัสพนักงานมีอยู่แล้ว ระบบจะอัปเดตข้อมูลทั่วไปอัตโนมัติ (สถานะการดำเนินงานจะไม่ถูกแตะ)

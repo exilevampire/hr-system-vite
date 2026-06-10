@@ -22,6 +22,7 @@ const HEADER_MAP: Record<string, string> = {
   "ข้อมูลต้นทาง": "sourceType",
   "เดือน": "sourceMonth",
   "ปี": "sourceYear",
+  "วันที่ได้รับข้อมูล": "receivedDate",
   "รหัสประจำตัว": "employeeId",
   "ชื่อ-สกุล": "nameTh",
   "name-eng": "nameEn",
@@ -33,13 +34,7 @@ const HEADER_MAP: Record<string, string> = {
   "ฝ่าย/กลุ่มงาน": "department",
   "หน่วยงาน": "bureau",
   "หน่วยงาน/สำนัก": "bureau",
-  "วันเริ่มงาน": "startDate",
   "วันที่พ้นสภาพ": "endDate",
-  "วันที่ได้รับข้อมูล": "receivedDate",
-  "fmis": "fmis",
-  "emeeting": "eMeeting",
-  "software": "software",
-  "phonebook": "phonebook",
 };
 
 const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
