@@ -66,9 +66,12 @@ function parseDate(val: unknown): Date | null {
     return new Date(Date.UTC(year, val.getUTCMonth(), val.getUTCDate()));
   }
   if (typeof val === "number") {
-    // Excel serial number — always CE, no BE conversion needed
     const d = XLSX.SSF.parse_date_code(val);
-    if (d) return new Date(Date.UTC(d.y, d.m - 1, d.d));
+    if (d) {
+      let year = d.y;
+      if (year > 2500) year -= 543; // user typed BE year → Excel stored CE year 2569+
+      return new Date(Date.UTC(year, d.m - 1, d.d));
+    }
   }
   const s = String(val).trim();
   if (!s) return null;
