@@ -152,7 +152,7 @@ const HEADERS = [
 const NAME_COL_INDEX = 3;
 
 // Default widths matching the natural content layout (px)
-const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 100, 100, 100, 100];
+const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 100, 100, 100, 115];
 
 function formatDate(d?: string | null) {
   if (!d) return "-";
