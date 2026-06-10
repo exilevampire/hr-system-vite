@@ -200,6 +200,7 @@ export default function AllRecordsPage() {
   const [closedStatus, setClosedStatus] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [colWidths, setColWidths] = useState<number[]>(DEFAULT_WIDTHS);
   const [positionOptions, setPositionOptions] = useState<string[]>([]);
   const [bureauOptions, setBureauOptions] = useState<string[]>([]);
@@ -304,6 +305,32 @@ export default function AllRecordsPage() {
     fetchData();
   }
 
+  async function handleDownload() {
+    setDownloading(true);
+    const params = new URLSearchParams({
+      search, bureau, position, level, department,
+      endDateFrom, endDateTo,
+      fmisStatus, eMeetingStatus, softwareStatus, phonebookStatus,
+      itDateFrom, itDateTo,
+      sourceType: sourceTypeFilter,
+      sourceMonth: sourceMonthFilter,
+      sourceYear: sourceYearFilter,
+      closedStatus,
+    });
+    const res = await apiFetch(`/api/reports/employees?${params}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const now = new Date();
+    a.download = `HR_Report_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setDownloading(false);
+  }
+
   const tableWidth = colWidths.reduce((a, b) => a + b, 0);
 
   return (
@@ -313,16 +340,25 @@ export default function AllRecordsPage() {
           <h1 className="text-2xl font-bold text-slate-800">ข้อมูลพนักงานที่พ้นสภาพ</h1>
           <p className="text-slate-500 text-sm mt-1">ทั้งหมด {total.toLocaleString()} รายการ</p>
         </div>
-        {canEdit && (
-          <div className="sm:ml-auto flex gap-2">
-            <Link to="/records/import" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              📥 นำเข้า Excel
-            </Link>
-            <Link to="/records/add" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              ➕ เพิ่มรายการ
-            </Link>
-          </div>
-        )}
+        <div className="sm:ml-auto flex gap-2 flex-wrap">
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {downloading ? "กำลังสร้างรายงาน..." : "📊 ดาวน์โหลด Excel"}
+          </button>
+          {canEdit && (
+            <>
+              <Link to="/records/import" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                📥 นำเข้า Excel
+              </Link>
+              <Link to="/records/add" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                ➕ เพิ่มรายการ
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex flex-col sm:flex-row gap-3">

@@ -67,30 +67,94 @@ router.get("/meta", authMiddleware, async (_req, res) => {
 
 // GET /api/reports/employees — download styled Excel
 router.get("/employees", authMiddleware, async (req, res) => {
-  const { dateFrom, dateTo, bureau, itStatus } = req.query;
+  const search          = String(req.query.search          ?? "");
+  const bureau          = String(req.query.bureau          ?? "");
+  const position        = String(req.query.position        ?? "");
+  const level           = String(req.query.level           ?? "");
+  const department      = String(req.query.department      ?? "");
+  const endDateFrom     = String(req.query.endDateFrom     ?? "");
+  const endDateTo       = String(req.query.endDateTo       ?? "");
+  const fmisStatus      = String(req.query.fmisStatus      ?? "");
+  const eMeetingStatus  = String(req.query.eMeetingStatus  ?? "");
+  const softwareStatus  = String(req.query.softwareStatus  ?? "");
+  const phonebookStatus = String(req.query.phonebookStatus ?? "");
+  const itDateFrom      = String(req.query.itDateFrom      ?? "");
+  const itDateTo        = String(req.query.itDateTo        ?? "");
+  const sourceTypeFilter  = String(req.query.sourceType  ?? "");
+  const sourceMonthFilter = String(req.query.sourceMonth ?? "");
+  const sourceYearFilter  = String(req.query.sourceYear  ?? "");
+  const closedStatus    = String(req.query.closedStatus    ?? "");
 
-  const where: { endDate?: { gte?: Date; lte?: Date }; bureau?: string } = {};
+  const where: Record<string, unknown> = {};
+  const conditions: unknown[] = [];
 
-  if (typeof dateFrom === "string" && dateFrom) {
-    where.endDate = { ...where.endDate, gte: new Date(dateFrom) };
+  if (search) {
+    conditions.push({
+      OR: [
+        { nameTh: { contains: search } },
+        { nameEn: { contains: search } },
+        { employeeId: { contains: search } },
+      ],
+    });
   }
-  if (typeof dateTo === "string" && dateTo) {
-    where.endDate = { ...where.endDate, lte: new Date(dateTo) };
-  }
-  if (typeof bureau === "string" && bureau && bureau !== "all") {
-    where.bureau = bureau;
+  if (bureau)     conditions.push({ bureau:     { contains: bureau     } });
+  if (position)   conditions.push({ position:   { contains: position   } });
+  if (level)      conditions.push({ level:      { contains: level      } });
+  if (department) conditions.push({ department: { contains: department } });
+
+  {
+    const dsFilter: Record<string, number> = {};
+    if (sourceTypeFilter)  dsFilter.sourceType = Number(sourceTypeFilter);
+    if (sourceMonthFilter) dsFilter.month      = Number(sourceMonthFilter);
+    if (sourceYearFilter)  dsFilter.year       = Number(sourceYearFilter);
+    if (Object.keys(dsFilter).length > 0) conditions.push({ dataSource: dsFilter });
   }
 
-  const employees = await prisma.employee.findMany({
+  if (closedStatus === "closed") {
+    conditions.push({
+      AND: [
+        { NOT: { fmis: "ยังไม่ดำเนินการ" } }, { NOT: { eMeeting: "ยังไม่ดำเนินการ" } },
+        { NOT: { software: "ยังไม่ดำเนินการ" } }, { NOT: { phonebook: "ยังไม่ดำเนินการ" } },
+        { OR: [{ fmis: "ดำเนินการแล้ว" }, { eMeeting: "ดำเนินการแล้ว" }, { software: "ดำเนินการแล้ว" }, { phonebook: "ดำเนินการแล้ว" }] },
+      ],
+    });
+  } else if (closedStatus === "pending") {
+    conditions.push({
+      OR: [{ fmis: "ยังไม่ดำเนินการ" }, { eMeeting: "ยังไม่ดำเนินการ" }, { software: "ยังไม่ดำเนินการ" }, { phonebook: "ยังไม่ดำเนินการ" }],
+    });
+  }
+
+  if (endDateFrom) conditions.push({ endDate: { gte: new Date(endDateFrom) } });
+  if (endDateTo)   conditions.push({ endDate: { lte: new Date(endDateTo + "T23:59:59") } });
+
+  const itDateCond = (itDateFrom || itDateTo) ? {
+    ...(itDateFrom ? { gte: new Date(itDateFrom) } : {}),
+    ...(itDateTo   ? { lte: new Date(itDateTo + "T23:59:59") } : {}),
+  } : null;
+
+  const itFilters: [string, string, string][] = [
+    ["fmis", fmisStatus, "fmisDate"],
+    ["eMeeting", eMeetingStatus, "eMeetingDate"],
+    ["software", softwareStatus, "softwareDate"],
+    ["phonebook", phonebookStatus, "phonebookDate"],
+  ];
+  for (const [field, status, dateField] of itFilters) {
+    if (!status) continue;
+    const statusCond = status === "ไม่พบบัญชี" ? null : status;
+    const cond: Record<string, unknown> = { [field]: statusCond };
+    if (itDateCond && statusCond !== null) cond[dateField] = itDateCond;
+    conditions.push(cond);
+  }
+  if (itDateCond && !fmisStatus && !eMeetingStatus && !softwareStatus && !phonebookStatus) {
+    conditions.push({ OR: [{ fmisDate: itDateCond }, { eMeetingDate: itDateCond }, { softwareDate: itDateCond }, { phonebookDate: itDateCond }] });
+  }
+
+  if (conditions.length > 0) where.AND = conditions;
+
+  const filtered = await prisma.employee.findMany({
     where,
     include: { dataSource: true },
     orderBy: [{ bureau: "asc" }, { endDate: "desc" }],
-  });
-
-  const filtered = employees.filter((e) => {
-    if (!itStatus || itStatus === "all") return true;
-    const cleared = isItCleared(e);
-    return itStatus === "cleared" ? cleared : !cleared;
   });
 
   // ── Workbook ──────────────────────────────────────────────────────────
