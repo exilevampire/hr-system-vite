@@ -27,12 +27,11 @@ const fields: Field[] = [
   { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date",         required: true },
   { key: "fmis",         label: "FMIS",                  type: "select",       options: IT_OPTS, dateKey: "fmisDate" },
   { key: "eMeeting",     label: "eMeeting",              type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
-  { key: "website",      label: "Website",               type: "select",       options: IT_OPTS, dateKey: "websiteDate" },
-  { key: "phone3cx",     label: "3CX",                   type: "select",       options: IT_OPTS, dateKey: "phone3cxDate" },
-  { key: "intranet",     label: "Intranet",              type: "select",       options: IT_OPTS, dateKey: "intranetDate" },
+  { key: "software",     label: "Software",               type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
+  { key: "phonebook",    label: "Phonebook",              type: "select",       options: IT_OPTS, dateKey: "phonebookDate" },
 ];
 
-const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "websiteDate", "phone3cxDate", "intranetDate"];
+const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
 const DATE_FIELD_KEYS = [...fields.filter((f) => f.type === "date").map((f) => f.key), ...IT_DATE_KEYS];
 const REQUIRED_FIELDS = fields.filter((f) => f.required);
 
@@ -109,9 +108,8 @@ export default function AddRecordPage() {
   const [form, setFormState] = useState<Record<string, string>>({
     fmis: "ยังไม่ดำเนินการ",
     eMeeting: "ยังไม่ดำเนินการ",
-    website: "ยังไม่ดำเนินการ",
-    phone3cx: "ยังไม่ดำเนินการ",
-    intranet: "ยังไม่ดำเนินการ",
+    software: "ยังไม่ดำเนินการ",
+    phonebook: "ยังไม่ดำเนินการ",
   });
   const [partialDates, setPartialDates] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<FormErrors>({});
@@ -126,8 +124,8 @@ export default function AddRecordPage() {
   }, []);
 
   const IT_TO_DATE: Record<string, string> = {
-    fmis: "fmisDate", eMeeting: "eMeetingDate", website: "websiteDate",
-    phone3cx: "phone3cxDate", intranet: "intranetDate",
+    fmis: "fmisDate", eMeeting: "eMeetingDate", software: "softwareDate",
+    phonebook: "phonebookDate",
   };
 
   function setField(key: string, val: string) {

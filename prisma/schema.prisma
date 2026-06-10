@@ -36,12 +36,10 @@ model Employee {
   fmisDate     DateTime?
   eMeeting     String?
   eMeetingDate DateTime?
-  website      String?
-  websiteDate  DateTime?
-  phone3cx     String?
-  phone3cxDate DateTime?
-  intranet     String?
-  intranetDate DateTime?
+  software      String?
+  softwareDate  DateTime?
+  phonebook     String?
+  phonebookDate DateTime?
   createdBy    String
   updatedBy    String
   createdAt    DateTime  @default(now())

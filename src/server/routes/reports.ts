@@ -29,11 +29,10 @@ function toBE(date: Date | null | undefined): string {
 function isItCleared(e: {
   fmis: string | null;
   eMeeting: string | null;
-  website: string | null;
-  phone3cx: string | null;
-  intranet: string | null;
+  software: string | null;
+  phonebook: string | null;
 }): boolean {
-  const itFields = [e.fmis, e.eMeeting, e.website, e.phone3cx, e.intranet];
+  const itFields = [e.fmis, e.eMeeting, e.software, e.phonebook];
   const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
   const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
   return noneIsPending && atLeastOneDone;
@@ -97,7 +96,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   });
 
   // Title row (merged)
-  const TOTAL_COLS = 21;
+  const TOTAL_COLS = 19;
   ws.mergeCells(1, 1, 1, TOTAL_COLS);
   const titleCell = ws.getCell("A1");
   const now = new Date();
@@ -125,16 +124,14 @@ router.get("/employees", authMiddleware, async (req, res) => {
     { key: "fmisDate",     width: 13  },
     { key: "eMeeting",     width: 14  },
     { key: "eMeetingDate", width: 13  },
-    { key: "website",      width: 14  },
-    { key: "websiteDate",  width: 13  },
-    { key: "phone3cx",     width: 10  },
-    { key: "phone3cxDate", width: 13  },
-    { key: "intranet",     width: 12  },
-    { key: "intranetDate", width: 13  },
+    { key: "software",      width: 14  },
+    { key: "softwareDate",  width: 13  },
+    { key: "phonebook",     width: 14  },
+    { key: "phonebookDate", width: 13  },
   ];
 
   // col index → is date sub-column (1-based)
-  const DATE_SUB_COLS = new Set([13, 15, 17, 19, 21]);
+  const DATE_SUB_COLS = new Set([13, 15, 17, 19]);
 
   const HEADERS = [
     "ลำดับ", "ชื่อไฟล์", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
@@ -142,9 +139,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
     "สถานะการดำเนินงาน",
     "FMIS", "วันที่ FMIS",
     "eMeeting", "วันที่ eMeeting",
-    "Website", "วันที่ Website",
-    "3CX", "วันที่ 3CX",
-    "Intranet", "วันที่ Intranet",
+    "Software", "วันที่ Software",
+    "Phonebook", "วันที่ Phonebook",
   ];
 
   // Header row (row 2)
@@ -163,7 +159,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   // Data rows (starting at row 3)
   // centered cols: no(1), employeeId(3), endDate(10), itStatus(11), and all IT cols (12-21)
-  const CENTER_COLS = new Set([1, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  const CENTER_COLS = new Set([1, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 
   filtered.forEach((e, idx) => {
     const cleared = isItCleared(e);
@@ -187,12 +183,10 @@ router.get("/employees", authMiddleware, async (req, res) => {
       toBE(e.fmisDate),                     // 13 วันที่ FMIS
       e.eMeeting ?? "",                     // 14 eMeeting
       toBE(e.eMeetingDate),                 // 15 วันที่ eMeeting
-      e.website ?? "",                      // 16 Website
-      toBE(e.websiteDate),                  // 17 วันที่ Website
-      e.phone3cx ?? "",                     // 18 3CX
-      toBE(e.phone3cxDate),                 // 19 วันที่ 3CX
-      e.intranet ?? "",                     // 20 Intranet
-      toBE(e.intranetDate),                 // 21 วันที่ Intranet
+      e.software ?? "",                     // 16 Software
+      toBE(e.softwareDate),                 // 17 วันที่ Software
+      e.phonebook ?? "",                    // 18 Phonebook
+      toBE(e.phonebookDate),                // 19 วันที่ Phonebook
     ];
 
     const rowBg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;

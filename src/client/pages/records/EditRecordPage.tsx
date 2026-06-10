@@ -6,7 +6,7 @@ import { apiFetch } from "../../lib/api";
 import { ThaiDateInput } from "../../components/ThaiDateInput";
 
 const IT_OPTS = ["", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
-const IT_KEYS = new Set(["fmis", "eMeeting", "website", "phone3cx", "intranet"]);
+const IT_KEYS = new Set(["fmis", "eMeeting", "software", "phonebook"]);
 
 interface Field {
   key: string;
@@ -27,12 +27,11 @@ const fields: Field[] = [
   { key: "endDate",    label: "วันที่พ้นสภาพ",        type: "date",         required: true },
   { key: "fmis",       label: "FMIS",                 type: "select",       options: IT_OPTS, dateKey: "fmisDate" },
   { key: "eMeeting",   label: "eMeeting",             type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
-  { key: "website",    label: "Website",              type: "select",       options: IT_OPTS, dateKey: "websiteDate" },
-  { key: "phone3cx",   label: "3CX",                  type: "select",       options: IT_OPTS, dateKey: "phone3cxDate" },
-  { key: "intranet",   label: "Intranet",             type: "select",       options: IT_OPTS, dateKey: "intranetDate" },
+  { key: "software",   label: "Software",              type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
+  { key: "phonebook",  label: "Phonebook",             type: "select",       options: IT_OPTS, dateKey: "phonebookDate" },
 ];
 
-const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "websiteDate", "phone3cxDate", "intranetDate"];
+const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
 const DATE_FIELD_KEYS = [...fields.filter((f) => f.type === "date").map((f) => f.key), ...IT_DATE_KEYS];
 
 type FormErrors = Record<string, string>;
@@ -146,17 +145,16 @@ export default function EditRecordPage() {
           endDate:      toDateInput(d.endDate),
           fmisDate:     toDateInput(d.fmisDate),
           eMeetingDate: toDateInput(d.eMeetingDate),
-          websiteDate:  toDateInput(d.websiteDate),
-          phone3cxDate: toDateInput(d.phone3cxDate),
-          intranetDate: toDateInput(d.intranetDate),
+          softwareDate:  toDateInput(d.softwareDate),
+          phonebookDate: toDateInput(d.phonebookDate),
         });
         setLoading(false);
       });
   }, [employeeId]);
 
   const IT_TO_DATE: Record<string, string> = {
-    fmis: "fmisDate", eMeeting: "eMeetingDate", website: "websiteDate",
-    phone3cx: "phone3cxDate", intranet: "intranetDate",
+    fmis: "fmisDate", eMeeting: "eMeetingDate", software: "softwareDate",
+    phonebook: "phonebookDate",
   };
 
   function canEdit(key: string) {

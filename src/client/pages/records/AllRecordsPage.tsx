@@ -118,12 +118,10 @@ interface Employee {
   fmisDate?: string;
   eMeeting?: string;
   eMeetingDate?: string;
-  website?: string;
-  websiteDate?: string;
-  phone3cx?: string;
-  phone3cxDate?: string;
-  intranet?: string;
-  intranetDate?: string;
+  software?: string;
+  softwareDate?: string;
+  phonebook?: string;
+  phonebookDate?: string;
 }
 
 const PAGE_SIZE = 20;
@@ -131,13 +129,13 @@ const PAGE_SIZE = 20;
 const HEADERS = [
   "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
   "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
-  "FMIS", "eMeeting", "Website", "3CX", "Intranet",
+  "FMIS", "eMeeting", "Software", "Phonebook",
 ];
 
 const NAME_COL_INDEX = 3;
 
 // Default widths matching the natural content layout (px)
-const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 100, 100, 100, 100, 100];
+const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 100, 100, 100, 100];
 
 function formatDate(d?: string | null) {
   if (!d) return "-";
@@ -152,7 +150,7 @@ function formatDate(d?: string | null) {
 }
 
 function isFullyClosed(emp: Employee): boolean {
-  const itFields = [emp.fmis, emp.eMeeting, emp.website, emp.phone3cx, emp.intranet];
+  const itFields = [emp.fmis, emp.eMeeting, emp.software, emp.phonebook];
   const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
   const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
   return noneIsPending && atLeastOneDone;
@@ -175,9 +173,8 @@ export default function AllRecordsPage() {
   const [endDateTo, setEndDateTo] = useState("");
   const [fmisStatus, setFmisStatus] = useState("");
   const [eMeetingStatus, setEMeetingStatus] = useState("");
-  const [websiteStatus, setWebsiteStatus] = useState("");
-  const [phone3cxStatus, setPhone3cxStatus] = useState("");
-  const [intranetStatus, setIntranetStatus] = useState("");
+  const [softwareStatus, setSoftwareStatus] = useState("");
+  const [phonebookStatus, setPhonebookStatus] = useState("");
   const [itDateFrom, setItDateFrom] = useState("");
   const [itDateTo, setItDateTo] = useState("");
   const [sourceFile, setSourceFile] = useState("");
@@ -259,9 +256,8 @@ export default function AllRecordsPage() {
       endDateTo,
       fmisStatus,
       eMeetingStatus,
-      websiteStatus,
-      phone3cxStatus,
-      intranetStatus,
+      softwareStatus,
+      phonebookStatus,
       itDateFrom,
       itDateTo,
       sourceFile,
@@ -272,7 +268,7 @@ export default function AllRecordsPage() {
     setEmployees(data.data ?? []);
     setTotal(data.total ?? 0);
     setLoading(false);
-  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, websiteStatus, phone3cxStatus, intranetStatus, itDateFrom, itDateTo, sourceFile, closedStatus]);
+  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, softwareStatus, phonebookStatus, itDateFrom, itDateTo, sourceFile, closedStatus]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -376,9 +372,8 @@ export default function AllRecordsPage() {
               {([
                 ["FMIS", fmisStatus, setFmisStatus],
                 ["eMeeting", eMeetingStatus, setEMeetingStatus],
-                ["Website", websiteStatus, setWebsiteStatus],
-                ["3CX", phone3cxStatus, setPhone3cxStatus],
-                ["Intranet", intranetStatus, setIntranetStatus],
+                ["Software", softwareStatus, setSoftwareStatus],
+                ["Phonebook", phonebookStatus, setPhonebookStatus],
               ] as [string, string, (v: string) => void][]).map(([label, val, setter]) => (
                 <div key={label} className="flex flex-col gap-0.5">
                   <span className="text-xs text-slate-400 px-1">{label}</span>
@@ -540,9 +535,8 @@ export default function AllRecordsPage() {
                   <TCell title={formatDate(emp.endDate)}>{formatDate(emp.endDate)}</TCell>
                   <ITStatusCell value={emp.fmis} />
                   <ITStatusCell value={emp.eMeeting} />
-                  <ITStatusCell value={emp.website} />
-                  <ITStatusCell value={emp.phone3cx} />
-                  <ITStatusCell value={emp.intranet} />
+                  <ITStatusCell value={emp.software} />
+                  <ITStatusCell value={emp.phonebook} />
                 </tr>
               ))}
             </tbody>
@@ -560,9 +554,8 @@ export default function AllRecordsPage() {
           const itFields: { label: string; value?: string | null }[] = [
             { label: "FMIS", value: emp.fmis },
             { label: "eMeeting", value: emp.eMeeting },
-            { label: "Website", value: emp.website },
-            { label: "3CX", value: emp.phone3cx },
-            { label: "Intranet", value: emp.intranet },
+            { label: "Software", value: emp.software },
+            { label: "Phonebook", value: emp.phonebook },
           ];
           return (
             <div key={emp.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
@@ -807,11 +800,10 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">สถานะการดำเนินงาน</h3>
             <div className="space-y-2">
               {([
-                ["FMIS",     emp.fmis,     emp.fmisDate],
-                ["eMeeting", emp.eMeeting, emp.eMeetingDate],
-                ["Website",  emp.website,  emp.websiteDate],
-                ["3CX",      emp.phone3cx, emp.phone3cxDate],
-                ["Intranet", emp.intranet, emp.intranetDate],
+                ["FMIS",      emp.fmis,      emp.fmisDate],
+                ["eMeeting",  emp.eMeeting, emp.eMeetingDate],
+                ["Software",  emp.software, emp.softwareDate],
+                ["Phonebook", emp.phonebook, emp.phonebookDate],
               ] as [string, string | undefined, string | undefined][]).map(([label, val, dateVal]) => (
                 <div key={label} className="flex items-center justify-between gap-2 py-1.5 border-b border-slate-100 last:border-0">
                   <span className="text-xs text-slate-400 w-36 shrink-0">{label}</span>

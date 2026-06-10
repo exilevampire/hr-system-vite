@@ -36,9 +36,8 @@ const HEADER_MAP: Record<string, string> = {
   "วันที่ได้รับข้อมูล": "receivedDate",
   "fmis": "fmis",
   "emeeting": "eMeeting",
-  "website": "website",
-  "3cx": "phone3cx",
-  "intranet": "intranet",
+  "software": "software",
+  "phonebook": "phonebook",
 };
 
 const VALID_IT_VALUES = new Set(["ดำเนินการแล้ว", "ยังไม่ดำเนินการ"]);
@@ -100,9 +99,8 @@ router.get("/", authMiddleware, async (req, res) => {
   const endDateTo = String(req.query.endDateTo ?? "");
   const fmisStatus = String(req.query.fmisStatus ?? "");
   const eMeetingStatus = String(req.query.eMeetingStatus ?? "");
-  const websiteStatus = String(req.query.websiteStatus ?? "");
-  const phone3cxStatus = String(req.query.phone3cxStatus ?? "");
-  const intranetStatus = String(req.query.intranetStatus ?? "");
+  const softwareStatus = String(req.query.softwareStatus ?? "");
+  const phonebookStatus = String(req.query.phonebookStatus ?? "");
   const itDateFrom = String(req.query.itDateFrom ?? "");
   const itDateTo = String(req.query.itDateTo ?? "");
   const sourceFile = String(req.query.sourceFile ?? "");
@@ -131,13 +129,11 @@ router.get("/", authMiddleware, async (req, res) => {
       AND: [
         { NOT: { fmis: "ยังไม่ดำเนินการ" } },
         { NOT: { eMeeting: "ยังไม่ดำเนินการ" } },
-        { NOT: { website: "ยังไม่ดำเนินการ" } },
-        { NOT: { phone3cx: "ยังไม่ดำเนินการ" } },
-        { NOT: { intranet: "ยังไม่ดำเนินการ" } },
+        { NOT: { software: "ยังไม่ดำเนินการ" } },
+        { NOT: { phonebook: "ยังไม่ดำเนินการ" } },
         { OR: [
           { fmis: "ดำเนินการแล้ว" }, { eMeeting: "ดำเนินการแล้ว" },
-          { website: "ดำเนินการแล้ว" }, { phone3cx: "ดำเนินการแล้ว" },
-          { intranet: "ดำเนินการแล้ว" },
+          { software: "ดำเนินการแล้ว" }, { phonebook: "ดำเนินการแล้ว" },
         ]},
       ],
     });
@@ -145,8 +141,7 @@ router.get("/", authMiddleware, async (req, res) => {
     conditions.push({
       OR: [
         { fmis: "ยังไม่ดำเนินการ" }, { eMeeting: "ยังไม่ดำเนินการ" },
-        { website: "ยังไม่ดำเนินการ" }, { phone3cx: "ยังไม่ดำเนินการ" },
-        { intranet: "ยังไม่ดำเนินการ" },
+        { software: "ยังไม่ดำเนินการ" }, { phonebook: "ยังไม่ดำเนินการ" },
       ],
     });
   }
@@ -164,9 +159,8 @@ router.get("/", authMiddleware, async (req, res) => {
   const itFilters: [string, string, string][] = [
     ["fmis", fmisStatus, "fmisDate"],
     ["eMeeting", eMeetingStatus, "eMeetingDate"],
-    ["website", websiteStatus, "websiteDate"],
-    ["phone3cx", phone3cxStatus, "phone3cxDate"],
-    ["intranet", intranetStatus, "intranetDate"],
+    ["software", softwareStatus, "softwareDate"],
+    ["phonebook", phonebookStatus, "phonebookDate"],
   ];
 
   for (const [field, status, dateField] of itFilters) {
@@ -178,14 +172,13 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 
   // ถ้าระบุ IT date โดยไม่เลือก status ใด → กรองด้วย OR ของ date ทุก field
-  if (itDateCond && !fmisStatus && !eMeetingStatus && !websiteStatus && !phone3cxStatus && !intranetStatus) {
+  if (itDateCond && !fmisStatus && !eMeetingStatus && !softwareStatus && !phonebookStatus) {
     conditions.push({
       OR: [
         { fmisDate: itDateCond },
         { eMeetingDate: itDateCond },
-        { websiteDate: itDateCond },
-        { phone3cxDate: itDateCond },
-        { intranetDate: itDateCond },
+        { softwareDate: itDateCond },
+        { phonebookDate: itDateCond },
       ],
     });
   }
@@ -226,12 +219,10 @@ router.post("/", authMiddleware, async (req: AuthenticatedRequest, res) => {
         fmisDate: body.fmisDate ? new Date(body.fmisDate) : null,
         eMeeting: body.eMeeting || null,
         eMeetingDate: body.eMeetingDate ? new Date(body.eMeetingDate) : null,
-        website: body.website || null,
-        websiteDate: body.websiteDate ? new Date(body.websiteDate) : null,
-        phone3cx: body.phone3cx || null,
-        phone3cxDate: body.phone3cxDate ? new Date(body.phone3cxDate) : null,
-        intranet: body.intranet || null,
-        intranetDate: body.intranetDate ? new Date(body.intranetDate) : null,
+        software: body.software || null,
+        softwareDate: body.softwareDate ? new Date(body.softwareDate) : null,
+        phonebook: body.phonebook || null,
+        phonebookDate: body.phonebookDate ? new Date(body.phonebookDate) : null,
         createdBy: adminUser,
         updatedBy: adminUser,
       },
@@ -361,9 +352,8 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
             receivedDate: new Date(),
             fmis: normalizeITStatus(raw.fmis),
             eMeeting: normalizeITStatus(raw.eMeeting),
-            website: normalizeITStatus(raw.website),
-            phone3cx: normalizeITStatus(raw.phone3cx),
-            intranet: normalizeITStatus(raw.intranet),
+            software: normalizeITStatus(raw.software),
+            phonebook: normalizeITStatus(raw.phonebook),
             createdBy: adminUser,
             updatedBy: adminUser,
           },
@@ -484,12 +474,10 @@ router.patch("/:employeeId", authMiddleware, async (req: AuthenticatedRequest, r
       fmisDate: body.fmisDate ? new Date(body.fmisDate) : null,
       eMeeting: body.eMeeting || null,
       eMeetingDate: body.eMeetingDate ? new Date(body.eMeetingDate) : null,
-      website: body.website || null,
-      websiteDate: body.websiteDate ? new Date(body.websiteDate) : null,
-      phone3cx: body.phone3cx || null,
-      phone3cxDate: body.phone3cxDate ? new Date(body.phone3cxDate) : null,
-      intranet: body.intranet || null,
-      intranetDate: body.intranetDate ? new Date(body.intranetDate) : null,
+      software: body.software || null,
+      softwareDate: body.softwareDate ? new Date(body.softwareDate) : null,
+      phonebook: body.phonebook || null,
+      phonebookDate: body.phonebookDate ? new Date(body.phonebookDate) : null,
       updatedBy: adminUser,
     },
   });
