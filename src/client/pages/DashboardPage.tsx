@@ -103,7 +103,7 @@ export default function DashboardPage() {
             <StatCard label="พนักงานทั้งหมด" value={stats?.total ?? 0} icon="👥" color="blue" />
             <StatCard label="ปิดสิทธิ์แล้ว" value={stats?.itStatus?.cleared ?? 0} icon="✅" color="green" />
             <StatCard label="รอดำเนินการ" value={stats?.itStatus?.pending ?? 0} icon="⏳" color="yellow" />
-            <StatCard label="หน่วยงาน" value={stats?.allByBureau.length ?? 0} icon="🏢" color="purple" />
+            <StatCard label="หน่วยงาน" value={stats?.allByBureau?.length ?? 0} icon="🏢" color="purple" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -114,12 +114,12 @@ export default function DashboardPage() {
                   พนักงานแยกตามหน่วยงาน
                   <span className="ml-2 text-xs font-normal text-slate-400">(Top 10)</span>
                 </h2>
-                {(stats?.allByBureau.length ?? 0) > 10 && (
+                {(stats?.allByBureau?.length ?? 0) > 10 && (
                   <button
                     onClick={() => { setShowBureauModal(true); setBureauSearch(""); }}
                     className="shrink-0 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    ดูทั้งหมด ({stats!.allByBureau.length} หน่วยงาน)
+                    ดูทั้งหมด ({stats!.allByBureau?.length ?? 0} หน่วยงาน)
                   </button>
                 )}
               </div>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                   แนวโน้มรายเดือน (พนักงานที่พ้นสภาพ)
                   <span className="ml-2 text-xs font-normal text-slate-400">(12 เดือนล่าสุด)</span>
                 </h2>
-                {(stats?.allByMonth.length ?? 0) > 0 && (
+                {(stats?.allByMonth?.length ?? 0) > 0 && (
                   <button
                     onClick={() => { setShowMonthModal(true); setSelectedYear("all"); }}
                     className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
@@ -254,7 +254,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
               <div>
                 <h2 className="font-semibold text-slate-800">พนักงานแยกตามหน่วยงาน</h2>
-                <p className="text-xs text-slate-400 mt-0.5">ทั้งหมด {stats.allByBureau.length} หน่วยงาน</p>
+                <p className="text-xs text-slate-400 mt-0.5">ทั้งหมด {stats.allByBureau?.length ?? 0} หน่วยงาน</p>
               </div>
               <button onClick={() => setShowBureauModal(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none px-1">×</button>
             </div>
@@ -274,9 +274,9 @@ export default function DashboardPage() {
               {filteredBureau.length > 0 ? (
                 <div className="space-y-2.5">
                   {filteredBureau.map((item) => {
-                    const max = stats.allByBureau[0].count;
+                    const max = stats.allByBureau?.[0]?.count ?? 1;
                     const pct = Math.round((item.count / max) * 100);
-                    const rank = stats.allByBureau.findIndex((b) => b.bureau === item.bureau) + 1;
+                    const rank = (stats.allByBureau?.findIndex((b) => b.bureau === item.bureau) ?? -1) + 1;
                     const barColor = rank === 1 ? "bg-blue-500" : rank === 2 ? "bg-blue-400" : rank === 3 ? "bg-blue-300" : "bg-slate-300";
                     const rankColor = rank === 1 ? "text-blue-600 font-bold" : rank === 2 ? "text-blue-500 font-bold" : rank === 3 ? "text-blue-400 font-bold" : "text-slate-400";
                     return (
