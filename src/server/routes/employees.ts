@@ -19,7 +19,9 @@ const upload = multer({
 });
 
 const HEADER_MAP: Record<string, string> = {
-  "ชื่อไฟล์": "sourceFile",
+  "ข้อมูลต้นทาง": "sourceType",
+  "เดือน": "sourceMonth",
+  "ปี": "sourceYear",
   "รหัสประจำตัว": "employeeId",
   "ชื่อ-สกุล": "nameTh",
   "name-eng": "nameEn",
@@ -39,6 +41,20 @@ const HEADER_MAP: Record<string, string> = {
   "software": "software",
   "phonebook": "phonebook",
 };
+
+const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
+
+async function resolveDataSource(
+  sourceType: unknown, sourceMonth: unknown, sourceYear: unknown
+): Promise<number | null> {
+  const st = parseInt(String(sourceType ?? "")) || 0;
+  const sm = parseInt(String(sourceMonth ?? "")) || 0;
+  const sy = parseInt(String(sourceYear ?? "")) || 0;
+  if (!st || !sm || !sy) return null;
+  let ds = await prisma.dataSource.findFirst({ where: { sourceType: st, month: sm, year: sy } });
+  if (!ds) ds = await prisma.dataSource.create({ data: { sourceType: st, month: sm, year: sy } });
+  return ds.id;
+}
 
 const VALID_IT_VALUES = new Set(["ดำเนินการแล้ว", "ยังไม่ดำเนินการ"]);
 
@@ -103,7 +119,9 @@ router.get("/", authMiddleware, async (req, res) => {
   const phonebookStatus = String(req.query.phonebookStatus ?? "");
   const itDateFrom = String(req.query.itDateFrom ?? "");
   const itDateTo = String(req.query.itDateTo ?? "");
-  const sourceFile = String(req.query.sourceFile ?? "");
+  const sourceTypeFilter = String(req.query.sourceType ?? "");
+  const sourceMonthFilter = String(req.query.sourceMonth ?? "");
+  const sourceYearFilter = String(req.query.sourceYear ?? "");
   const closedStatus = String(req.query.closedStatus ?? "");
 
   const where: Record<string, unknown> = {};
@@ -122,7 +140,14 @@ router.get("/", authMiddleware, async (req, res) => {
   if (position) conditions.push({ position: { contains: position } });
   if (level) conditions.push({ level: { contains: level } });
   if (department) conditions.push({ department: { contains: department } });
-  if (sourceFile) conditions.push({ sourceFile: { contains: sourceFile } });
+  // DataSource filters
+  {
+    const dsFilter: Record<string, number> = {};
+    if (sourceTypeFilter) dsFilter.sourceType = Number(sourceTypeFilter);
+    if (sourceMonthFilter) dsFilter.month = Number(sourceMonthFilter);
+    if (sourceYearFilter) dsFilter.year = Number(sourceYearFilter);
+    if (Object.keys(dsFilter).length > 0) conditions.push({ dataSource: dsFilter });
+  }
 
   if (closedStatus === "closed") {
     conditions.push({
@@ -188,6 +213,7 @@ router.get("/", authMiddleware, async (req, res) => {
   const [data, total] = await Promise.all([
     prisma.employee.findMany({
       where,
+      include: { dataSource: true },
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { createdAt: "desc" },
@@ -203,10 +229,12 @@ router.post("/", authMiddleware, async (req: AuthenticatedRequest, res) => {
   const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
 
   try {
+    const dataSourceId = await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear);
+
     const employee = await prisma.employee.create({
       data: {
         employeeId: body.employeeId,
-        sourceFile: body.sourceFile || "บันทึกจากระบบ",
+        dataSourceId,
         nameTh: body.nameTh,
         nameEn: body.nameEn || null,
         position: body.position || null,
@@ -293,7 +321,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
   const UPDATABLE_LABELS: Record<string, string> = {
     nameTh: "ชื่อ-สกุล (ไทย)", nameEn: "ชื่อ-สกุล (อังกฤษ)", position: "ตำแหน่ง",
     level: "ประเภท", department: "ฝ่าย/กลุ่มงาน", bureau: "หน่วยงาน/สำนัก",
-    endDate: "วันพ้นสภาพ", sourceFile: "ชื่อไฟล์",
+    endDate: "วันพ้นสภาพ", dataSourceId: "ข้อมูลต้นทาง",
   };
 
   function toDateStr(d: Date | null | undefined): string {
@@ -328,8 +356,10 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
       continue;
     }
 
+    const dataSourceId = await resolveDataSource(raw.sourceType, raw.sourceMonth, raw.sourceYear);
+
     const newData = {
-      sourceFile: String(raw.sourceFile ?? "").trim() || null,
+      dataSourceId,
       nameTh,
       nameEn: String(raw.nameEn ?? "").trim() || null,
       position: String(raw.position ?? "").trim() || null,
@@ -349,7 +379,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
             employeeId,
             ...newData,
             startDate: parseDate(raw.startDate),
-            receivedDate: new Date(),
+            receivedDate: parseDate(raw.receivedDate) ?? new Date(),
             fmis: normalizeITStatus(raw.fmis),
             eMeeting: normalizeITStatus(raw.eMeeting),
             software: normalizeITStatus(raw.software),
@@ -371,7 +401,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
         if (normalize(newData.level) !== normalize(exists.level)) changedFields.push(UPDATABLE_LABELS.level);
         if (normalize(newData.department) !== normalize(exists.department)) changedFields.push(UPDATABLE_LABELS.department);
         if (normalize(newData.bureau) !== normalize(exists.bureau)) changedFields.push(UPDATABLE_LABELS.bureau);
-        if (normalize(newData.sourceFile) !== normalize(exists.sourceFile)) changedFields.push(UPDATABLE_LABELS.sourceFile);
+        if (newData.dataSourceId !== exists.dataSourceId) changedFields.push(UPDATABLE_LABELS.dataSourceId);
         if (toDateStr(newData.endDate) !== toDateStr(exists.endDate)) changedFields.push(UPDATABLE_LABELS.endDate);
 
         if (changedFields.length > 0) {
@@ -398,7 +428,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), u
 });
 
 router.get("/meta", authMiddleware, async (_req, res) => {
-  const [positions, bureaus, levels, departments, sourceFiles] = await Promise.all([
+  const [positions, bureaus, levels, departments] = await Promise.all([
     prisma.employee.findMany({
       where: { position: { not: null } },
       select: { position: true },
@@ -423,25 +453,21 @@ router.get("/meta", authMiddleware, async (_req, res) => {
       distinct: ["department"],
       orderBy: { department: "asc" },
     }),
-    prisma.employee.findMany({
-      where: { sourceFile: { not: null } },
-      select: { sourceFile: true },
-      distinct: ["sourceFile"],
-      orderBy: { sourceFile: "asc" },
-    }),
   ]);
   res.json({
     positions:   positions.map((p) => p.position).filter(Boolean) as string[],
     bureaus:     bureaus.map((b) => b.bureau).filter(Boolean) as string[],
     levels:      levels.map((l) => l.level).filter(Boolean) as string[],
     departments: departments.map((d) => d.department).filter(Boolean) as string[],
-    sourceFiles: sourceFiles.map((s) => s.sourceFile).filter(Boolean) as string[],
   });
 });
 
 router.get("/:employeeId", authMiddleware, async (req, res) => {
   const { employeeId } = req.params;
-  const employee = await prisma.employee.findUnique({ where: { employeeId } });
+  const employee = await prisma.employee.findUnique({
+    where: { employeeId },
+    include: { dataSource: true },
+  });
   if (!employee) {
     res.status(404).json({ error: "Not found" });
     return;
@@ -459,6 +485,8 @@ router.patch("/:employeeId", authMiddleware, async (req: AuthenticatedRequest, r
     res.status(404).json({ error: "Not found" });
     return;
   }
+
+  const dataSourceId = await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear);
 
   const updated = await prisma.employee.update({
     where: { employeeId },
@@ -478,6 +506,7 @@ router.patch("/:employeeId", authMiddleware, async (req: AuthenticatedRequest, r
       softwareDate: body.softwareDate ? new Date(body.softwareDate) : null,
       phonebook: body.phonebook || null,
       phonebookDate: body.phonebookDate ? new Date(body.phonebookDate) : null,
+      ...(dataSourceId !== null ? { dataSourceId } : body.sourceType === "" ? { dataSourceId: null } : {}),
       updatedBy: adminUser,
     },
   });

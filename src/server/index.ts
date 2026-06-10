@@ -13,6 +13,7 @@ import screeningRouter from "./routes/screening";
 import logsRouter from "./routes/logs";
 import usersRouter from "./routes/users";
 import reportsRouter from "./routes/reports";
+import dataSourcesRouter from "./routes/datasources";
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? "3001");
@@ -67,6 +68,7 @@ app.use("/api/screening", screeningRouter);
 app.use("/api/logs", logsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/reports", reportsRouter);
+app.use("/api/datasources", dataSourcesRouter);
 
 if (isProd) {
   const clientDist = path.join(__dirname, "../client");

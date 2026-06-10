@@ -19,10 +19,22 @@ model User {
   updatedAt   DateTime @updatedAt
 }
 
+model DataSource {
+  id         Int        @id @default(autoincrement())
+  sourceType Int
+  month      Int
+  year       Int
+  createdAt  DateTime   @default(now())
+  employees  Employee[]
+
+  @@unique([sourceType, month, year])
+}
+
 model Employee {
-  id           Int       @id @default(autoincrement())
-  employeeId   String    @unique
-  sourceFile   String?
+  id           Int         @id @default(autoincrement())
+  employeeId   String      @unique
+  dataSourceId Int?
+  dataSource   DataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
   nameTh       String
   nameEn       String?
   position     String?

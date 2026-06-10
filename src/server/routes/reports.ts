@@ -17,6 +17,15 @@ const ORANGE_FG = "FF92400E";
 const GRAY_BG = "FFE5E7EB";
 const BLUE_MID = "FFDBEAFE";
 
+const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
+const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+function formatDataSource(ds: { sourceType: number; month: number; year: number } | null | undefined): string {
+  if (!ds) return "";
+  const name = SOURCE_TYPE_NAMES[ds.sourceType] ?? `ต้นทาง ${ds.sourceType}`;
+  return `${name} ${THAI_MONTHS_SHORT[ds.month - 1] ?? ds.month} ${ds.year}`;
+}
+
 function toBE(date: Date | null | undefined): string {
   if (!date) return "";
   const d = new Date(date);
@@ -74,6 +83,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   const employees = await prisma.employee.findMany({
     where,
+    include: { dataSource: true },
     orderBy: [{ bureau: "asc" }, { endDate: "desc" }],
   });
 
@@ -110,7 +120,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   // Column definitions (row 2 = headers)
   ws.columns = [
     { key: "no",           width: 7   },
-    { key: "sourceFile",   width: 22  },
+    { key: "dataSource",   width: 18  },
     { key: "employeeId",   width: 14  },
     { key: "nameTh",       width: 28  },
     { key: "nameEn",       width: 26  },
@@ -134,7 +144,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   const DATE_SUB_COLS = new Set([13, 15, 17, 19]);
 
   const HEADERS = [
-    "ลำดับ", "ชื่อไฟล์", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
+    "ลำดับ", "ข้อมูลต้นทาง", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
     "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน/สำนัก", "วันพ้นสภาพ",
     "สถานะการดำเนินงาน",
     "FMIS", "วันที่ FMIS",
@@ -169,7 +179,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
     const values = [
       idx + 1,                              // 1  ลำดับ
-      e.sourceFile ?? "",                   // 2  ชื่อไฟล์
+      formatDataSource(e.dataSource),        // 2  ข้อมูลต้นทาง
       e.employeeId,                         // 3  รหัสพนักงาน
       e.nameTh,                             // 4  ชื่อ-สกุล (ไทย)
       e.nameEn ?? "",                       // 5  ชื่อ-สกุล (อังกฤษ)

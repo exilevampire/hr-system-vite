@@ -102,10 +102,27 @@ function SearchableSelect({
 }
 // ────────────────────────────────────────────────────────────────────────────
 
+interface DataSourceInfo {
+  id: number;
+  sourceType: number;
+  month: number;
+  year: number;
+}
+
+const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
+const THAI_MONTHS = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+const THAI_MONTHS_SHORT = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+function formatDataSource(ds?: DataSourceInfo | null): string {
+  if (!ds) return "-";
+  const name = SOURCE_TYPE_NAMES[ds.sourceType] ?? `ต้นทาง ${ds.sourceType}`;
+  return `${name} ${THAI_MONTHS_SHORT[ds.month] ?? ds.month} ${ds.year}`;
+}
+
 interface Employee {
   id: number;
   employeeId: string;
-  sourceFile?: string;
+  dataSource?: DataSourceInfo | null;
   nameTh: string;
   nameEn?: string;
   position?: string;
@@ -177,7 +194,9 @@ export default function AllRecordsPage() {
   const [phonebookStatus, setPhonebookStatus] = useState("");
   const [itDateFrom, setItDateFrom] = useState("");
   const [itDateTo, setItDateTo] = useState("");
-  const [sourceFile, setSourceFile] = useState("");
+  const [sourceTypeFilter, setSourceTypeFilter] = useState("");
+  const [sourceMonthFilter, setSourceMonthFilter] = useState("");
+  const [sourceYearFilter, setSourceYearFilter] = useState("");
   const [closedStatus, setClosedStatus] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -186,7 +205,7 @@ export default function AllRecordsPage() {
   const [bureauOptions, setBureauOptions] = useState<string[]>([]);
   const [levelOptions, setLevelOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
-  const [sourceFileOptions, setSourceFileOptions] = useState<string[]>([]);
+  const [dataSources, setDataSources] = useState<DataSourceInfo[]>([]);
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
 
   // Fetch dropdown options once on mount
@@ -198,8 +217,11 @@ export default function AllRecordsPage() {
         setBureauOptions(d.bureaus ?? []);
         setLevelOptions(d.levels ?? []);
         setDepartmentOptions(d.departments ?? []);
-        setSourceFileOptions(d.sourceFiles ?? []);
       })
+      .catch(() => {});
+    apiFetch("/api/datasources")
+      .then((r) => r.json())
+      .then((d: DataSourceInfo[]) => setDataSources(d ?? []))
       .catch(() => {});
   }, []);
 
@@ -260,7 +282,9 @@ export default function AllRecordsPage() {
       phonebookStatus,
       itDateFrom,
       itDateTo,
-      sourceFile,
+      sourceType: sourceTypeFilter,
+      sourceMonth: sourceMonthFilter,
+      sourceYear: sourceYearFilter,
       closedStatus,
     });
     const res = await apiFetch(`/api/employees?${params}`);
@@ -268,7 +292,7 @@ export default function AllRecordsPage() {
     setEmployees(data.data ?? []);
     setTotal(data.total ?? 0);
     setLoading(false);
-  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, softwareStatus, phonebookStatus, itDateFrom, itDateTo, sourceFile, closedStatus]);
+  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, softwareStatus, phonebookStatus, itDateFrom, itDateTo, sourceTypeFilter, sourceMonthFilter, sourceYearFilter, closedStatus]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -335,13 +359,6 @@ export default function AllRecordsPage() {
           value={bureau}
           onChange={(v) => { setBureau(v); setPage(1); }}
           options={bureauOptions}
-          className="w-full sm:w-52"
-        />
-        <SearchableSelect
-          placeholder="กรองชื่อไฟล์..."
-          value={sourceFile}
-          onChange={(v) => { setSourceFile(v); setPage(1); }}
-          options={sourceFileOptions}
           className="w-full sm:w-52"
         />
         <button
@@ -424,6 +441,43 @@ export default function AllRecordsPage() {
               <ThaiDatePicker value={itDateFrom} onChange={(v) => { setItDateFrom(v); setPage(1); }} className="w-48" />
               <span className="text-slate-400 text-sm">ถึง</span>
               <ThaiDatePicker value={itDateTo} onChange={(v) => { setItDateTo(v); setPage(1); }} className="w-48" />
+            </div>
+          </div>
+
+          {/* DataSource filter */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-medium text-slate-500 w-32 shrink-0">ข้อมูลต้นทาง</span>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={sourceTypeFilter}
+                onChange={(e) => { setSourceTypeFilter(e.target.value); setPage(1); }}
+                className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">ทั้งหมด</option>
+                {[...new Set(dataSources.map((d) => d.sourceType))].sort().map((t) => (
+                  <option key={t} value={String(t)}>{SOURCE_TYPE_NAMES[t] ?? `ต้นทาง ${t}`}</option>
+                ))}
+              </select>
+              <select
+                value={sourceMonthFilter}
+                onChange={(e) => { setSourceMonthFilter(e.target.value); setPage(1); }}
+                className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">ทุกเดือน</option>
+                {[...new Set(dataSources.map((d) => d.month))].sort((a, b) => a - b).map((m) => (
+                  <option key={m} value={String(m)}>{THAI_MONTHS[m]}</option>
+                ))}
+              </select>
+              <select
+                value={sourceYearFilter}
+                onChange={(e) => { setSourceYearFilter(e.target.value); setPage(1); }}
+                className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">ทุกปี</option>
+                {[...new Set(dataSources.map((d) => d.year))].sort((a, b) => b - a).map((y) => (
+                  <option key={y} value={String(y)}>{y}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -776,7 +830,7 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
           <section>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ข้อมูลทั่วไป</h3>
             <Row label="ชื่อ-สกุล (อังกฤษ)" value={emp.nameEn} />
-            <Row label="ชื่อไฟล์" value={emp.sourceFile} />
+            <Row label="ข้อมูลต้นทาง" value={formatDataSource(emp.dataSource)} />
           </section>
 
           {/* ตำแหน่ง */}

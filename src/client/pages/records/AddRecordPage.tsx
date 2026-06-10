@@ -7,6 +7,12 @@ import { ThaiDateInput } from "../../components/ThaiDateInput";
 
 const IT_OPTS = ["", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
 
+const SOURCE_TYPE_OPTIONS = [
+  { value: 1, label: "1 - สบค. (สำนักงานบริหารทรัพยากรบุคคล)" },
+  { value: 2, label: "2 - ศล. (ศูนย์บริการโลหิตแห่งชาติ)" },
+];
+const THAI_MONTHS = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+
 interface Field {
   key: string;
   label: string;
@@ -191,6 +197,39 @@ export default function AddRecordPage() {
         )}
 
         <form onSubmit={handleSubmit} noValidate className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          {/* DataSource section */}
+          <div className="mb-5 pb-5 border-b border-slate-100">
+            <p className="text-sm font-semibold text-slate-600 mb-3">ข้อมูลต้นทาง</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">ประเภทข้อมูลต้นทาง</label>
+                <select value={form.sourceType ?? ""} onChange={(e) => setField("sourceType", e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">ไม่ระบุ</option>
+                  {SOURCE_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={String(o.value)}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">เดือน</label>
+                <select value={form.sourceMonth ?? ""} onChange={(e) => setField("sourceMonth", e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">ไม่ระบุ</option>
+                  {THAI_MONTHS.slice(1).map((m, i) => (
+                    <option key={i + 1} value={String(i + 1)}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">ปี (พ.ศ.)</label>
+                <input type="number" value={form.sourceYear ?? ""} onChange={(e) => setField("sourceYear", e.target.value)}
+                  placeholder="เช่น 2567"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {fields.map((f) => {
               const hasErr = !!errors[f.key];
