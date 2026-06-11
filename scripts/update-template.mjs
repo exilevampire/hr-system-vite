@@ -13,8 +13,8 @@ const headers = [
   { header: "เดือน",               note: "1-12" },
   { header: "ปี",                  note: "พ.ศ. เช่น 2567" },
   { header: "วันที่ได้รับข้อมูล", note: "วัน/เดือน/ปี พ.ศ." },
-  { header: "รหัสประจำตัว",        note: "required" },
-  { header: "ชื่อ-สกุล",           note: "required" },
+  { header: "รหัสประจำตัว",        note: "" },
+  { header: "ชื่อ-สกุล",           note: "" },
   { header: "Name-Eng",            note: "" },
   { header: "ตำแหน่ง",             note: "" },
   { header: "ประเภท",              note: "" },
@@ -48,21 +48,6 @@ noteRow.eachCell((cell) => {
   };
 });
 
-// Example rows
-const examples = [
-  [1, 6, 2568, "15/6/2568", "EMP001", "สมชาย ใจดี",    "Somchai Jaidee",  "นักวิชาการคอมพิวเตอร์",        "ข้าราชการ",    "ฝ่ายเทคโนโลยีสารสนเทศ", "สำนักงานบริหารทรัพยากรบุคคล", "30/6/2568"],
-  [2, 6, 2568, "15/6/2568", "EMP002", "สมหญิง รักงาน", "Somying Rakngam", "เจ้าหน้าที่บริหารงานทั่วไป",  "ลูกจ้างประจำ", "ฝ่ายบริหาร",             "ศูนย์บริการโลหิตแห่งชาติ",     "30/6/2568"],
-];
-
-examples.forEach((rowData) => {
-  const row = ws.addRow(rowData);
-  row.eachCell((cell) => {
-    cell.border = {
-      top: { style: "thin" }, bottom: { style: "thin" },
-      left: { style: "thin" }, right: { style: "thin" },
-    };
-  });
-});
 
 // Column widths
 const widths = [16, 8, 8, 20, 14, 24, 24, 24, 14, 22, 30, 18];
