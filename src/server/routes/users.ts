@@ -4,7 +4,7 @@ import { authMiddleware, requireRole, AuthenticatedRequest } from "../middleware
 import bcrypt from "bcryptjs";
 
 const router = Router();
-const VALID_ROLES = ["SUPER_ADMIN", "HR_ADMIN", "VIEWER"];
+const VALID_ROLES = ["SUPER_ADMIN", "ADMIN", "VIEWER"];
 
 router.get("/", authMiddleware, requireRole("SUPER_ADMIN"), async (_req, res) => {
   const users = await prisma.user.findMany({

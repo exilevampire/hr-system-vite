@@ -183,7 +183,7 @@ function isFullyClosed(emp: Employee): boolean {
 export default function AllRecordsPage() {
   const { user } = useAuth();
   const role = user?.role ?? "VIEWER";
-  const canEdit = role === "SUPER_ADMIN" || role === "HR_ADMIN";
+  const canEdit = role === "SUPER_ADMIN" || role === "ADMIN";
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [total, setTotal] = useState(0);

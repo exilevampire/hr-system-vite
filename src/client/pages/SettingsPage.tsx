@@ -13,13 +13,13 @@ interface User {
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
-  HR_ADMIN: "Admin",
+  ADMIN: "Admin",
   VIEWER: "Viewer",
 };
 
 const roleColors: Record<string, string> = {
   SUPER_ADMIN: "bg-purple-100 text-purple-700",
-  HR_ADMIN: "bg-blue-100 text-blue-700",
+  ADMIN: "bg-blue-100 text-blue-700",
   VIEWER: "bg-slate-100 text-slate-600",
 };
 
@@ -241,7 +241,7 @@ export default function SettingsPage() {
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="VIEWER">Viewer</option>
-                <option value="HR_ADMIN">Admin</option>
+                <option value="ADMIN">Admin</option>
                 <option value="SUPER_ADMIN">Super Admin</option>
               </select>
             </div>
@@ -385,7 +385,7 @@ export default function SettingsPage() {
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
                   <option value="VIEWER">Viewer</option>
-                  <option value="HR_ADMIN">Admin</option>
+                  <option value="ADMIN">Admin</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
                 </select>
                 {editUser.email === currentUser?.email && (

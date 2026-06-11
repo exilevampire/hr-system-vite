@@ -73,6 +73,6 @@ model AuditLog {
 
 enum Role {
   SUPER_ADMIN
-  HR_ADMIN
+  ADMIN
   VIEWER
 }

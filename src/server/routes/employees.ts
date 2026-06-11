@@ -219,7 +219,7 @@ router.get("/", authMiddleware, async (req, res) => {
   res.json({ data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
 });
 
-router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), async (req: AuthenticatedRequest, res) => {
+router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req: AuthenticatedRequest, res) => {
   const body = req.body;
   const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
 
@@ -263,7 +263,7 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), async (
   }
 });
 
-router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), upload.single("file"), async (req: AuthenticatedRequest, res) => {
+router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), upload.single("file"), async (req: AuthenticatedRequest, res) => {
   const adminUser = (req.body.adminUser as string) ?? req.user?.email ?? "unknown";
 
   if (!req.file) {
@@ -470,7 +470,7 @@ router.get("/:employeeId", authMiddleware, async (req, res) => {
   res.json(employee);
 });
 
-router.patch("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), async (req: AuthenticatedRequest, res) => {
+router.patch("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req: AuthenticatedRequest, res) => {
   const { employeeId } = req.params;
   const body = req.body;
   const role = req.user?.role ?? "";
