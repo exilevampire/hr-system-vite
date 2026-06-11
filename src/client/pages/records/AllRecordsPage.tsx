@@ -143,6 +143,13 @@ interface Employee {
 
 const PAGE_SIZE = 20;
 
+function getPageNumbers(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, "…", total];
+  if (current >= total - 3) return [1, "…", total - 4, total - 3, total - 2, total - 1, total];
+  return [1, "…", current - 1, current, current + 1, "…", total];
+}
+
 const HEADERS = [
   "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
   "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
@@ -736,13 +743,42 @@ export default function AllRecordsPage() {
         })}
       </div>
 
-      {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <span className="text-sm text-slate-500">หน้า {page} จาก {totalPages}</span>
-          <div className="flex gap-2">
-            <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50">← ก่อนหน้า</button>
-            <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50">ถัดไป →</button>
-          </div>
+      {total > 0 && (
+        <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
+          <span className="text-sm text-slate-500">
+            แสดง {((page - 1) * PAGE_SIZE + 1).toLocaleString()}–{Math.min(page * PAGE_SIZE, total).toLocaleString()} จาก {total.toLocaleString()} รายการ
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+              >← ก่อนหน้า</button>
+
+              {getPageNumbers(page, totalPages).map((p, i) =>
+                p === "…" ? (
+                  <span key={`ellipsis-${i}`} className="px-2 text-slate-400 text-sm select-none">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`min-w-[36px] px-2 py-1.5 text-sm border rounded-lg transition-colors ${
+                      p === page
+                        ? "bg-blue-600 text-white border-blue-600 font-medium"
+                        : "border-slate-300 hover:bg-slate-50 text-slate-700"
+                    }`}
+                  >{p}</button>
+                )
+              )}
+
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage(page + 1)}
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+              >ถัดไป →</button>
+            </div>
+          )}
         </div>
       )}
       {selectedEmp && <EmployeeDetailModal emp={selectedEmp} onClose={() => setSelectedEmp(null)} />}

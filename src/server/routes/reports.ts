@@ -35,6 +35,8 @@ function toBE(date: Date | null | undefined): string {
   return `${day}/${month}/${year}`;
 }
 
+const itLabel = (v: string | null) => v || "ไม่พบบัญชี";
+
 function isItCleared(e: {
   fmis: string | null;
   eMeeting: string | null;
@@ -254,13 +256,13 @@ router.get("/employees", authMiddleware, async (req, res) => {
       e.bureau ?? "",                       // 9  หน่วยงาน/สำนัก
       toBE(e.endDate),                      // 10 วันพ้นสภาพ
       cleared ? "ปิดแล้ว" : "ยังไม่ปิด",  // 11 สถานะการดำเนินงาน
-      e.fmis ?? "",                         // 12 FMIS
+      itLabel(e.fmis),                       // 12 FMIS
       toBE(e.fmisDate),                     // 13 วันที่ FMIS
-      e.eMeeting ?? "",                     // 14 eMeeting
+      itLabel(e.eMeeting),                  // 14 eMeeting
       toBE(e.eMeetingDate),                 // 15 วันที่ eMeeting
-      e.software ?? "",                     // 16 Software
+      itLabel(e.software),                  // 16 Software
       toBE(e.softwareDate),                 // 17 วันที่ Software
-      e.phonebook ?? "",                    // 18 Phonebook
+      itLabel(e.phonebook),                 // 18 Phonebook
       toBE(e.phonebookDate),                // 19 วันที่ Phonebook
     ];
 
