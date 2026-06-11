@@ -13,7 +13,7 @@ interface User {
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
-  HR_ADMIN: "HR Admin",
+  HR_ADMIN: "Admin",
   VIEWER: "Viewer",
 };
 
@@ -241,7 +241,7 @@ export default function SettingsPage() {
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="VIEWER">Viewer</option>
-                <option value="HR_ADMIN">HR Admin</option>
+                <option value="HR_ADMIN">Admin</option>
                 <option value="SUPER_ADMIN">Super Admin</option>
               </select>
             </div>
@@ -385,7 +385,7 @@ export default function SettingsPage() {
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
                   <option value="VIEWER">Viewer</option>
-                  <option value="HR_ADMIN">HR Admin</option>
+                  <option value="HR_ADMIN">Admin</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
                 </select>
                 {editUser.email === currentUser?.email && (
