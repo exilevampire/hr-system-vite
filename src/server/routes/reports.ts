@@ -363,8 +363,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
     cell.value = v;
     cell.font = { name: "TH SarabunPSK", size: 14, bold: true };
     cell.alignment = { vertical: "middle", horizontal: "center" };
-    if (i === 1) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${GREEN_BG}` } }; cell.font = { ...cell.font, color: { argb: `FF${GREEN_FG}` } }; }
-    else if (i === 2) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${ORANGE_BG}` } }; cell.font = { ...cell.font, color: { argb: `FF${ORANGE_FG}` } }; }
+    if (i === 1) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; cell.font = { ...cell.font, color: { argb: GREEN_FG } }; }
+    else if (i === 2) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; cell.font = { ...cell.font, color: { argb: ORANGE_FG } }; }
     else { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } }; }
   });
   statRow.getCell(4).numFmt = "0%";
