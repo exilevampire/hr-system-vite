@@ -286,85 +286,168 @@ router.get("/employees", authMiddleware, async (req, res) => {
   ws.views = [{ state: "frozen", xSplit: 2, ySplit: 2, topLeftCell: "C3", activeCell: "C3" }];
   ws.autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: TOTAL_COLS } };
 
-  // ── Sheet 2: Bureau summary ───────────────────────────────────────────
-  const ws2 = wb.addWorksheet("สรุปตามหน่วยงาน");
+  // ── Sheet 2: Dashboard summary ───────────────────────────────────────
+  const ws2 = wb.addWorksheet("สรุปภาพรวม");
   ws2.properties.defaultRowHeight = 20;
-
   ws2.columns = [
-    { key: "bureau",  width: 32 },
-    { key: "total",   width: 16 },
-    { key: "cleared", width: 14 },
-    { key: "pending", width: 14 },
-    { key: "pct",     width: 14 },
+    { key: "a", width: 32 },
+    { key: "b", width: 16 },
+    { key: "c", width: 14 },
+    { key: "d", width: 14 },
+    { key: "e", width: 14 },
   ];
 
-  // Title
+  // Compute summary data
+  const bureauMap: Record<string, { total: number; cleared: number }> = {};
+  const monthMap: Record<string, number> = {};
+  let totalCleared = 0;
+  for (const e of filtered) {
+    const b = e.bureau ?? "ไม่ระบุ";
+    if (!bureauMap[b]) bureauMap[b] = { total: 0, cleared: 0 };
+    bureauMap[b].total++;
+    if (isItCleared(e)) { bureauMap[b].cleared++; totalCleared++; }
+    if (e.endDate) {
+      const d = new Date(e.endDate);
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+      monthMap[key] = (monthMap[key] ?? 0) + 1;
+    }
+  }
+  const totalPending = filtered.length - totalCleared;
+  const overallPct = filtered.length > 0 ? totalCleared / filtered.length : 0;
+  const bureauList = Object.entries(bureauMap).sort(([, a], [, b]) => b.total - a.total);
+  const monthList = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => {
+    const [y, m] = key.split("-").map(Number);
+    return { label: `${THAI_MONTHS_SHORT[m - 1]} ${y + 543}`, count };
+  });
+
+  function s2SectionHeader(row: number, label: string, cols = 5) {
+    ws2.mergeCells(row, 1, row, cols);
+    const cell = ws2.getCell(row, 1);
+    cell.value = label;
+    cell.font = { name: "TH SarabunPSK", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_DARK}` } };
+    cell.alignment = { vertical: "middle", horizontal: "left" };
+    ws2.getRow(row).height = 26;
+  }
+
+  // ── Title ────────────────────────────────────────────────────────────
   ws2.mergeCells("A1:E1");
   const t2 = ws2.getCell("A1");
-  t2.value = `สรุปสถานะการดำเนินงาน ตามหน่วยงาน  —  ณ วันที่ ${reportDate}`;
+  t2.value = `สรุปภาพรวม  —  ณ วันที่ ${reportDate}  (${filtered.length.toLocaleString()} รายการ)`;
   t2.font = { name: "TH SarabunPSK", size: 14, bold: true, color: { argb: `FF${HEADER_DARK}` } };
   t2.alignment = { vertical: "middle", horizontal: "center" };
   t2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_MID } };
   ws2.getRow(1).height = 32;
 
-  // Header row
-  const s2Headers = ["หน่วยงาน/สำนัก", "จำนวนพนักงาน", "ปิด IT แล้ว", "ยังไม่ปิด IT", "% ปิด IT"];
-  const s2HRow = ws2.getRow(2);
-  s2HRow.height = 30;
-  s2Headers.forEach((h, i) => {
-    const cell = s2HRow.getCell(i + 1);
+  // ── Section 1: ภาพรวม ─────────────────────────────────────────────
+  s2SectionHeader(2, "  ภาพรวม");
+
+  // Stat headers
+  const statHeaders = ["พนักงานทั้งหมด", "ปิดสิทธิ์แล้ว", "รอดำเนินการ", "% ปิดสิทธิ์", "จำนวนหน่วยงาน"];
+  const statHRow = ws2.getRow(3);
+  statHRow.height = 26;
+  statHeaders.forEach((h, i) => {
+    const cell = statHRow.getCell(i + 1);
     cell.value = h;
-    applyHeaderStyle(cell, i > 0);
-    if (i === 0) cell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+    cell.font = { name: "TH SarabunPSK", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_MID}` } };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
   });
 
-  // Bureau map
-  const bureauMap: Record<string, { total: number; cleared: number }> = {};
-  for (const e of filtered) {
-    const b = e.bureau ?? "ไม่ระบุ";
-    if (!bureauMap[b]) bureauMap[b] = { total: 0, cleared: 0 };
-    bureauMap[b].total++;
-    if (isItCleared(e)) bureauMap[b].cleared++;
-  }
+  // Stat values
+  const statVals = [filtered.length, totalCleared, totalPending, overallPct, bureauList.length];
+  const statRow = ws2.getRow(4);
+  statRow.height = 28;
+  statVals.forEach((v, i) => {
+    const cell = statRow.getCell(i + 1);
+    cell.value = v;
+    cell.font = { name: "TH SarabunPSK", size: 14, bold: true };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    if (i === 1) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${GREEN_BG}` } }; cell.font = { ...cell.font, color: { argb: `FF${GREEN_FG}` } }; }
+    else if (i === 2) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${ORANGE_BG}` } }; cell.font = { ...cell.font, color: { argb: `FF${ORANGE_FG}` } }; }
+    else { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } }; }
+  });
+  statRow.getCell(4).numFmt = "0%";
 
-  Object.entries(bureauMap)
-    .sort(([, a], [, b]) => b.total - a.total)
-    .forEach(([bureau, data], idx) => {
-      const pct = data.total > 0 ? (data.cleared / data.total) * 100 : 0;
-      const rowNum = idx + 3;
-      const row = ws2.getRow(rowNum);
-      row.height = 20;
-      const rowBg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
+  // ── Section 2: พนักงานแยกตามหน่วยงาน ────────────────────────────
+  s2SectionHeader(6, "  พนักงานแยกตามหน่วยงาน");
 
-      const vals = [bureau, data.total, data.cleared, data.total - data.cleared, pct / 100];
-      vals.forEach((v, ci) => {
-        const cell = row.getCell(ci + 1);
-        cell.value = v;
-        cell.font = { name: "TH SarabunPSK", size: 10 };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
-        cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
-      });
-      // Percentage cell format
-      row.getCell(5).numFmt = "0%";
+  const bureauHRow = ws2.getRow(7);
+  bureauHRow.height = 26;
+  ["หน่วยงาน/สำนัก", "จำนวนพนักงาน", "ปิด IT แล้ว", "ยังไม่ปิด IT", "% ปิด IT"].forEach((h, i) => {
+    const cell = bureauHRow.getCell(i + 1);
+    cell.value = h;
+    applyHeaderStyle(cell, i > 0);
+    if (i === 0) cell.alignment = { vertical: "middle", horizontal: "left" };
+  });
+
+  bureauList.forEach(([bureau, data], idx) => {
+    const row = ws2.getRow(idx + 8);
+    row.height = 20;
+    const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
+    [bureau, data.total, data.cleared, data.total - data.cleared, data.total > 0 ? data.cleared / data.total : 0].forEach((v, ci) => {
+      const cell = row.getCell(ci + 1);
+      cell.value = v;
+      cell.font = { name: "TH SarabunPSK", size: 10 };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
     });
+    row.getCell(5).numFmt = "0%";
+  });
 
-  // Total row
-  const totalCleared = filtered.filter(isItCleared).length;
-  const totalPct = filtered.length > 0 ? totalCleared / filtered.length : 0;
-  const lastRow = ws2.getRow(Object.keys(bureauMap).length + 3);
-  lastRow.height = 24;
-  const totalVals = ["รวมทั้งหมด", filtered.length, totalCleared, filtered.length - totalCleared, totalPct];
-  totalVals.forEach((v, ci) => {
-    const cell = lastRow.getCell(ci + 1);
+  // Total row (bureaus)
+  const bureauTotalRow = ws2.getRow(bureauList.length + 8);
+  bureauTotalRow.height = 24;
+  ["รวมทั้งหมด", filtered.length, totalCleared, totalPending, overallPct].forEach((v, ci) => {
+    const cell = bureauTotalRow.getCell(ci + 1);
     cell.value = v;
     cell.font = { name: "TH SarabunPSK", size: 11, bold: true };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GRAY_BG } };
     cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
     cell.border = { top: { style: "medium", color: { argb: `FF${HEADER_DARK}` } } };
   });
-  lastRow.getCell(5).numFmt = "0%";
+  bureauTotalRow.getCell(5).numFmt = "0%";
 
-  ws2.views = [{ state: "frozen", xSplit: 0, ySplit: 2, topLeftCell: "A3", activeCell: "A3" }];
+  // ── Section 3: แนวโน้มรายเดือน ───────────────────────────────────
+  const monthSectionRow = bureauList.length + 10;
+  s2SectionHeader(monthSectionRow, "  แนวโน้มรายเดือน (พนักงานที่พ้นสภาพ)", 2);
+
+  const monthHRow = ws2.getRow(monthSectionRow + 1);
+  monthHRow.height = 26;
+  ["เดือน", "จำนวน (คน)"].forEach((h, i) => {
+    const cell = monthHRow.getCell(i + 1);
+    cell.value = h;
+    applyHeaderStyle(cell);
+  });
+
+  monthList.forEach(({ label, count }, idx) => {
+    const row = ws2.getRow(monthSectionRow + 2 + idx);
+    row.height = 20;
+    const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
+    [label, count].forEach((v, ci) => {
+      const cell = row.getCell(ci + 1);
+      cell.value = v;
+      cell.font = { name: "TH SarabunPSK", size: 10 };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
+    });
+  });
+
+  // Month total row
+  const monthTotalRow = ws2.getRow(monthSectionRow + 2 + monthList.length);
+  monthTotalRow.height = 24;
+  [["รวมทั้งหมด", filtered.length]].forEach(([v, n]) => {
+    [v, n].forEach((val, ci) => {
+      const cell = monthTotalRow.getCell(ci + 1);
+      cell.value = val;
+      cell.font = { name: "TH SarabunPSK", size: 11, bold: true };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GRAY_BG } };
+      cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
+      cell.border = { top: { style: "medium", color: { argb: `FF${HEADER_DARK}` } } };
+    });
+  });
+
+  ws2.views = [{ state: "frozen", xSplit: 0, ySplit: 1, topLeftCell: "A2", activeCell: "A2" }];
 
   // ── Stream response ───────────────────────────────────────────────────
   const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
