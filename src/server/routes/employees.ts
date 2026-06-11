@@ -148,16 +148,13 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 
   if (closedStatus === "closed") {
+    // NULL = ไม่มีบัญชี = ผ่านแล้ว; ปิดสิทธิ์ = ไม่มีฟิลด์ไหนเป็น "ยังไม่ดำเนินการ"
     conditions.push({
       AND: [
-        { NOT: { fmis: "ยังไม่ดำเนินการ" } },
-        { NOT: { eMeeting: "ยังไม่ดำเนินการ" } },
-        { NOT: { software: "ยังไม่ดำเนินการ" } },
-        { NOT: { phonebook: "ยังไม่ดำเนินการ" } },
-        { OR: [
-          { fmis: "ดำเนินการแล้ว" }, { eMeeting: "ดำเนินการแล้ว" },
-          { software: "ดำเนินการแล้ว" }, { phonebook: "ดำเนินการแล้ว" },
-        ]},
+        { OR: [{ fmis: null }, { NOT: { fmis: "ยังไม่ดำเนินการ" } }] },
+        { OR: [{ eMeeting: null }, { NOT: { eMeeting: "ยังไม่ดำเนินการ" } }] },
+        { OR: [{ software: null }, { NOT: { software: "ยังไม่ดำเนินการ" } }] },
+        { OR: [{ phonebook: null }, { NOT: { phonebook: "ยังไม่ดำเนินการ" } }] },
       ],
     });
   } else if (closedStatus === "pending") {
