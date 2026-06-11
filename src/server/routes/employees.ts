@@ -222,7 +222,7 @@ router.get("/", authMiddleware, async (req, res) => {
   res.json({ data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
 });
 
-router.post("/", authMiddleware, async (req: AuthenticatedRequest, res) => {
+router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), async (req: AuthenticatedRequest, res) => {
   const body = req.body;
   const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
 
@@ -473,9 +473,10 @@ router.get("/:employeeId", authMiddleware, async (req, res) => {
   res.json(employee);
 });
 
-router.patch("/:employeeId", authMiddleware, async (req: AuthenticatedRequest, res) => {
+router.patch("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN", "HR_ADMIN"), async (req: AuthenticatedRequest, res) => {
   const { employeeId } = req.params;
   const body = req.body;
+  const role = req.user?.role ?? "";
   const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
 
   const old = await prisma.employee.findUnique({ where: { employeeId } });
@@ -484,30 +485,38 @@ router.patch("/:employeeId", authMiddleware, async (req: AuthenticatedRequest, r
     return;
   }
 
-  const dataSourceId = await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear);
+  const itOnlyData = {
+    fmis: body.fmis || null,
+    fmisDate: body.fmisDate ? new Date(body.fmisDate) : null,
+    eMeeting: body.eMeeting || null,
+    eMeetingDate: body.eMeetingDate ? new Date(body.eMeetingDate) : null,
+    software: body.software || null,
+    softwareDate: body.softwareDate ? new Date(body.softwareDate) : null,
+    phonebook: body.phonebook || null,
+    phonebookDate: body.phonebookDate ? new Date(body.phonebookDate) : null,
+    updatedBy: adminUser,
+  };
+
+  const dataSourceId = role === "SUPER_ADMIN"
+    ? await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear)
+    : null;
+
+  const fullData = role === "SUPER_ADMIN" ? {
+    nameTh: body.nameTh,
+    nameEn: body.nameEn || null,
+    position: body.position || null,
+    level: body.level || null,
+    department: body.department || null,
+    bureau: body.bureau || null,
+    endDate: body.endDate ? new Date(body.endDate) : null,
+    receivedDate: body.receivedDate ? new Date(body.receivedDate) : undefined,
+    ...itOnlyData,
+    ...(dataSourceId !== null ? { dataSourceId } : body.sourceType === "" ? { dataSourceId: null } : {}),
+  } : itOnlyData;
 
   const updated = await prisma.employee.update({
     where: { employeeId },
-    data: {
-      nameTh: body.nameTh,
-      nameEn: body.nameEn || null,
-      position: body.position || null,
-      level: body.level || null,
-      department: body.department || null,
-      bureau: body.bureau || null,
-      endDate: body.endDate ? new Date(body.endDate) : null,
-      receivedDate: body.receivedDate ? new Date(body.receivedDate) : undefined,
-      fmis: body.fmis || null,
-      fmisDate: body.fmisDate ? new Date(body.fmisDate) : null,
-      eMeeting: body.eMeeting || null,
-      eMeetingDate: body.eMeetingDate ? new Date(body.eMeetingDate) : null,
-      software: body.software || null,
-      softwareDate: body.softwareDate ? new Date(body.softwareDate) : null,
-      phonebook: body.phonebook || null,
-      phonebookDate: body.phonebookDate ? new Date(body.phonebookDate) : null,
-      ...(dataSourceId !== null ? { dataSourceId } : body.sourceType === "" ? { dataSourceId: null } : {}),
-      updatedBy: adminUser,
-    },
+    data: fullData,
   });
 
   await createAuditLog(
@@ -524,6 +533,12 @@ router.patch("/:employeeId", authMiddleware, async (req: AuthenticatedRequest, r
 router.delete("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN"), async (req: AuthenticatedRequest, res) => {
   const { employeeId } = req.params;
   const adminUser = req.user?.email ?? "unknown";
+
+  const existing = await prisma.employee.findUnique({ where: { employeeId } });
+  if (!existing) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
 
   await createAuditLog(employeeId, "DELETE", adminUser);
   await prisma.employee.delete({ where: { employeeId } });
