@@ -24,17 +24,18 @@ interface Field {
 }
 
 const fields: Field[] = [
-  { key: "nameTh",     label: "ชื่อ-สกุล (ไทย)",    type: "text",         required: true },
-  { key: "nameEn",     label: "ชื่อ-สกุล (อังกฤษ)", type: "text",         required: true },
-  { key: "position",   label: "ตำแหน่ง",             type: "text",         required: true },
-  { key: "level",      label: "ประเภท",              type: "text",         required: true },
-  { key: "department", label: "ฝ่าย/กลุ่มงาน",       type: "text",         required: true },
-  { key: "bureau",     label: "หน่วยงาน/สำนัก",      type: "autocomplete", required: true },
-  { key: "endDate",    label: "วันที่พ้นสภาพ",        type: "date",         required: true },
-  { key: "fmis",       label: "FMIS",                 type: "select",       options: IT_OPTS, dateKey: "fmisDate" },
-  { key: "eMeeting",   label: "eMeeting",             type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
-  { key: "software",   label: "Software",              type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
-  { key: "phonebook",  label: "Phonebook",             type: "select",       options: IT_OPTS, dateKey: "phonebookDate" },
+  { key: "nameTh",       label: "ชื่อ-สกุล (ไทย)",       type: "text",         required: true },
+  { key: "nameEn",       label: "ชื่อ-สกุล (อังกฤษ)",    type: "text",         required: true },
+  { key: "position",     label: "ตำแหน่ง",                type: "text",         required: true },
+  { key: "level",        label: "ประเภท",                 type: "text",         required: true },
+  { key: "department",   label: "ฝ่าย/กลุ่มงาน",          type: "text",         required: true },
+  { key: "bureau",       label: "หน่วยงาน/สำนัก",         type: "autocomplete", required: true },
+  { key: "endDate",      label: "วันที่พ้นสภาพ",           type: "date",         required: true },
+  { key: "receivedDate", label: "วันที่ได้รับข้อมูล",       type: "date" },
+  { key: "fmis",         label: "FMIS",                    type: "select",       options: IT_OPTS, dateKey: "fmisDate" },
+  { key: "eMeeting",     label: "eMeeting",                type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
+  { key: "software",     label: "Software",                 type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
+  { key: "phonebook",    label: "Phonebook",                type: "select",       options: IT_OPTS, dateKey: "phonebookDate" },
 ];
 
 const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
@@ -149,6 +150,7 @@ export default function EditRecordPage() {
         setFormState({
           ...d,
           endDate:       toDateInput(d.endDate),
+          receivedDate:  toDateInput(d.receivedDate),
           fmisDate:      toDateInput(d.fmisDate),
           eMeetingDate:  toDateInput(d.eMeetingDate),
           softwareDate:  toDateInput(d.softwareDate),

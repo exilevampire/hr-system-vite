@@ -31,6 +31,7 @@ const fields: Field[] = [
   { key: "department",   label: "ฝ่าย/กลุ่มงาน",        type: "text",         required: true },
   { key: "bureau",       label: "หน่วยงาน/สำนัก",       type: "autocomplete", required: true },
   { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date",         required: true },
+  { key: "receivedDate", label: "วันที่ได้รับข้อมูล",    type: "date" },
   { key: "fmis",         label: "FMIS",                  type: "select",       options: IT_OPTS, dateKey: "fmisDate" },
   { key: "eMeeting",     label: "eMeeting",              type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
   { key: "software",     label: "Software",               type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
