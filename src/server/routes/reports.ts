@@ -44,9 +44,7 @@ function isItCleared(e: {
   phonebook: string | null;
 }): boolean {
   const itFields = [e.fmis, e.eMeeting, e.software, e.phonebook];
-  const noneIsPending = itFields.every((v) => !v || v === "ดำเนินการแล้ว");
-  const atLeastOneDone = itFields.some((v) => v === "ดำเนินการแล้ว");
-  return noneIsPending && atLeastOneDone;
+  return itFields.every((v) => !v || v === "ดำเนินการแล้ว");
 }
 
 function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {
