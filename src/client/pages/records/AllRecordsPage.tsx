@@ -918,6 +918,12 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
           <section>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">วันที่</h3>
             <Row label="วันที่พ้นสภาพ" value={formatDate(emp.endDate)} />
+            {emp.email && (
+              <div className="flex items-center gap-2 py-1.5 border-b border-slate-100">
+                <span className="text-xs text-slate-400 w-36 shrink-0">Email</span>
+                <a href={`mailto:${emp.email}`} className="text-xs text-blue-600 hover:underline break-all">{emp.email}</a>
+              </div>
+            )}
             <Row label="วันที่ได้รับข้อมูล" value={formatDate(emp.receivedDate)} />
           </section>
 
