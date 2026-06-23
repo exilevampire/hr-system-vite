@@ -34,10 +34,13 @@ const fields: Field[] = [
   { key: "endDate",      label: "วันที่พ้นสภาพ",           type: "date",         required: true },
   { key: "email",        label: "Email",                    type: "text" },
   { key: "receivedDate", label: "วันที่ได้รับข้อมูล",       type: "date" },
-  { key: "fmis",         label: "FMIS",                    type: "select",       options: IT_OPTS, dateKey: "fmisDate" },
-  { key: "eMeeting",     label: "eMeeting",                type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
-  { key: "software",     label: "Software",                 type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
-  { key: "phonebook",    label: "Phonebook",                type: "select",       options: IT_OPTS, dateKey: "phonebookDate" },
+];
+
+const IT_FIELDS = [
+  { key: "fmis",      label: "FMIS",      dateKey: "fmisDate" },
+  { key: "eMeeting",  label: "eMeeting",  dateKey: "eMeetingDate" },
+  { key: "software",  label: "Software",  dateKey: "softwareDate" },
+  { key: "phonebook", label: "Phonebook", dateKey: "phonebookDate" },
 ];
 
 const IT_TO_DATE: Record<string, string> = {
@@ -273,6 +276,7 @@ export default function EditRecordPage() {
             </div>
           )}
 
+          {/* General fields grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {fields.map((f) => {
               const editable = canEdit(f.key);
@@ -282,7 +286,7 @@ export default function EditRecordPage() {
               const disabledCls = !editable ? "bg-slate-50 text-slate-400 cursor-not-allowed" : "";
 
               return (
-                <div key={f.key} id={`field-${f.key}`} className={f.type === "textarea" ? "sm:col-span-2" : ""}>
+                <div key={f.key} id={`field-${f.key}`}>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     {f.label}
                     {f.required && isSuperAdmin && <span className="text-red-500 ml-0.5">*</span>}
@@ -298,32 +302,6 @@ export default function EditRecordPage() {
                       hasError={hasErr}
                       disabled={!editable}
                     />
-                  ) : f.type === "select" ? (
-                    <>
-                      <select
-                        value={form[f.key] ?? ""}
-                        onChange={(e) => setField(f.key, e.target.value)}
-                        disabled={!editable}
-                        className={`${baseCls} bg-white ${disabledCls}`}
-                      >
-                        {f.options!.map((opt) => (
-                          <option key={opt} value={opt}>{opt || "ไม่พบบัญชี"}</option>
-                        ))}
-                      </select>
-                      {f.dateKey && form[f.key] === "ดำเนินการแล้ว" && (
-                        <div className="mt-2">
-                          <label className="block text-xs font-medium text-slate-500 mb-1">
-                            วันที่ดำเนินการ <span className="text-slate-400 font-normal">(พ.ศ.)</span>
-                          </label>
-                          <ThaiDatePicker
-                            value={form[f.dateKey] ?? ""}
-                            onChange={(v) => setField(f.dateKey!, v)}
-                            className={hasErr ? "border-red-400" : ""}
-                          />
-                          {errors[f.dateKey] && <p className="mt-1 text-xs text-red-600">{errors[f.dateKey]}</p>}
-                        </div>
-                      )}
-                    </>
                   ) : f.type === "date" ? (
                     <ThaiDatePicker
                       value={form[f.key] ?? ""}
@@ -345,6 +323,48 @@ export default function EditRecordPage() {
                 </div>
               );
             })}
+          </div>
+
+          {/* IT Status section */}
+          <div className="mt-5 border border-slate-200 rounded-xl overflow-hidden">
+            <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center gap-2">
+              <span className="text-sm font-semibold text-slate-600">สถานะดำเนินการ</span>
+              {!isSuperAdmin && (
+                <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">แก้ไขได้</span>
+              )}
+            </div>
+            <div className="divide-y divide-slate-100">
+              {IT_FIELDS.map(({ key, label, dateKey }) => {
+                const val = form[key] ?? "";
+                const dateVal = form[dateKey] ?? "";
+                const isDone = val === "ดำเนินการแล้ว";
+                return (
+                  <div key={key} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                    <span className="text-sm font-medium text-slate-600 w-24 shrink-0">{label}</span>
+                    <select
+                      value={val}
+                      onChange={(e) => setField(key, e.target.value)}
+                      className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-44"
+                    >
+                      {IT_OPTS.map((opt) => (
+                        <option key={opt} value={opt}>{opt || "ไม่พบบัญชี"}</option>
+                      ))}
+                    </select>
+                    {isDone && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 shrink-0">วันที่ดำเนินการ</span>
+                        <ThaiDatePicker
+                          value={dateVal}
+                          onChange={(v) => setField(dateKey, v)}
+                          placeholder="วว/ดด/ปปปป"
+                          className="w-44"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-6 flex gap-3 justify-end">
