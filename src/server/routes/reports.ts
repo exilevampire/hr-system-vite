@@ -194,6 +194,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     { key: "department",   width: 20  },
     { key: "bureau",       width: 24  },
     { key: "endDate",      width: 13  },
+    { key: "email",         width: 26  },
     { key: "itStatus",     width: 13  },
     { key: "fmis",         width: 14  },
     { key: "fmisDate",     width: 13  },
@@ -203,21 +204,20 @@ router.get("/employees", authMiddleware, async (req, res) => {
     { key: "softwareDate",  width: 13  },
     { key: "phonebook",     width: 14  },
     { key: "phonebookDate", width: 13  },
-    { key: "email",         width: 26  },
   ];
 
   // col index → is date sub-column (1-based)
-  const DATE_SUB_COLS = new Set([13, 15, 17, 19]);
+  const DATE_SUB_COLS = new Set([14, 16, 18, 20]);
 
   const HEADERS = [
     "ลำดับ", "ข้อมูลต้นทาง", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
     "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน/สำนัก", "วันพ้นสภาพ",
+    "Email",
     "สถานะการดำเนินงาน",
     "FMIS", "วันที่ FMIS",
     "eMeeting", "วันที่ eMeeting",
     "Software", "วันที่ Software",
     "Phonebook", "วันที่ Phonebook",
-    "Email",
   ];
 
   // Header row (row 2)
@@ -235,8 +235,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
   });
 
   // Data rows (starting at row 3)
-  // centered cols: no(1), employeeId(3), endDate(10), itStatus(11), and all IT cols (12-21)
-  const CENTER_COLS = new Set([1, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+  // centered cols: no(1), employeeId(3), endDate(10), itStatus(12), and all IT cols (13-20)
+  const CENTER_COLS = new Set([1, 3, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
 
   filtered.forEach((e, idx) => {
     const cleared = isItCleared(e);
@@ -255,16 +255,16 @@ router.get("/employees", authMiddleware, async (req, res) => {
       e.department ?? "",                   // 8  ฝ่าย/กลุ่มงาน
       e.bureau ?? "",                       // 9  หน่วยงาน/สำนัก
       toBE(e.endDate),                      // 10 วันพ้นสภาพ
-      cleared ? "ปิดแล้ว" : "ยังไม่ปิด",  // 11 สถานะการดำเนินงาน
-      itLabel(e.fmis),                       // 12 FMIS
-      toBE(e.fmisDate),                     // 13 วันที่ FMIS
-      itLabel(e.eMeeting),                  // 14 eMeeting
-      toBE(e.eMeetingDate),                 // 15 วันที่ eMeeting
-      itLabel(e.software),                  // 16 Software
-      toBE(e.softwareDate),                 // 17 วันที่ Software
-      itLabel(e.phonebook),                 // 18 Phonebook
-      toBE(e.phonebookDate),               // 19 วันที่ Phonebook
-      e.email ?? "",                        // 20 Email
+      e.email ?? "",                        // 11 Email
+      cleared ? "ปิดแล้ว" : "ยังไม่ปิด",  // 12 สถานะการดำเนินงาน
+      itLabel(e.fmis),                       // 13 FMIS
+      toBE(e.fmisDate),                     // 14 วันที่ FMIS
+      itLabel(e.eMeeting),                  // 15 eMeeting
+      toBE(e.eMeetingDate),                 // 16 วันที่ eMeeting
+      itLabel(e.software),                  // 17 Software
+      toBE(e.softwareDate),                 // 18 วันที่ Software
+      itLabel(e.phonebook),                 // 19 Phonebook
+      toBE(e.phonebookDate),               // 20 วันที่ Phonebook
     ];
 
     const rowBg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;

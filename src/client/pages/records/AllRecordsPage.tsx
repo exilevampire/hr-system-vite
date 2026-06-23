@@ -154,13 +154,13 @@ function getPageNumbers(current: number, total: number): (number | "…")[] {
 const HEADERS = [
   "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
   "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
-  "FMIS", "eMeeting", "Software", "Phonebook", "Email",
+  "Email", "FMIS", "eMeeting", "Software", "Phonebook",
 ];
 
 const NAME_COL_INDEX = 3;
 
 // Default widths matching the natural content layout (px)
-const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 100, 100, 100, 115, 180];
+const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 180, 100, 100, 100, 115];
 
 function formatDate(d?: string | null) {
   if (!d) return "-";
@@ -629,11 +629,11 @@ export default function AllRecordsPage() {
                   <TCell title={emp.department ?? "-"}>{emp.department ?? "-"}</TCell>
                   <TCell title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>
                   <TCell title={formatDate(emp.endDate)}>{formatDate(emp.endDate)}</TCell>
+                  <TCell title={emp.email ?? "-"}>{emp.email ?? "-"}</TCell>
                   <ITStatusCell value={emp.fmis} />
                   <ITStatusCell value={emp.eMeeting} />
                   <ITStatusCell value={emp.software} />
                   <ITStatusCell value={emp.phonebook} />
-                  <TCell title={emp.email ?? "-"}>{emp.email ?? "-"}</TCell>
                 </tr>
               ))}
             </tbody>
