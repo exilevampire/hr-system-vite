@@ -94,6 +94,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
         { nameTh: { contains: search } },
         { nameEn: { contains: search } },
         { employeeId: { contains: search } },
+        { email: { contains: search } },
       ],
     });
   }

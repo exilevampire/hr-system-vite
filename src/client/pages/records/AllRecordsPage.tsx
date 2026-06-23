@@ -370,7 +370,7 @@ export default function AllRecordsPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex flex-col sm:flex-row gap-3">
         <input
           type="text"
-          placeholder="ค้นหารหัส / ชื่อ-สกุล (ไทย / อังกฤษ)..."
+          placeholder="ค้นหารหัส / ชื่อ-สกุล (ไทย / อังกฤษ) / Email..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="flex-1 border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
