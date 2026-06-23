@@ -52,6 +52,7 @@ model Employee {
   softwareDate  DateTime?
   phonebook     String?
   phonebookDate DateTime?
+  email         String?
   createdBy    String
   updatedBy    String
   createdAt    DateTime  @default(now())

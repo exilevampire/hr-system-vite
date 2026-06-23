@@ -3,10 +3,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../../lib/api";
-import { ThaiDateInput } from "../../components/ThaiDateInput";
+import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
 const IT_OPTS = ["", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
 const IT_KEYS = new Set(["fmis", "eMeeting", "software", "phonebook"]);
+const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
 
 const SOURCE_TYPE_OPTIONS = [
   { value: 1, label: "1 - สบค. (สำนักงานบริหารทรัพยากรบุคคล)" },
@@ -36,22 +37,17 @@ const fields: Field[] = [
   { key: "eMeeting",     label: "eMeeting",                type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
   { key: "software",     label: "Software",                 type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
   { key: "phonebook",    label: "Phonebook",                type: "select",       options: IT_OPTS, dateKey: "phonebookDate" },
+  { key: "email",        label: "Email",                    type: "text" },
 ];
 
-const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
-const DATE_FIELD_KEYS = [...fields.filter((f) => f.type === "date").map((f) => f.key), ...IT_DATE_KEYS];
+const IT_TO_DATE: Record<string, string> = {
+  fmis: "fmisDate", eMeeting: "eMeetingDate", software: "softwareDate", phonebook: "phonebookDate",
+};
 
 type FormErrors = Record<string, string>;
 
-function validate(
-  form: Record<string, string>,
-  partialDates: Record<string, boolean>,
-  isSuperAdmin: boolean
-): FormErrors {
+function validate(form: Record<string, string>, isSuperAdmin: boolean): FormErrors {
   const err: FormErrors = {};
-  for (const key of DATE_FIELD_KEYS) {
-    if (partialDates[key]) err[key] = "กรุณากรอกวันที่ให้ครบทุกช่อง (วัน / เดือน / ปี พ.ศ.)";
-  }
   if (isSuperAdmin) {
     for (const f of fields.filter((f) => f.required)) {
       if (!form[f.key]?.trim()) err[f.key] = `กรุณากรอก${f.label}`;
@@ -128,9 +124,9 @@ export default function EditRecordPage() {
   const { employeeId } = useParams<{ employeeId: string }>();
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   const [form, setFormState] = useState<Record<string, string>>({});
-  const [partialDates, setPartialDates] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -163,33 +159,30 @@ export default function EditRecordPage() {
       });
   }, [employeeId]);
 
-  const IT_TO_DATE: Record<string, string> = {
-    fmis: "fmisDate", eMeeting: "eMeetingDate", software: "softwareDate",
-    phonebook: "phonebookDate",
-  };
-
   function canEdit(key: string) {
-    return isSuperAdmin || IT_KEYS.has(key) || IT_DATE_KEYS.includes(key);
+    if (isSuperAdmin) return true;
+    return IT_KEYS.has(key) || IT_DATE_KEYS.includes(key);
   }
 
   function setField(key: string, val: string) {
     if (!canEdit(key)) return;
     setFormState((prev) => {
       const next: Record<string, string> = { ...prev, [key]: val };
-      if (IT_TO_DATE[key] && val !== "ดำเนินการแล้ว") next[IT_TO_DATE[key]] = "";
+      if (IT_TO_DATE[key]) {
+        if (val === "ดำเนินการแล้ว") {
+          if (!prev[IT_TO_DATE[key]]) next[IT_TO_DATE[key]] = todayIso;
+        } else {
+          next[IT_TO_DATE[key]] = "";
+        }
+      }
       return next;
     });
     if (errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
   }
 
-  function setPartial(key: string, isPartial: boolean) {
-    setPartialDates((prev) => ({ ...prev, [key]: isPartial }));
-    if (!isPartial && errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const errs = validate(form, partialDates, isSuperAdmin);
+    const errs = validate(form, isSuperAdmin);
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       document.getElementById(`field-${Object.keys(errs)[0]}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -322,27 +315,25 @@ export default function EditRecordPage() {
                           <label className="block text-xs font-medium text-slate-500 mb-1">
                             วันที่ดำเนินการ <span className="text-slate-400 font-normal">(พ.ศ.)</span>
                           </label>
-                          <ThaiDateInput
+                          <ThaiDatePicker
                             value={form[f.dateKey] ?? ""}
                             onChange={(v) => setField(f.dateKey!, v)}
-                            onPartialChange={(p) => setPartial(f.dateKey!, p)}
-                            hasError={!!errors[f.dateKey]}
+                            className={hasErr ? "border-red-400" : ""}
                           />
                           {errors[f.dateKey] && <p className="mt-1 text-xs text-red-600">{errors[f.dateKey]}</p>}
                         </div>
                       )}
                     </>
                   ) : f.type === "date" ? (
-                    <ThaiDateInput
+                    <ThaiDatePicker
                       value={form[f.key] ?? ""}
                       onChange={(v) => setField(f.key, v)}
-                      onPartialChange={(p) => setPartial(f.key, p)}
-                      hasError={hasErr}
                       disabled={!editable}
+                      className={hasErr ? "border-red-400" : ""}
                     />
                   ) : (
                     <input
-                      type={f.type}
+                      type="text"
                       value={form[f.key] ?? ""}
                       onChange={(e) => setField(f.key, e.target.value)}
                       disabled={!editable}

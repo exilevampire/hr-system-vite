@@ -35,6 +35,9 @@ const HEADER_MAP: Record<string, string> = {
   "หน่วยงาน": "bureau",
   "หน่วยงาน/สำนัก": "bureau",
   "วันที่พ้นสภาพ": "endDate",
+  "อีเมล": "email",
+  "e-mail": "email",
+  "email": "email",
 };
 
 const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
@@ -246,6 +249,7 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req
         softwareDate: body.softwareDate ? new Date(body.softwareDate) : null,
         phonebook: body.phonebook || null,
         phonebookDate: body.phonebookDate ? new Date(body.phonebookDate) : null,
+        email: body.email || null,
         createdBy: adminUser,
         updatedBy: adminUser,
       },
@@ -362,6 +366,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
       department: String(raw.department ?? "").trim() || null,
       bureau: String(raw.bureau ?? "").trim() || null,
       endDate: parseDate(raw.endDate),
+      email: String(raw.email ?? "").trim() || null,
     };
 
     try {
@@ -507,6 +512,7 @@ router.patch("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN")
     bureau: body.bureau || null,
     endDate: body.endDate ? new Date(body.endDate) : null,
     receivedDate: body.receivedDate ? new Date(body.receivedDate) : undefined,
+    email: body.email || null,
     ...itOnlyData,
     ...(dataSourceId !== null ? { dataSourceId } : body.sourceType === "" ? { dataSourceId: null } : {}),
   } : itOnlyData;

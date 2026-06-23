@@ -3,7 +3,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../../lib/api";
-import { ThaiDateInput } from "../../components/ThaiDateInput";
+import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
 const IT_OPTS = ["", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
 
@@ -20,6 +20,7 @@ interface Field {
   required?: boolean;
   options?: string[];
   dateKey?: string;
+  superAdminOnly?: boolean;
 }
 
 const fields: Field[] = [
@@ -36,19 +37,19 @@ const fields: Field[] = [
   { key: "eMeeting",     label: "eMeeting",              type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
   { key: "software",     label: "Software",               type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
   { key: "phonebook",    label: "Phonebook",              type: "select",       options: IT_OPTS, dateKey: "phonebookDate" },
+  { key: "email",        label: "Email",                  type: "text",         superAdminOnly: true },
 ];
 
-const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
-const DATE_FIELD_KEYS = [...fields.filter((f) => f.type === "date").map((f) => f.key), ...IT_DATE_KEYS];
+const IT_TO_DATE: Record<string, string> = {
+  fmis: "fmisDate", eMeeting: "eMeetingDate", software: "softwareDate", phonebook: "phonebookDate",
+};
+
 const REQUIRED_FIELDS = fields.filter((f) => f.required);
 
 type FormErrors = Record<string, string>;
 
-function validate(form: Record<string, string>, partialDates: Record<string, boolean>): FormErrors {
+function validate(form: Record<string, string>): FormErrors {
   const err: FormErrors = {};
-  for (const key of DATE_FIELD_KEYS) {
-    if (partialDates[key]) err[key] = "กรุณากรอกวันที่ให้ครบทุกช่อง (วัน / เดือน / ปี พ.ศ.)";
-  }
   for (const f of REQUIRED_FIELDS) {
     if (!form[f.key]?.trim()) err[f.key] = `กรุณากรอก${f.label}`;
   }
@@ -110,7 +111,10 @@ function BureauSelect({ value, onChange, options, hasError }: {
 
 export default function AddRecordPage() {
   const { user } = useAuth();
+  const role = user?.role;
   const navigate = useNavigate();
+
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   const [form, setFormState] = useState<Record<string, string>>({
     fmis: "ยังไม่ดำเนินการ",
@@ -118,7 +122,6 @@ export default function AddRecordPage() {
     software: "ยังไม่ดำเนินการ",
     phonebook: "ยังไม่ดำเนินการ",
   });
-  const [partialDates, setPartialDates] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
@@ -130,28 +133,24 @@ export default function AddRecordPage() {
     }).catch(() => {});
   }, []);
 
-  const IT_TO_DATE: Record<string, string> = {
-    fmis: "fmisDate", eMeeting: "eMeetingDate", software: "softwareDate",
-    phonebook: "phonebookDate",
-  };
-
   function setField(key: string, val: string) {
     setFormState((prev) => {
       const next: Record<string, string> = { ...prev, [key]: val };
-      if (IT_TO_DATE[key] && val !== "ดำเนินการแล้ว") next[IT_TO_DATE[key]] = "";
+      if (IT_TO_DATE[key]) {
+        if (val === "ดำเนินการแล้ว") {
+          if (!prev[IT_TO_DATE[key]]) next[IT_TO_DATE[key]] = todayIso;
+        } else {
+          next[IT_TO_DATE[key]] = "";
+        }
+      }
       return next;
     });
     if (errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
   }
 
-  function setPartial(key: string, isPartial: boolean) {
-    setPartialDates((prev) => ({ ...prev, [key]: isPartial }));
-    if (!isPartial && errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const errs = validate(form, partialDates);
+    const errs = validate(form);
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       document.getElementById(`field-${Object.keys(errs)[0]}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -172,6 +171,7 @@ export default function AddRecordPage() {
     }
   }
 
+  const visibleFields = fields.filter((f) => !f.superAdminOnly || role === "SUPER_ADMIN");
   const hasErrors = Object.keys(errors).length > 0;
 
   return (
@@ -232,7 +232,7 @@ export default function AddRecordPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {fields.map((f) => {
+            {visibleFields.map((f) => {
               const hasErr = !!errors[f.key];
               const border = hasErr ? "border-red-400 focus:ring-red-400" : "border-slate-300 focus:ring-blue-500";
               const baseCls = `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${border}`;
@@ -266,25 +266,23 @@ export default function AddRecordPage() {
                           <label className="block text-xs font-medium text-slate-500 mb-1">
                             วันที่ดำเนินการ <span className="text-slate-400 font-normal">(พ.ศ.)</span>
                           </label>
-                          <ThaiDateInput
+                          <ThaiDatePicker
                             value={form[f.dateKey] ?? ""}
                             onChange={(v) => setField(f.dateKey!, v)}
-                            onPartialChange={(p) => setPartial(f.dateKey!, p)}
-                            hasError={!!errors[f.dateKey]}
+                            className={hasErr ? "border-red-400" : ""}
                           />
                           {errors[f.dateKey] && <p className="mt-1 text-xs text-red-600">{errors[f.dateKey]}</p>}
                         </div>
                       )}
                     </>
                   ) : f.type === "date" ? (
-                    <ThaiDateInput
+                    <ThaiDatePicker
                       value={form[f.key] ?? ""}
                       onChange={(v) => setField(f.key, v)}
-                      onPartialChange={(p) => setPartial(f.key, p)}
-                      hasError={hasErr}
+                      className={hasErr ? "border-red-400" : ""}
                     />
                   ) : (
-                    <input type={f.type} value={form[f.key] ?? ""}
+                    <input type="text" value={form[f.key] ?? ""}
                       onChange={(e) => setField(f.key, e.target.value)}
                       className={baseCls} />
                   )}

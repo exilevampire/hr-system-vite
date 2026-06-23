@@ -8,7 +8,7 @@ router.get("/", authMiddleware, async (_req, res) => {
   const [total, allEmployees] = await Promise.all([
     prisma.employee.count(),
     prisma.employee.findMany({
-      select: { bureau: true, endDate: true, fmis: true, eMeeting: true, software: true, phonebook: true },
+      select: { bureau: true, endDate: true, fmis: true, eMeeting: true, software: true, phonebook: true, email: true },
     }),
   ]);
 
@@ -36,13 +36,16 @@ router.get("/", authMiddleware, async (_req, res) => {
   const byMonth = allByMonth.slice(-12);
 
   let cleared = 0;
+  let withEmail = 0;
   for (const e of allEmployees) {
     const itFields = [e.fmis, e.eMeeting, e.software, e.phonebook];
     if (itFields.every((v) => !v || v === "ดำเนินการแล้ว")) cleared++;
+    if (e.email) withEmail++;
   }
   const itStatus = { cleared, pending: total - cleared };
+  const emailStats = { withEmail, withoutEmail: total - withEmail };
 
-  res.json({ total, byBureau, allByBureau, byMonth, allByMonth, itStatus });
+  res.json({ total, byBureau, allByBureau, byMonth, allByMonth, itStatus, emailStats });
 });
 
 export default router;

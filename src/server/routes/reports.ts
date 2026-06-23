@@ -171,7 +171,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   });
 
   // Title row (merged)
-  const TOTAL_COLS = 19;
+  const TOTAL_COLS = 20;
   ws.mergeCells(1, 1, 1, TOTAL_COLS);
   const titleCell = ws.getCell("A1");
   const now = new Date();
@@ -203,6 +203,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     { key: "softwareDate",  width: 13  },
     { key: "phonebook",     width: 14  },
     { key: "phonebookDate", width: 13  },
+    { key: "email",         width: 26  },
   ];
 
   // col index → is date sub-column (1-based)
@@ -216,6 +217,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     "eMeeting", "วันที่ eMeeting",
     "Software", "วันที่ Software",
     "Phonebook", "วันที่ Phonebook",
+    "Email",
   ];
 
   // Header row (row 2)
@@ -261,7 +263,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
       itLabel(e.software),                  // 16 Software
       toBE(e.softwareDate),                 // 17 วันที่ Software
       itLabel(e.phonebook),                 // 18 Phonebook
-      toBE(e.phonebookDate),                // 19 วันที่ Phonebook
+      toBE(e.phonebookDate),               // 19 วันที่ Phonebook
+      e.email ?? "",                        // 20 Email
     ];
 
     const rowBg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
@@ -293,17 +296,20 @@ router.get("/employees", authMiddleware, async (req, res) => {
     { key: "c", width: 14 },
     { key: "d", width: 14 },
     { key: "e", width: 14 },
+    { key: "f", width: 14 },
   ];
 
   // Compute summary data
   const bureauMap: Record<string, { total: number; cleared: number }> = {};
   const monthMap: Record<string, number> = {};
   let totalCleared = 0;
+  let withEmail = 0;
   for (const e of filtered) {
     const b = e.bureau ?? "ไม่ระบุ";
     if (!bureauMap[b]) bureauMap[b] = { total: 0, cleared: 0 };
     bureauMap[b].total++;
     if (isItCleared(e)) { bureauMap[b].cleared++; totalCleared++; }
+    if (e.email) withEmail++;
     if (e.endDate) {
       const d = new Date(e.endDate);
       const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -318,7 +324,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     return { label: `${THAI_MONTHS_SHORT[m - 1]} ${y + 543}`, count };
   });
 
-  function s2SectionHeader(row: number, label: string, cols = 5) {
+  function s2SectionHeader(row: number, label: string, cols = 6) {
     ws2.mergeCells(row, 1, row, cols);
     const cell = ws2.getCell(row, 1);
     cell.value = label;
@@ -329,7 +335,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   }
 
   // ── Title ────────────────────────────────────────────────────────────
-  ws2.mergeCells("A1:E1");
+  ws2.mergeCells("A1:F1");
   const t2 = ws2.getCell("A1");
   t2.value = `สรุปภาพรวม  —  ณ วันที่ ${reportDate}  (${filtered.length.toLocaleString()} รายการ)`;
   t2.font = { name: "TH SarabunPSK", size: 14, bold: true, color: { argb: `FF${HEADER_DARK}` } };
@@ -341,7 +347,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   s2SectionHeader(2, "  ภาพรวม");
 
   // Stat headers
-  const statHeaders = ["พนักงานทั้งหมด", "ปิดสิทธิ์แล้ว", "รอดำเนินการ", "% ปิดสิทธิ์", "จำนวนหน่วยงาน"];
+  const statHeaders = ["พนักงานทั้งหมด", "ปิดสิทธิ์แล้ว", "รอดำเนินการ", "% ปิดสิทธิ์", "จำนวนหน่วยงาน", "มีข้อมูลอีเมล"];
   const statHRow = ws2.getRow(3);
   statHRow.height = 26;
   statHeaders.forEach((h, i) => {
@@ -353,7 +359,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   });
 
   // Stat values
-  const statVals = [filtered.length, totalCleared, totalPending, overallPct, bureauList.length];
+  const statVals = [filtered.length, totalCleared, totalPending, overallPct, bureauList.length, withEmail];
   const statRow = ws2.getRow(4);
   statRow.height = 28;
   statVals.forEach((v, i) => {
