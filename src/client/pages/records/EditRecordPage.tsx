@@ -326,20 +326,20 @@ export default function EditRecordPage() {
           </div>
 
           {/* IT Status section */}
-          <div className="mt-5 border border-slate-200 rounded-xl overflow-hidden">
-            <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center gap-2">
+          <div className="mt-5 pt-5 border-t border-slate-100">
+            <div className="flex items-center gap-2 mb-3">
               <span className="text-sm font-semibold text-slate-600">สถานะดำเนินการ</span>
               {!isSuperAdmin && (
                 <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">แก้ไขได้</span>
               )}
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="space-y-3">
               {IT_FIELDS.map(({ key, label, dateKey }) => {
                 const val = form[key] ?? "";
                 const dateVal = form[dateKey] ?? "";
                 const isDone = val === "ดำเนินการแล้ว";
                 return (
-                  <div key={key} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <div key={key} className="flex flex-wrap items-center gap-3">
                     <span className="text-sm font-medium text-slate-600 w-24 shrink-0">{label}</span>
                     <select
                       value={val}
