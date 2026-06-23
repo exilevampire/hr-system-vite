@@ -34,10 +34,13 @@ const fields: Field[] = [
   { key: "endDate",      label: "วันที่พ้นสภาพ",         type: "date",         required: true },
   { key: "email",        label: "Email",                  type: "text",         superAdminOnly: true },
   { key: "receivedDate", label: "วันที่ได้รับข้อมูล",    type: "date" },
-  { key: "fmis",         label: "FMIS",                  type: "select",       options: IT_OPTS, dateKey: "fmisDate" },
-  { key: "eMeeting",     label: "eMeeting",              type: "select",       options: IT_OPTS, dateKey: "eMeetingDate" },
-  { key: "software",     label: "Software",               type: "select",       options: IT_OPTS, dateKey: "softwareDate" },
-  { key: "phonebook",    label: "Phonebook",              type: "select",       options: IT_OPTS, dateKey: "phonebookDate" },
+];
+
+const IT_FIELDS = [
+  { key: "fmis",      label: "FMIS",      dateKey: "fmisDate" },
+  { key: "eMeeting",  label: "eMeeting",  dateKey: "eMeetingDate" },
+  { key: "software",  label: "Software",  dateKey: "softwareDate" },
+  { key: "phonebook", label: "Phonebook", dateKey: "phonebookDate" },
 ];
 
 const IT_TO_DATE: Record<string, string> = {
@@ -231,6 +234,7 @@ export default function AddRecordPage() {
             </div>
           </div>
 
+          {/* General fields grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {visibleFields.map((f) => {
               const hasErr = !!errors[f.key];
@@ -238,7 +242,7 @@ export default function AddRecordPage() {
               const baseCls = `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${border}`;
 
               return (
-                <div key={f.key} id={`field-${f.key}`} className={f.type === "textarea" ? "sm:col-span-2" : ""}>
+                <div key={f.key} id={`field-${f.key}`}>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     {f.label}
                     {f.required && <span className="text-red-500 ml-0.5">*</span>}
@@ -252,29 +256,6 @@ export default function AddRecordPage() {
                       options={bureauOptions}
                       hasError={hasErr}
                     />
-                  ) : f.type === "select" ? (
-                    <>
-                      <select value={form[f.key] ?? ""}
-                        onChange={(e) => setField(f.key, e.target.value)}
-                        className={`${baseCls} bg-white`}>
-                        {f.options!.map((opt) => (
-                          <option key={opt} value={opt}>{opt || "ไม่พบบัญชี"}</option>
-                        ))}
-                      </select>
-                      {f.dateKey && form[f.key] === "ดำเนินการแล้ว" && (
-                        <div className="mt-2">
-                          <label className="block text-xs font-medium text-slate-500 mb-1">
-                            วันที่ดำเนินการ <span className="text-slate-400 font-normal">(พ.ศ.)</span>
-                          </label>
-                          <ThaiDatePicker
-                            value={form[f.dateKey] ?? ""}
-                            onChange={(v) => setField(f.dateKey!, v)}
-                            className={hasErr ? "border-red-400" : ""}
-                          />
-                          {errors[f.dateKey] && <p className="mt-1 text-xs text-red-600">{errors[f.dateKey]}</p>}
-                        </div>
-                      )}
-                    </>
                   ) : f.type === "date" ? (
                     <ThaiDatePicker
                       value={form[f.key] ?? ""}
@@ -291,6 +272,45 @@ export default function AddRecordPage() {
                 </div>
               );
             })}
+          </div>
+
+          {/* IT Status section */}
+          <div className="mt-5 pt-5 border-t border-slate-100">
+            <div className="mb-3">
+              <span className="text-sm font-semibold text-slate-600">สถานะดำเนินการ</span>
+            </div>
+            <div className="space-y-3">
+              {IT_FIELDS.map(({ key, label, dateKey }) => {
+                const val = form[key] ?? "";
+                const dateVal = form[dateKey] ?? "";
+                const isDone = val === "ดำเนินการแล้ว";
+                return (
+                  <div key={key} className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-medium text-slate-600 w-24 shrink-0">{label}</span>
+                    <select
+                      value={val}
+                      onChange={(e) => setField(key, e.target.value)}
+                      className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-44"
+                    >
+                      {IT_OPTS.map((opt) => (
+                        <option key={opt} value={opt}>{opt || "ไม่พบบัญชี"}</option>
+                      ))}
+                    </select>
+                    {isDone && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 shrink-0">วันที่ดำเนินการ</span>
+                        <ThaiDatePicker
+                          value={dateVal}
+                          onChange={(v) => setField(dateKey, v)}
+                          placeholder="วว/ดด/ปปปป"
+                          className="w-44"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-6 flex gap-3 justify-end">
