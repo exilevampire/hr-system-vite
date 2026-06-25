@@ -305,6 +305,12 @@ router.get("/employees", authMiddleware, async (req, res) => {
   const monthMap: Record<string, number> = {};
   let totalCleared = 0;
   let withEmail = 0;
+  const itBreakdown = {
+    fmis:      { done: 0, pending: 0, na: 0 },
+    eMeeting:  { done: 0, pending: 0, na: 0 },
+    software:  { done: 0, pending: 0, na: 0 },
+    phonebook: { done: 0, pending: 0, na: 0 },
+  };
   for (const e of filtered) {
     const b = e.bureau ?? "ไม่ระบุ";
     if (!bureauMap[b]) bureauMap[b] = { total: 0, cleared: 0 };
@@ -315,6 +321,14 @@ router.get("/employees", authMiddleware, async (req, res) => {
       const d = new Date(e.endDate);
       const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
       monthMap[key] = (monthMap[key] ?? 0) + 1;
+    }
+    for (const [key, val] of [
+      ["fmis", e.fmis], ["eMeeting", e.eMeeting],
+      ["software", e.software], ["phonebook", e.phonebook],
+    ] as [keyof typeof itBreakdown, string | null][]) {
+      if (val === "ดำเนินการแล้ว") itBreakdown[key].done++;
+      else if (val === "ยังไม่ดำเนินการ") itBreakdown[key].pending++;
+      else itBreakdown[key].na++;
     }
   }
   const totalPending = filtered.length - totalCleared;
@@ -450,6 +464,45 @@ router.get("/employees", authMiddleware, async (req, res) => {
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
       cell.border = { top: { style: "medium", color: { argb: `FF${HEADER_DARK}` } } };
     });
+  });
+
+  // ── Section 4: สถานะดำเนินการรายระบบ ─────────────────────────────
+  const itSectionRow = monthSectionRow + 2 + monthList.length + 3;
+  s2SectionHeader(itSectionRow, "  สถานะดำเนินการรายระบบ", 5);
+
+  const itHRow = ws2.getRow(itSectionRow + 1);
+  itHRow.height = 26;
+  ["ระบบ", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่พบบัญชี", "% ดำเนินการแล้ว"].forEach((h, i) => {
+    const cell = itHRow.getCell(i + 1);
+    cell.value = h;
+    applyHeaderStyle(cell, i > 0);
+    if (i === 0) cell.alignment = { vertical: "middle", horizontal: "left" };
+  });
+
+  const IT_BREAKDOWN_ROWS: [string, keyof typeof itBreakdown][] = [
+    ["FMIS", "fmis"],
+    ["eMeeting", "eMeeting"],
+    ["Software", "software"],
+    ["Phonebook", "phonebook"],
+  ];
+
+  IT_BREAKDOWN_ROWS.forEach(([label, key], idx) => {
+    const cnt = itBreakdown[key];
+    const total = cnt.done + cnt.pending + cnt.na;
+    const pct = total > 0 ? cnt.done / total : 0;
+    const row = ws2.getRow(itSectionRow + 2 + idx);
+    row.height = 20;
+    const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
+    [label, cnt.done, cnt.pending, cnt.na, pct].forEach((v, ci) => {
+      const cell = row.getCell(ci + 1);
+      cell.value = v;
+      cell.font = { name: "TH SarabunPSK", size: 10 };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
+      if (ci === 1) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
+      else if (ci === 2) { cell.font = { ...cell.font, bold: true, color: { argb: ORANGE_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; }
+    });
+    row.getCell(5).numFmt = "0%";
   });
 
   ws2.views = [{ state: "frozen", xSplit: 0, ySplit: 1, topLeftCell: "A2", activeCell: "A2" }];

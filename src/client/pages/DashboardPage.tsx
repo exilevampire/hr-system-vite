@@ -9,6 +9,8 @@ import {
 interface BureauItem { bureau: string; count: number }
 interface MonthItem { month: string; count: number }
 
+interface ITCount { done: number; pending: number; na: number }
+
 interface Stats {
   total: number;
   byBureau: BureauItem[];
@@ -16,6 +18,7 @@ interface Stats {
   byMonth: MonthItem[];
   allByMonth: MonthItem[];
   itStatus: { cleared: number; pending: number };
+  itBreakdown: { fmis: ITCount; eMeeting: ITCount; software: ITCount; phonebook: ITCount };
 }
 
 const THAI_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -203,6 +206,53 @@ export default function DashboardPage() {
                 <div className="h-48 flex items-center justify-center text-slate-400 text-sm">ยังไม่มีข้อมูล</div>
               )}
             </div>
+
+            {/* IT breakdown card */}
+            {stats?.itBreakdown && (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
+                <h2 className="font-semibold text-slate-700 mb-4">สถานะดำเนินการรายระบบ</h2>
+                <div className="space-y-4">
+                  {([
+                    ["FMIS",      stats.itBreakdown.fmis],
+                    ["eMeeting",  stats.itBreakdown.eMeeting],
+                    ["Software",  stats.itBreakdown.software],
+                    ["Phonebook", stats.itBreakdown.phonebook],
+                  ] as [string, ITCount][]).map(([label, cnt]) => {
+                    const total = cnt.done + cnt.pending + cnt.na;
+                    const donePct = total > 0 ? cnt.done / total : 0;
+                    return (
+                      <div key={label}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-medium text-slate-600 w-24 shrink-0">{label}</span>
+                          <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <span className="flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                              ดำเนินการแล้ว <span className="font-semibold text-slate-700 ml-0.5">{cnt.done.toLocaleString()}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                              ยังไม่ดำเนินการ <span className="font-semibold text-slate-700 ml-0.5">{cnt.pending.toLocaleString()}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" />
+                              ไม่พบบัญชี <span className="font-semibold text-slate-700 ml-0.5">{cnt.na.toLocaleString()}</span>
+                            </span>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-500 w-12 text-right shrink-0">
+                            {Math.round(donePct * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${total > 0 ? (cnt.done / total) * 100 : 0}%` }} />
+                          <div className="h-full bg-amber-400 transition-all" style={{ width: `${total > 0 ? (cnt.pending / total) * 100 : 0}%` }} />
+                          <div className="h-full bg-slate-300 transition-all" style={{ width: `${total > 0 ? (cnt.na / total) * 100 : 0}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Monthly trend card */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
