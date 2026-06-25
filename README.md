@@ -1,245 +1,215 @@
-# ระบบจัดเก็บและรายงานข้อมูลพ้นสภาพของบุคคล
+# HR System — ระบบบริหารข้อมูลพนักงานพ้นสภาพ
 
-ระบบบริหารจัดการข้อมูลพนักงานที่พ้นสภาพ พัฒนาสำหรับ **สำนักงานเทคโนโลยีสารสนเทศและดิจิทัล สภากาชาดไทย**  
-ด้วย React + Vite (Frontend) และ Express + Prisma (Backend) รวมอยู่ในโปรเจกต์เดียว (Monorepo)
-
----
-
-## ฟีเจอร์หลัก
-
-- จัดการข้อมูลพนักงานที่พ้นสภาพ (เพิ่ม / แก้ไข / ลบ / ค้นหา)
-- นำเข้าข้อมูลจาก Excel (.xlsx) และ Export รายงาน
-- ติดตามสถานะการปิดสิทธิ์ระบบ IT (FMIS, eMeeting, Website, 3CX, Intranet)
-- Dashboard สรุปสถิติ
-- ระบบ Login พร้อม 2-Factor Authentication (TOTP)
-- บันทึก Audit Log การเปลี่ยนแปลงข้อมูล
-- จัดการ User และสิทธิ์การใช้งาน 3 ระดับ
-- รองรับ Remember Me และ Session-based auth
+ระบบบริหารข้อมูลพนักงานที่พ้นสภาพของสภากาชาดไทย ใช้สำหรับติดตามสถานะการดำเนินการปิดสิทธิ์ระบบ IT ได้แก่ FMIS, eMeeting, Software และ Phonebook
 
 ---
 
 ## Tech Stack
 
-| ชั้น | เทคโนโลยี |
-|------|-----------|
-| **Frontend** | React 19, Vite 6, Tailwind CSS v4, React Router 7 |
-| **Backend** | Express.js 4, Prisma ORM 7 |
-| **Database** | MariaDB 10.6+ / MySQL 8.0+ |
-| **Auth** | JWT, bcryptjs, TOTP (speakeasy) |
-| **Language** | TypeScript 5 |
+| ส่วน | เทคโนโลยี |
+|---|---|
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, Recharts |
+| Backend | Node.js, Express.js, TypeScript |
+| ORM | Prisma 7 |
+| Database | MariaDB |
+| Auth | JWT (jsonwebtoken), bcryptjs |
+| 2FA | TOTP (RFC 6238) — ใช้ได้กับ Google Authenticator, Authy, Microsoft Authenticator |
+| Excel | ExcelJS (export), xlsx (import) |
+| Security | Helmet, express-rate-limit, CORS |
 
 ---
 
-## ความต้องการของระบบ (Server Requirements)
+## ฟีเจอร์หลัก
 
-| รายการ | เวอร์ชันขั้นต่ำ |
-|--------|---------------|
-| Node.js | **20 LTS** ขึ้นไป |
-| npm | 10 ขึ้นไป |
-| MariaDB | 10.6+ |
-| RAM | 512 MB ขึ้นไป |
-| OS | Linux / Windows Server |
+### หน้าข้อมูลพนักงาน (Records)
+- แสดงรายการพนักงานพ้นสภาพพร้อม filter หลายมิติ (หน่วยงาน, ตำแหน่ง, ช่วงวันที่, สถานะ IT, ข้อมูลต้นทาง)
+- ค้นหาด้วย รหัส / ชื่อ-สกุล (ไทย/อังกฤษ) / Email
+- เพิ่ม / แก้ไข / ลบข้อมูลพนักงาน
+- ติดตามสถานะดำเนินการ FMIS, eMeeting, Software, Phonebook พร้อมวันที่ดำเนินการ
+- นำเข้าข้อมูลจากไฟล์ Excel (รองรับ header หลายรูปแบบ ทั้งภาษาไทยและอังกฤษ)
+- ดาวน์โหลดไฟล์ตัวอย่างสำหรับนำเข้า
 
----
+### หน้าแดชบอร์ด (Dashboard)
+- ภาพรวมจำนวนพนักงานพ้นสภาพทั้งหมด
+- สถานะการดำเนินการ IT (ปิดแล้ว / รอดำเนินการ) — Pie chart
+- สถิติรายระบบ: FMIS / eMeeting / Software / Phonebook (ดำเนินการแล้ว / ยังไม่ดำเนินการ / ไม่พบบัญชี + progress bar)
+- พนักงานแยกตามหน่วยงาน (Top 10)
+- แนวโน้มรายเดือน (Bar chart)
+- Filter ตามช่วงเวลา
 
-## 1. สร้าง Database
+### รายงาน Excel
+- **Sheet 1**: รายการพนักงานครบทุก field พร้อมสีและ auto filter (รองรับ filter เดียวกับหน้าข้อมูล)
+- **Sheet 2**: สรุปภาพรวม — ภาพรวมตัวเลข / แยกตามหน่วยงาน / แนวโน้มรายเดือน / สถิติรายระบบ
 
-```sql
-CREATE DATABASE hr_integrity_db
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-```
+### การจัดการผู้ใช้
+- 3 roles: `SUPER_ADMIN`, `ADMIN`, `VIEWER`
+- SUPER_ADMIN: จัดการผู้ใช้ทั้งหมด, เพิ่ม/แก้ไข/ลบข้อมูลพนักงาน, เห็น field Email
+- ADMIN: เพิ่ม/แก้ไขข้อมูล, ไม่เห็น Email
+- VIEWER: ดูข้อมูลและดาวน์โหลดรายงานเท่านั้น
 
-สร้าง User สำหรับระบบ (แนะนำ — ไม่ควรใช้ root):
-
-```sql
-CREATE USER 'hruser'@'localhost' IDENTIFIED BY 'รหัสผ่านที่แข็งแกร่ง';
-GRANT ALL PRIVILEGES ON hr_integrity_db.* TO 'hruser'@'localhost';
-FLUSH PRIVILEGES;
-```
-
----
-
-## 2. ติดตั้งโปรเจกต์
-
-```bash
-git clone https://git.redcross.or.th/pornpetch.n/hr-system.git
-cd hr-system
-npm install
-```
-
-> `npm install` จะรัน `prisma generate` อัตโนมัติผ่าน postinstall hook
+### Audit Log
+- บันทึกทุกการเปลี่ยนแปลงข้อมูลพนักงาน (เพิ่ม/แก้ไข/ลบ)
+- แสดง field ที่เปลี่ยนแปลง ค่าก่อน-หลัง และผู้ดำเนินการ
 
 ---
 
-## 3. ตั้งค่า Environment
+## ระบบ Security
 
-```bash
-# Windows
-copy .env.example .env
+### Authentication
+- รหัสผ่านเข้ารหัสด้วย **bcrypt** (salt rounds: 10)
+- JWT token อายุ **7 วัน** ส่งผ่าน `Authorization: Bearer <token>`
+- Role-based access control ทุก API endpoint
 
-# Linux/macOS
-cp .env.example .env
-```
+### Two-Factor Authentication (2FA) — TOTP
+ใช้มาตรฐาน **RFC 6238 (TOTP)** — ทำงานได้กับ Authenticator app ทุกตัว
 
-แก้ไขไฟล์ `.env`:
+| พารามิเตอร์ | ค่า |
+|---|---|
+| Algorithm | HMAC-SHA1 |
+| Digits | 6 หลัก |
+| Period | 30 วินาที |
+| Window tolerance | ±4 steps (รองรับนาฬิกา drift ±2 นาที) |
+| Secret encoding | Base32 |
+| QR Code | `otpauth://totp/HR-RedCross:<email>?...` |
 
-```env
-DATABASE_URL="mysql://hruser:รหัสผ่าน@localhost:3306/hr_integrity_db"
-JWT_SECRET="สุ่มค่าแบบนี้: node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
-PORT=3001
-NODE_ENV=production
-```
+**ขั้นตอน Login เมื่อเปิด 2FA:**
+1. กรอก Email + Password → รับ `tempToken` (อายุ 5 นาที)
+2. กรอก OTP 6 หลักจาก Authenticator app → รับ JWT token เพื่อใช้งานระบบ
 
-> **⚠️ สำคัญ:**
-> - ต้องตั้ง `NODE_ENV=production` บน production server เสมอ
-> - `JWT_SECRET` ต้องสุ่มใหม่ทุก environment — ห้ามใช้ค่าเดียวกับ dev
-> - ห้าม commit ไฟล์ `.env` ขึ้น Git เด็ดขาด
+**Backup Codes:**
+- ระบบสร้าง backup code 10 รหัสเมื่อเปิดใช้ 2FA
+- แต่ละรหัสเป็น hex 8 หลัก รูปแบบ `XXXX-XXXX`
+- hash ด้วย bcrypt ก่อนเก็บ DB (ใช้ได้ครั้งเดียว)
+- ใช้แทน OTP ได้เมื่อไม่มี Authenticator app
 
----
-
-## 4. สร้างตาราง Database
-
-```bash
-npx prisma db push
-```
-
----
-
-## 5. Seed ข้อมูลเริ่มต้น (ครั้งแรกเท่านั้น)
-
-```bash
-npm run db:seed
-```
-
-บัญชีที่ได้หลัง seed:
-
-| Email | Password เริ่มต้น | Role |
-|-------|----------|------|
-| superadmin@hr.local | admin1234 | Super Admin |
-| hradmin@hr.local | admin1234 | HR Admin |
-| viewer@hr.local | admin1234 | Viewer |
-
-> **⚠️ เปลี่ยนรหัสผ่านทันทีหลัง deploy**
-
----
-
-## 6. Build และ Deploy
-
-```bash
-# Build frontend + backend
-npm run build
-
-# รัน production server
-NODE_ENV=production node dist/server/index.js
-```
-
-เปิดใช้งานที่ `http://localhost:3001` (serve ทั้ง API และ Frontend จาก port เดียว)
-
----
-
-## 7. ตั้งค่า PM2 (แนะนำ — ให้รันค้างไว้)
-
-```bash
-npm install -g pm2
-
-pm2 start dist/server/index.js --name "hr-system"
-
-# ให้รันอัตโนมัติเมื่อ server reboot
-pm2 startup
-pm2 save
-```
-
-คำสั่ง PM2 ที่ใช้บ่อย:
-
-```bash
-pm2 status          # ดูสถานะ
-pm2 logs hr-system  # ดู log
-pm2 restart hr-system
-pm2 stop hr-system
-```
-
----
-
-## 8. ตั้งค่า Nginx (ถ้าต้องการใช้ domain / HTTPS)
-
-```nginx
-server {
-    listen 80;
-    server_name hr.example.com;
-
-    location / {
-        proxy_pass http://localhost:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    client_max_body_size 10M;
-}
-```
-
----
-
-## สิทธิ์การใช้งาน (Roles)
-
-| Role | สิทธิ์ |
-|------|--------|
-| **Super Admin** | เข้าถึงทุกฟังก์ชัน, ลบข้อมูล, จัดการ User |
-| **HR Admin** | เพิ่ม/แก้ไขข้อมูล, นำเข้า Excel, ดู Audit Log |
-| **Viewer** | ดูข้อมูลและค้นหาเท่านั้น |
-
----
-
-## คำสั่งที่ใช้บ่อย
-
-```bash
-npm run dev          # รัน development server (Vite + Express)
-npm run build        # build สำหรับ production
-npm start            # รัน production server
-npm run db:push      # sync schema กับ database
-npm run db:seed      # สร้าง user เริ่มต้น
-npm run db:studio    # เปิด Prisma Studio (GUI database)
-npm run db:migrate   # สร้าง migration file
-```
+### HTTP Security Headers
+- **Helmet** — ตั้งค่า security headers อัตโนมัติ (CSP, HSTS, X-Frame-Options ฯลฯ)
+- **express-rate-limit** — จำกัด request เพื่อป้องกัน brute force
+- **CORS** — กำหนด allowed origin
 
 ---
 
 ## โครงสร้างโปรเจกต์
 
 ```
-hr-system/
+hr-system-vite/
 ├── src/
-│   ├── server/              # Express API
-│   │   ├── lib/             # Prisma client, Audit log, TOTP
-│   │   ├── middleware/      # JWT Auth middleware
-│   │   └── routes/          # auth, employees, dashboard, reports...
-│   └── client/              # React Frontend
-│       ├── components/      # AppLayout, shared components
-│       ├── contexts/        # AuthContext
-│       ├── lib/             # API fetch utility
-│       └── pages/           # Login, Dashboard, Records, Users...
+│   ├── client/
+│   │   ├── components/       # Shared components (AppLayout, ThaiDatePicker ฯลฯ)
+│   │   ├── contexts/         # AuthContext
+│   │   ├── lib/              # apiFetch helper
+│   │   └── pages/
+│   │       ├── DashboardPage.tsx
+│   │       ├── LoginPage.tsx
+│   │       ├── LogsPage.tsx
+│   │       ├── ReportPage.tsx
+│   │       ├── AccountPage.tsx
+│   │       ├── SettingsPage.tsx
+│   │       └── records/
+│   │           ├── AllRecordsPage.tsx
+│   │           ├── AddRecordPage.tsx
+│   │           ├── EditRecordPage.tsx
+│   │           └── ImportPage.tsx
+│   └── server/
+│       ├── index.ts           # Express app entry point
+│       ├── lib/
+│       │   ├── prisma.ts
+│       │   ├── totp.ts        # TOTP implementation (generate/verify/QR)
+│       │   └── audit.ts       # Audit log helpers
+│       ├── middleware/
+│       │   └── auth.ts        # JWT middleware + requireRole
+│       └── routes/
+│           ├── auth.ts        # Login, /me
+│           ├── twofa.ts       # 2FA setup/enable/disable/verify
+│           ├── employees.ts   # CRUD พนักงาน
+│           ├── reports.ts     # Excel export
+│           ├── dashboard.ts   # Dashboard stats
+│           ├── users.ts       # User management (SUPER_ADMIN)
+│           ├── logs.ts        # Audit logs
+│           └── datasources.ts # ข้อมูลต้นทาง
 ├── prisma/
-│   ├── schema.prisma        # Database schema (Employee, User, AuditLog)
-│   └── seed.ts              # Seed data (default users)
-├── public/                  # Static files (logo, Excel templates)
-├── dist/                    # Build output (generated — ไม่อยู่ใน Git)
-│   ├── client/              # Built React app
-│   └── server/              # Compiled Express JS
-├── .env.example             # ตัวอย่าง environment variables
-├── tsconfig.json            # TypeScript config (frontend)
-├── tsconfig.server.json     # TypeScript config (backend)
-└── package.json
+│   ├── schema.prisma
+│   └── seed.ts
+├── public/
+│   └── employee_import_template.xlsx
+└── .env
 ```
 
 ---
 
-## Security Checklist ก่อน Deploy
+## การติดตั้ง
 
-- [ ] ตั้ง `NODE_ENV=production` ในไฟล์ `.env`
-- [ ] สุ่ม `JWT_SECRET` ใหม่ด้วย `crypto.randomBytes(48)`
-- [ ] เปลี่ยนรหัสผ่าน default users ทั้งหมดหลัง seed
-- [ ] ไม่ใช้ user `root` สำหรับ database connection
-- [ ] ตั้งค่า Firewall ให้เปิดเฉพาะ port ที่จำเป็น
-- [ ] ตั้งค่า HTTPS ผ่าน Nginx + Let's Encrypt (ถ้ามี domain)
+### ความต้องการ
+- Node.js 18+
+- MariaDB 10.6+
+
+### ขั้นตอน
+
+```bash
+# 1. ติดตั้ง dependencies
+npm install
+
+# 2. สร้างไฟล์ .env
+cp .env.example .env
+# แก้ไข DATABASE_URL และ JWT_SECRET
+
+# 3. สร้าง schema ใน DB
+npm run db:push
+
+# 4. สร้าง admin user เริ่มต้น
+npm run db:seed
+
+# 5. รันในโหมด development
+npm run dev
+```
+
+### Environment Variables
+
+```env
+DATABASE_URL="mysql://user:password@localhost:3306/hr_integrity_db"
+JWT_SECRET="your-secret-key-here"
+PORT=3001
+```
+
+---
+
+## Scripts
+
+| Script | คำอธิบาย |
+|---|---|
+| `npm run dev` | รัน frontend (Vite :5173) + backend (:3001) พร้อมกัน |
+| `npm run build` | Build สำหรับ production |
+| `npm start` | รัน production build |
+| `npm run db:push` | Sync schema กับ DB (ไม่สร้าง migration file) |
+| `npm run db:generate` | Regenerate Prisma client |
+| `npm run db:seed` | สร้างข้อมูลเริ่มต้น (admin user) |
+| `npm run db:studio` | เปิด Prisma Studio |
+| `npm run kill` | Kill port 3001, 5173, 5174 |
+
+---
+
+## Data Models หลัก
+
+### Employee
+| Field | ประเภท | คำอธิบาย |
+|---|---|---|
+| employeeId | String (unique) | รหัสพนักงาน |
+| nameTh / nameEn | String | ชื่อ-สกุล ไทย/อังกฤษ |
+| position / level | String | ตำแหน่ง / ประเภท |
+| department / bureau | String | ฝ่าย / หน่วยงาน |
+| endDate | DateTime | วันที่พ้นสภาพ |
+| email | String | อีเมล |
+| fmis / eMeeting / software / phonebook | String | สถานะดำเนินการ IT |
+| fmisDate / eMeetingDate / softwareDate / phonebookDate | DateTime | วันที่ดำเนินการ |
+
+**ค่าสถานะ IT:** `ดำเนินการแล้ว` / `ยังไม่ดำเนินการ` / `null` (ไม่พบบัญชี)
+
+### User
+| Field | ประเภท | คำอธิบาย |
+|---|---|---|
+| email | String (unique) | อีเมลสำหรับ login |
+| password | String | bcrypt hash |
+| role | Enum | SUPER_ADMIN / ADMIN / VIEWER |
+| totpEnabled | Boolean | เปิด 2FA หรือไม่ |
+| totpSecret | String | Base32 secret สำหรับ TOTP |
+| backupCodes | Text | JSON array ของ bcrypt-hashed backup codes |
