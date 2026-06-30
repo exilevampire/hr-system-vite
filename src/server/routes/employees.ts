@@ -227,6 +227,15 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req
   const body = req.body;
   const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
 
+  if (!body.employeeId?.trim()) {
+    res.status(400).json({ error: "กรุณากรอกรหัสพนักงาน" });
+    return;
+  }
+  if (!body.nameTh?.trim()) {
+    res.status(400).json({ error: "กรุณากรอกชื่อ-สกุล (ไทย)" });
+    return;
+  }
+
   try {
     const dataSourceId = await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear);
 
@@ -264,7 +273,8 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req
       res.status(400).json({ error: "รหัสพนักงานซ้ำในระบบ" });
       return;
     }
-    res.status(500).json({ error: msg });
+    console.error("[POST /employees]", err);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
   }
 });
 
