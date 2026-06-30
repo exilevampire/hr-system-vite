@@ -514,24 +514,34 @@ router.patch("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN")
     ? await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear)
     : null;
 
+  const pick = <T,>(val: T | undefined, fallback: T | null = null): T | null | undefined =>
+    val !== undefined ? (val || fallback) : undefined;
+
   const fullData = role === "SUPER_ADMIN" ? {
-    nameTh: body.nameTh,
-    nameEn: body.nameEn || null,
-    position: body.position || null,
-    level: body.level || null,
-    department: body.department || null,
-    bureau: body.bureau || null,
-    endDate: body.endDate ? new Date(body.endDate) : null,
-    receivedDate: body.receivedDate ? new Date(body.receivedDate) : undefined,
-    email: body.email || null,
+    ...("nameTh" in body && { nameTh: body.nameTh }),
+    ...("nameEn" in body && { nameEn: pick(body.nameEn) }),
+    ...("position" in body && { position: pick(body.position) }),
+    ...("level" in body && { level: pick(body.level) }),
+    ...("department" in body && { department: pick(body.department) }),
+    ...("bureau" in body && { bureau: pick(body.bureau) }),
+    ...("endDate" in body && { endDate: body.endDate ? new Date(body.endDate) : null }),
+    ...("receivedDate" in body && body.receivedDate && { receivedDate: new Date(body.receivedDate) }),
+    ...("email" in body && { email: pick(body.email) }),
     ...itOnlyData,
     ...(dataSourceId !== null ? { dataSourceId } : body.sourceType === "" ? { dataSourceId: null } : {}),
   } : itOnlyData;
 
-  const updated = await prisma.employee.update({
-    where: { employeeId },
-    data: fullData,
-  });
+  let updated;
+  try {
+    updated = await prisma.employee.update({
+      where: { employeeId },
+      data: fullData,
+    });
+  } catch (err) {
+    console.error("[PATCH /employees]", err);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
+    return;
+  }
 
   await createAuditLog(
     employeeId,
