@@ -243,7 +243,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     const cleared = isItCleared(e);
     const rowNum = idx + 3;
     const row = ws.getRow(rowNum);
-    row.height = 19;
+    row.height = 22;
 
     const values = [
       idx + 1,                              // 1  ลำดับ
@@ -274,7 +274,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
       const colNum = ci + 1;
       const cell = row.getCell(colNum);
       cell.value = val;
-      cell.font = { name: "TH SarabunPSK", size: 10 };
+      cell.font = { name: "TH SarabunPSK", size: 12 };
       cell.alignment = { vertical: "middle", horizontal: CENTER_COLS.has(colNum) ? "center" : "left" };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
     });
@@ -282,7 +282,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     // สถานะการดำเนินงาน coloring (col 12 — col 11 is Email)
     const itCell = row.getCell(12);
     itCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cleared ? GREEN_BG : ORANGE_BG } };
-    itCell.font = { name: "TH SarabunPSK", size: 10, bold: true, color: { argb: cleared ? GREEN_FG : ORANGE_FG } };
+    itCell.font = { name: "TH SarabunPSK", size: 12, bold: true, color: { argb: cleared ? GREEN_FG : ORANGE_FG } };
   });
 
   ws.views = [{ state: "frozen", xSplit: 2, ySplit: 2, topLeftCell: "C3", activeCell: "C3" }];
@@ -402,12 +402,12 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   bureauList.forEach(([bureau, data], idx) => {
     const row = ws2.getRow(idx + 8);
-    row.height = 20;
+    row.height = 22;
     const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
     [bureau, data.total, data.cleared, data.total - data.cleared, data.total > 0 ? data.cleared / data.total : 0].forEach((v, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = v;
-      cell.font = { name: "TH SarabunPSK", size: 10 };
+      cell.font = { name: "TH SarabunPSK", size: 12 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
     });
@@ -441,12 +441,12 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   monthList.forEach(({ label, count }, idx) => {
     const row = ws2.getRow(monthSectionRow + 2 + idx);
-    row.height = 20;
+    row.height = 22;
     const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
     [label, count].forEach((v, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = v;
-      cell.font = { name: "TH SarabunPSK", size: 10 };
+      cell.font = { name: "TH SarabunPSK", size: 12 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
     });
@@ -491,12 +491,12 @@ router.get("/employees", authMiddleware, async (req, res) => {
     const total = cnt.done + cnt.pending + cnt.na;
     const pct = total > 0 ? (cnt.done + cnt.na) / total : 0;
     const row = ws2.getRow(itSectionRow + 2 + idx);
-    row.height = 20;
+    row.height = 22;
     const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
     [label, cnt.done, cnt.pending, cnt.na, pct].forEach((v, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = v;
-      cell.font = { name: "TH SarabunPSK", size: 10 };
+      cell.font = { name: "TH SarabunPSK", size: 12 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
       if (ci === 1 || ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
