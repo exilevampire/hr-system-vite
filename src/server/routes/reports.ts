@@ -279,8 +279,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
     });
 
-    // สถานะการดำเนินงาน coloring (col 11)
-    const itCell = row.getCell(11);
+    // สถานะการดำเนินงาน coloring (col 12 — col 11 is Email)
+    const itCell = row.getCell(12);
     itCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cleared ? GREEN_BG : ORANGE_BG } };
     itCell.font = { name: "TH SarabunPSK", size: 10, bold: true, color: { argb: cleared ? GREEN_FG : ORANGE_FG } };
   });
