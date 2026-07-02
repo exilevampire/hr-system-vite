@@ -234,7 +234,7 @@ export default function DashboardPage() {
                               ยังไม่ดำเนินการ <span className="font-semibold text-slate-700 ml-0.5">{cnt.pending.toLocaleString()}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" />
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                               ไม่พบบัญชี <span className="font-semibold text-slate-700 ml-0.5">{cnt.na.toLocaleString()}</span>
                             </span>
                           </div>
