@@ -219,7 +219,7 @@ export default function DashboardPage() {
                     ["Phonebook", stats.itBreakdown.phonebook],
                   ] as [string, ITCount][]).map(([label, cnt]) => {
                     const total = cnt.done + cnt.pending + cnt.na;
-                    const donePct = total > 0 ? cnt.done / total : 0;
+                    const donePct = total > 0 ? (cnt.done + cnt.na) / total : 0;
                     return (
                       <div key={label}>
                         <div className="flex items-center justify-between mb-1.5">
@@ -243,9 +243,8 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
-                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${total > 0 ? (cnt.done / total) * 100 : 0}%` }} />
+                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${total > 0 ? ((cnt.done + cnt.na) / total) * 100 : 0}%` }} />
                           <div className="h-full bg-amber-400 transition-all" style={{ width: `${total > 0 ? (cnt.pending / total) * 100 : 0}%` }} />
-                          <div className="h-full bg-slate-300 transition-all" style={{ width: `${total > 0 ? (cnt.na / total) * 100 : 0}%` }} />
                         </div>
                       </div>
                     );

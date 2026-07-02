@@ -489,7 +489,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   IT_BREAKDOWN_ROWS.forEach(([label, key], idx) => {
     const cnt = itBreakdown[key];
     const total = cnt.done + cnt.pending + cnt.na;
-    const pct = total > 0 ? cnt.done / total : 0;
+    const pct = total > 0 ? (cnt.done + cnt.na) / total : 0;
     const row = ws2.getRow(itSectionRow + 2 + idx);
     row.height = 20;
     const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
