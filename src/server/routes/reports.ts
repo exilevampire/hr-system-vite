@@ -49,7 +49,7 @@ function isItCleared(e: {
 
 function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {
   cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_DARK}` } };
-  cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10, name: "TH SarabunPSK" };
+  cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 12, name: "TH SarabunPSK" };
   cell.alignment = { vertical: "middle", horizontal: center ? "center" : "left", wrapText: true };
   cell.border = { bottom: { style: "medium", color: { argb: `FF${HEADER_MID}` } } };
 }
@@ -223,7 +223,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   // Header row (row 2)
   const hRow = ws.getRow(2);
-  hRow.height = 30;
+  hRow.height = 32;
   HEADERS.forEach((h, i) => {
     const colNum = i + 1;
     const cell = hRow.getCell(colNum);
@@ -346,7 +346,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     cell.font = { name: "TH SarabunPSK", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_DARK}` } };
     cell.alignment = { vertical: "middle", horizontal: "left" };
-    ws2.getRow(row).height = 26;
+    ws2.getRow(row).height = 28;
   }
 
   // ── Title ────────────────────────────────────────────────────────────
@@ -364,11 +364,11 @@ router.get("/employees", authMiddleware, async (req, res) => {
   // Stat headers
   const statHeaders = ["พนักงานทั้งหมด", "ปิดสิทธิ์แล้ว", "รอดำเนินการ", "% ปิดสิทธิ์", "จำนวนหน่วยงาน", "มีข้อมูลอีเมล"];
   const statHRow = ws2.getRow(3);
-  statHRow.height = 26;
+  statHRow.height = 28;
   statHeaders.forEach((h, i) => {
     const cell = statHRow.getCell(i + 1);
     cell.value = h;
-    cell.font = { name: "TH SarabunPSK", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.font = { name: "TH SarabunPSK", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_MID}` } };
     cell.alignment = { vertical: "middle", horizontal: "center" };
   });
@@ -392,7 +392,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   s2SectionHeader(6, "  พนักงานแยกตามหน่วยงาน");
 
   const bureauHRow = ws2.getRow(7);
-  bureauHRow.height = 26;
+  bureauHRow.height = 28;
   ["หน่วยงาน/สำนัก", "จำนวนพนักงาน", "ปิด IT แล้ว", "ยังไม่ปิด IT", "% ปิด IT"].forEach((h, i) => {
     const cell = bureauHRow.getCell(i + 1);
     cell.value = h;
@@ -432,7 +432,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   s2SectionHeader(monthSectionRow, "  แนวโน้มรายเดือน (พนักงานที่พ้นสภาพ)", 2);
 
   const monthHRow = ws2.getRow(monthSectionRow + 1);
-  monthHRow.height = 26;
+  monthHRow.height = 28;
   ["เดือน", "จำนวน (คน)"].forEach((h, i) => {
     const cell = monthHRow.getCell(i + 1);
     cell.value = h;
@@ -471,7 +471,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   s2SectionHeader(itSectionRow, "  สถานะดำเนินการรายระบบ", 5);
 
   const itHRow = ws2.getRow(itSectionRow + 1);
-  itHRow.height = 26;
+  itHRow.height = 28;
   ["ระบบ", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่พบบัญชี", "% ดำเนินการแล้ว"].forEach((h, i) => {
     const cell = itHRow.getCell(i + 1);
     cell.value = h;
