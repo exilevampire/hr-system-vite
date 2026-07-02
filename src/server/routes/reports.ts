@@ -499,7 +499,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
       cell.font = { name: "TH SarabunPSK", size: 10 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
-      if (ci === 1) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
+      if (ci === 1 || ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
       else if (ci === 2) { cell.font = { ...cell.font, bold: true, color: { argb: ORANGE_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; }
     });
     row.getCell(5).numFmt = "0%";
