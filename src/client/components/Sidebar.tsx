@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useState } from "react";
-import { RedCrossIcon } from "./RedCrossIcon";
 
 const navItems = [
   { to: "/dashboard", label: "แดชบอร์ด", icon: "📊" },
@@ -20,6 +19,18 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const role = user?.role ?? "VIEWER";
+
+  const initials = (() => {
+    const name = user?.name ?? user?.email ?? "";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return parts[0][0] + parts[1][0];
+    return name.slice(0, 2);
+  })();
+
+  const avatarColor =
+    role === "SUPER_ADMIN" ? "bg-amber-400 text-amber-900" :
+    role === "ADMIN"       ? "bg-blue-400 text-blue-900"   :
+                             "bg-slate-400 text-slate-900";
 
   const filtered = navItems.filter((item) => !item.roles || item.roles.includes(role));
 
@@ -46,12 +57,12 @@ export function Sidebar() {
           ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
         <div className="px-6 py-5 border-b border-blue-700 flex items-center gap-3">
-          <div className="bg-white rounded-lg p-1 flex-shrink-0">
-            <RedCrossIcon size={36} />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold ${avatarColor}`}>
+            {initials}
           </div>
-          <div>
-            <div className="text-xs font-bold text-blue-200 uppercase tracking-wider leading-tight">ระบบจัดเก็บและรายงาน</div>
-            <div className="text-sm font-bold leading-snug">ข้อมูลพ้นสภาพ</div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold leading-snug truncate">{user?.name ?? user?.email}</div>
+            <div className="text-xs text-blue-300 leading-tight">{role.replace("_", " ")}</div>
           </div>
         </div>
 
