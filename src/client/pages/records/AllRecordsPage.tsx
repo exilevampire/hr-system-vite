@@ -352,15 +352,15 @@ export default function AllRecordsPage() {
             disabled={downloading}
             className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            {downloading ? "กำลังสร้างรายงาน..." : "📊 ดาวน์โหลด Excel"}
+            {downloading ? "กำลังสร้างรายงาน..." : "📊 ดาวน์โหลดรายงาน"}
           </button>
           {canEdit && (
             <>
               <Link to="/records/import" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                📥 นำเข้า Excel
+                📥 นำเข้าข้อมูล
               </Link>
               <Link to="/records/add" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                ➕ เพิ่มรายการ
+                ➕ เพิ่มบุคคลพ้นสภาพ
               </Link>
             </>
           )}
@@ -376,6 +376,20 @@ export default function AllRecordsPage() {
           className="flex-1 border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <SearchableSelect
+          placeholder="กรองตามหน่วยงาน..."
+          value={bureau}
+          onChange={(v) => { setBureau(v); setPage(1); }}
+          options={bureauOptions}
+          className="w-full sm:w-52"
+        />
+        <SearchableSelect
+          placeholder="กรองฝ่าย/กลุ่มงาน..."
+          value={department}
+          onChange={(v) => { setDepartment(v); setPage(1); }}
+          options={departmentOptions}
+          className="w-full sm:w-52"
+        />
+        <SearchableSelect
           placeholder="กรองตำแหน่ง..."
           value={position}
           onChange={(v) => { setPosition(v); setPage(1); }}
@@ -388,20 +402,6 @@ export default function AllRecordsPage() {
           onChange={(v) => { setLevel(v); setPage(1); }}
           options={levelOptions}
           className="w-full sm:w-44"
-        />
-        <SearchableSelect
-          placeholder="กรองฝ่าย/กลุ่มงาน..."
-          value={department}
-          onChange={(v) => { setDepartment(v); setPage(1); }}
-          options={departmentOptions}
-          className="w-full sm:w-52"
-        />
-        <SearchableSelect
-          placeholder="กรองตามหน่วยงาน..."
-          value={bureau}
-          onChange={(v) => { setBureau(v); setPage(1); }}
-          options={bureauOptions}
-          className="w-full sm:w-52"
         />
         <button
           onClick={() => setShowAdvanced((v) => !v)}
@@ -450,12 +450,12 @@ export default function AllRecordsPage() {
 
           {/* สถานะปิดสิทธิ์ */}
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-medium text-slate-500 w-32 shrink-0">สถานะปิดสิทธิ์</span>
+            <span className="text-xs font-medium text-slate-500 w-32 shrink-0">สถานะดำเนินการ</span>
             <div className="flex gap-2">
               {[
                 { val: "", label: "ทั้งหมด" },
-                { val: "closed", label: "✓ ปิดแล้ว" },
-                { val: "pending", label: "ยังไม่ปิด" },
+                { val: "closed", label: "✓ ดำเนินการแล้ว" },
+                { val: "pending", label: "อยู่ระหว่างดำเนินการ" },
               ].map(({ val, label }) => (
                 <button
                   key={val}
@@ -478,7 +478,7 @@ export default function AllRecordsPage() {
 
           {/* IT date range */}
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-medium text-slate-500 w-32 shrink-0">วันที่ดำเนินการ IT</span>
+            <span className="text-xs font-medium text-slate-500 w-32 shrink-0">วันที่ดำเนินการ</span>
             <div className="flex flex-wrap items-center gap-2">
               <ThaiDatePicker value={itDateFrom} onChange={(v) => { setItDateFrom(v); setPage(1); }} className="w-48" />
               <span className="text-slate-400 text-sm">ถึง</span>
@@ -618,7 +618,7 @@ export default function AllRecordsPage() {
                       </span>
                       {isFullyClosed(emp) && (
                         <span className="shrink-0 text-xs bg-green-600 text-white px-1.5 py-px rounded font-semibold leading-tight whitespace-nowrap">
-                          ปิด
+                          ดำเนินการแล้ว
                         </span>
                       )}
                     </div>
@@ -663,7 +663,7 @@ export default function AllRecordsPage() {
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-slate-800 truncate">{emp.nameTh}</span>
                     {isFullyClosed(emp) && (
-                      <span className="shrink-0 text-xs bg-green-600 text-white px-1.5 py-px rounded font-semibold leading-tight">ปิด</span>
+                      <span className="shrink-0 text-xs bg-green-600 text-white px-1.5 py-px rounded font-semibold leading-tight">ดำเนินการแล้ว</span>
                     )}
                   </div>
                   <div className="text-xs text-slate-500 truncate">{emp.nameEn || "-"}</div>
@@ -883,7 +883,7 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
               <h2 className="text-lg font-bold text-slate-800">{emp.nameTh}</h2>
               {isFullyClosed(emp) && (
                 <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full font-semibold">
-                  ✓ ปิดสำเร็จ
+                  ✓ ดำเนินการแล้ว
                 </span>
               )}
             </div>

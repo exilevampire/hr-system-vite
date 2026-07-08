@@ -257,7 +257,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
       e.bureau ?? "",                       // 9  หน่วยงาน/สำนัก
       toBE(e.endDate),                      // 10 วันพ้นสภาพ
       e.email ?? "",                        // 11 Email
-      cleared ? "ปิดแล้ว" : "ยังไม่ปิด",  // 12 สถานะการดำเนินงาน
+      cleared ? "ดำเนินการแล้ว" : "อยู่ระหว่างดำเนินการ",  // 12 สถานะการดำเนินงาน
       itLabel(e.fmis),                       // 13 FMIS
       toBE(e.fmisDate),                     // 14 วันที่ FMIS
       itLabel(e.eMeeting),                  // 15 eMeeting
@@ -393,7 +393,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   const bureauHRow = ws2.getRow(7);
   bureauHRow.height = 28;
-  ["หน่วยงาน/สำนัก", "จำนวนพนักงาน", "ปิด IT แล้ว", "ยังไม่ปิด IT", "% ปิด IT"].forEach((h, i) => {
+  ["หน่วยงาน/สำนัก", "จำนวนพนักงาน", "ดำเนินการแล้ว IT", "อยู่ระหว่างดำเนินการ IT", "% ดำเนินการแล้ว IT"].forEach((h, i) => {
     const cell = bureauHRow.getCell(i + 1);
     cell.value = h;
     applyHeaderStyle(cell, i > 0);

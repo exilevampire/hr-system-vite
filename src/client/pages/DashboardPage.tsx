@@ -230,12 +230,12 @@ export default function DashboardPage() {
                               ดำเนินการแล้ว <span className="font-semibold text-slate-700 ml-0.5">{cnt.done.toLocaleString()}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                              ยังไม่ดำเนินการ <span className="font-semibold text-slate-700 ml-0.5">{cnt.pending.toLocaleString()}</span>
-                            </span>
-                            <span className="flex items-center gap-1">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                               ไม่พบบัญชี <span className="font-semibold text-slate-700 ml-0.5">{cnt.na.toLocaleString()}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                              ยังไม่ดำเนินการ <span className="font-semibold text-slate-700 ml-0.5">{cnt.pending.toLocaleString()}</span>
                             </span>
                           </div>
                           <span className="text-xs font-semibold text-slate-500 w-12 text-right shrink-0">

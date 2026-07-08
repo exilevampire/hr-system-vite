@@ -9,7 +9,6 @@ import ImportPage from "./pages/records/ImportPage";
 import LogsPage from "./pages/LogsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AccountPage from "./pages/AccountPage";
-import ReportPage from "./pages/ReportPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -38,7 +37,6 @@ function AppRoutes() {
       <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
-      <Route path="/report" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
     </Routes>
   );
 }
