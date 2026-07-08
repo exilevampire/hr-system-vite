@@ -104,8 +104,8 @@ export default function DashboardPage() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <StatCard label="พนักงานทั้งหมด" value={stats?.total ?? 0} icon="👥" color="blue" />
-            <StatCard label="ปิดสิทธิ์แล้ว" value={stats?.itStatus?.cleared ?? 0} icon="✅" color="green" />
-            <StatCard label="รอดำเนินการ" value={stats?.itStatus?.pending ?? 0} icon="⏳" color="yellow" />
+            <StatCard label="ดำเนินการแล้ว" value={stats?.itStatus?.cleared ?? 0} icon="✅" color="green" />
+            <StatCard label="อยู่ระหว่างดำเนินการ" value={stats?.itStatus?.pending ?? 0} icon="⏳" color="yellow" />
             <StatCard label="หน่วยงาน" value={stats?.allByBureau?.length ?? 0} icon="🏢" color="purple" />
           </div>
 
@@ -167,8 +167,8 @@ export default function DashboardPage() {
                         <PieChart>
                           <Pie
                             data={[
-                              { name: "ปิดสิทธิ์แล้ว", value: stats.itStatus.cleared },
-                              { name: "รอดำเนินการ", value: stats.itStatus.pending },
+                              { name: "ดำเนินการแล้ว", value: stats.itStatus.cleared },
+                              { name: "อยู่ระหว่างดำเนินการ", value: stats.itStatus.pending },
                             ]}
                             cx="50%" cy="50%" innerRadius={60} outerRadius={85}
                             startAngle={90} endAngle={-270} dataKey="value" label={false}
@@ -181,7 +181,7 @@ export default function DashboardPage() {
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                         <span className="text-3xl font-bold text-slate-800">{pct}%</span>
-                        <span className="text-xs text-slate-500 mt-0.5">ปิดสิทธิ์แล้ว</span>
+                        <span className="text-xs text-slate-500 mt-0.5">ดำเนินการแล้ว</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mt-3">
@@ -189,14 +189,14 @@ export default function DashboardPage() {
                         <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0" />
                         <div>
                           <div className="text-lg font-bold text-green-700">{stats.itStatus.cleared.toLocaleString()}</div>
-                          <div className="text-xs text-green-600">ปิดสิทธิ์แล้ว</div>
+                          <div className="text-xs text-green-600">ดำเนินการแล้ว</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-100 rounded-lg p-3">
                         <div className="w-3 h-3 rounded-full bg-amber-400 flex-shrink-0" />
                         <div>
                           <div className="text-lg font-bold text-amber-700">{stats.itStatus.pending.toLocaleString()}</div>
-                          <div className="text-xs text-amber-600">รอดำเนินการ</div>
+                          <div className="text-xs text-amber-600">อยู่ระหว่างดำเนินการ</div>
                         </div>
                       </div>
                     </div>

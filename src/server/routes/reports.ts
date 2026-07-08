@@ -362,7 +362,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   s2SectionHeader(2, "  ภาพรวม");
 
   // Stat headers
-  const statHeaders = ["พนักงานทั้งหมด", "ปิดสิทธิ์แล้ว", "รอดำเนินการ", "% ปิดสิทธิ์", "จำนวนหน่วยงาน", "มีข้อมูลอีเมล"];
+  const statHeaders = ["พนักงานทั้งหมด", "ดำเนินการแล้ว", "อยู่ระหว่างดำเนินการ", "% ดำเนินการแล้ว", "จำนวนหน่วยงาน", "มีข้อมูลอีเมล"];
   const statHRow = ws2.getRow(3);
   statHRow.height = 28;
   statHeaders.forEach((h, i) => {
