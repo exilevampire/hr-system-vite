@@ -113,18 +113,18 @@ export function ThaiDatePicker({
         <div className="absolute z-50 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 w-72">
           {/* Year navigation */}
           <div className="flex items-center justify-between mb-1">
-            <button onClick={prevYear} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 text-xs font-bold">«</button>
+            <button type="button" onClick={prevYear} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 text-xs font-bold">«</button>
             <span className="text-xs font-semibold text-slate-500">พ.ศ. {viewYear}</span>
-            <button onClick={nextYear} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 text-xs font-bold">»</button>
+            <button type="button" onClick={nextYear} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 text-xs font-bold">»</button>
           </div>
 
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-3">
-            <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600">
+            <button type="button" onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
             <span className="text-sm font-bold text-slate-700">{THAI_MONTHS[viewMonth - 1]}</span>
-            <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600">
+            <button type="button" onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
             </button>
           </div>
