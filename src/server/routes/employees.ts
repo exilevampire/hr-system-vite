@@ -124,6 +124,9 @@ router.get("/", authMiddleware, async (req, res) => {
   const sourceMonthFilter = String(req.query.sourceMonth ?? "");
   const sourceYearFilter = String(req.query.sourceYear ?? "");
   const closedStatus = String(req.query.closedStatus ?? "");
+  const ALLOWED_SORT = ["employeeId", "nameTh", "nameEn", "position", "level", "bureau", "department", "endDate", "email", "createdAt"];
+  const sortBy = ALLOWED_SORT.includes(String(req.query.sortBy)) ? String(req.query.sortBy) : "createdAt";
+  const sortDir: "asc" | "desc" = req.query.sortDir === "asc" ? "asc" : "desc";
 
   const where: Record<string, unknown> = {};
   const conditions: unknown[] = [];
@@ -215,7 +218,7 @@ router.get("/", authMiddleware, async (req, res) => {
       include: { dataSource: true },
       skip: (page - 1) * pageSize,
       take: pageSize,
-      orderBy: { createdAt: "desc" },
+      orderBy: { [sortBy]: sortDir },
     }),
     prisma.employee.count({ where }),
   ]);

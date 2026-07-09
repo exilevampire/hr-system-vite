@@ -3,6 +3,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
+import { EditRecordModal } from "./EditRecordModal";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
 // ── Searchable dropdown ──────────────────────────────────────────────────────
@@ -153,11 +154,23 @@ function getPageNumbers(current: number, total: number): (number | "…")[] {
 
 const HEADERS = [
   "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
-  "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน", "วันพ้นสภาพ",
+  "ตำแหน่ง", "ประเภท", "หน่วยงาน", "ฝ่าย/กลุ่มงาน", "วันพ้นสภาพ",
   "Email", "FMIS", "eMeeting", "Software", "Phonebook",
 ];
 
 const NAME_COL_INDEX = 3;
+
+const SORT_FIELDS: Record<number, string> = {
+  2: "employeeId",
+  3: "nameTh",
+  4: "nameEn",
+  5: "position",
+  6: "level",
+  7: "bureau",
+  8: "department",
+  9: "endDate",
+  10: "email",
+};
 
 // Default widths matching the natural content layout (px)
 const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 180, 100, 100, 100, 115];
@@ -204,16 +217,32 @@ export default function AllRecordsPage() {
   const [sourceMonthFilter, setSourceMonthFilter] = useState("");
   const [sourceYearFilter, setSourceYearFilter] = useState("");
   const [closedStatus, setClosedStatus] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [colWidths, setColWidths] = useState<number[]>(DEFAULT_WIDTHS);
+  const [visibleCols, setVisibleCols] = useState<Set<number>>(new Set(HEADERS.map((_, i) => i)));
+  const [showColPicker, setShowColPicker] = useState(false);
+  const colPickerRef = useRef<HTMLDivElement>(null);
   const [positionOptions, setPositionOptions] = useState<string[]>([]);
   const [bureauOptions, setBureauOptions] = useState<string[]>([]);
   const [levelOptions, setLevelOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [dataSources, setDataSources] = useState<DataSourceInfo[]>([]);
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showColPicker) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (colPickerRef.current && !colPickerRef.current.contains(e.target as Node))
+        setShowColPicker(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showColPicker]);
 
   // Fetch dropdown options once on mount
   useEffect(() => {
@@ -293,13 +322,15 @@ export default function AllRecordsPage() {
       sourceMonth: sourceMonthFilter,
       sourceYear: sourceYearFilter,
       closedStatus,
+      sortBy,
+      sortDir,
     });
     const res = await apiFetch(`/api/employees?${params}`);
     const data = await res.json();
     setEmployees(data.data ?? []);
     setTotal(data.total ?? 0);
     setLoading(false);
-  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, softwareStatus, phonebookStatus, itDateFrom, itDateTo, sourceTypeFilter, sourceMonthFilter, sourceYearFilter, closedStatus]);
+  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, softwareStatus, phonebookStatus, itDateFrom, itDateTo, sourceTypeFilter, sourceMonthFilter, sourceYearFilter, closedStatus, sortBy, sortDir]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -324,12 +355,14 @@ export default function AllRecordsPage() {
       closedStatus,
     });
     const res = await apiFetch(`/api/reports/employees?${params}`);
+    const disposition = res.headers.get("Content-Disposition");
+    const match = disposition?.match(/filename="(.+?)"/);
+    const filename = match?.[1] ?? "Retire_Report.xlsx";
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const now = new Date();
-    a.download = `HR_Report_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.xlsx`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -337,7 +370,7 @@ export default function AllRecordsPage() {
     setDownloading(false);
   }
 
-  const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+  const tableWidth = colWidths.reduce((a, w, i) => visibleCols.has(i) ? a + w : a, 0);
 
   return (
     <AppLayout>
@@ -347,6 +380,43 @@ export default function AllRecordsPage() {
           <p className="text-slate-500 text-sm mt-1">ทั้งหมด {total.toLocaleString()} รายการ</p>
         </div>
         <div className="sm:ml-auto flex gap-2 flex-wrap">
+          <div ref={colPickerRef} className="relative">
+            <button
+              onClick={() => setShowColPicker(v => !v)}
+              className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 hover:bg-slate-50 transition-colors text-slate-600"
+            >
+              ⚙️ เลือกคอลัมน์
+            </button>
+            {showColPicker && (
+              <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-[180px]">
+                <div className="text-xs font-semibold text-slate-500 mb-2 px-1">แสดง/ซ่อนคอลัมน์</div>
+                {HEADERS.map((h, i) => {
+                  if (i === 0 || i === 1 || i === 3) return null;
+                  return (
+                    <label key={i} className="flex items-center gap-2 px-1 py-1 rounded hover:bg-slate-50 cursor-pointer text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={visibleCols.has(i)}
+                        onChange={() => {
+                          setVisibleCols(prev => {
+                            const next = new Set(prev);
+                            if (next.has(i)) next.delete(i); else next.add(i);
+                            return next;
+                          });
+                        }}
+                        className="rounded"
+                      />
+                      {h}
+                    </label>
+                  );
+                })}
+                <button
+                  onClick={() => setVisibleCols(new Set(HEADERS.map((_, i) => i)))}
+                  className="mt-2 w-full text-xs text-blue-600 hover:text-blue-800 text-center py-1"
+                >รีเซ็ตทั้งหมด</button>
+              </div>
+            )}
+          </div>
           <button
             onClick={handleDownload}
             disabled={downloading}
@@ -533,14 +603,24 @@ export default function AllRecordsPage() {
             style={{ tableLayout: "fixed", width: tableWidth }}
           >
             <colgroup>
-              {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+              {colWidths.map((w, i) => visibleCols.has(i) ? <col key={i} style={{ width: w }} /> : null)}
             </colgroup>
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                {HEADERS.map((h, i) => (
+                {HEADERS.map((h, i) => {
+                  const field = SORT_FIELDS[i];
+                  const isActive = field && sortBy === field;
+                  if (!visibleCols.has(i)) return null;
+                  return (
                   <th
                     key={i}
-                    className="px-3 py-3 text-left font-semibold text-slate-600 whitespace-nowrap relative select-none overflow-hidden"
+                    onClick={() => {
+                      if (!field) return;
+                      if (isActive) setSortDir(d => d === "asc" ? "desc" : "asc");
+                      else { setSortBy(field); setSortDir("asc"); }
+                      setPage(1);
+                    }}
+                    className={`px-3 py-3 text-left font-semibold text-slate-600 whitespace-nowrap relative select-none overflow-hidden ${field ? "cursor-pointer hover:bg-slate-100" : ""}`}
                   >
                     {i === NAME_COL_INDEX ? (
                       <span className="flex items-center gap-1.5 pr-2">
@@ -555,16 +635,20 @@ export default function AllRecordsPage() {
                           </svg>
                           กดดูข้อมูล
                         </span>
+                        {field && <span className="ml-auto text-slate-400 text-xs">{isActive ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>}
                       </span>
                     ) : (
-                      <span className="block overflow-hidden text-ellipsis pr-2">{h}</span>
+                      <span className="flex items-center gap-1 overflow-hidden pr-2">
+                        <span className="overflow-hidden text-ellipsis">{h}</span>
+                        {field && <span className={`shrink-0 text-xs ${isActive ? "text-blue-500" : "text-slate-300"}`}>{isActive ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>}
+                      </span>
                     )}
-                    {/* Resize handle — skip first (actions) column */}
                     {i > 0 && (
                       <ResizeHandle onMouseDown={(e) => startResize(i, e)} />
                     )}
                   </th>
-                ))}
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -577,8 +661,8 @@ export default function AllRecordsPage() {
                   <td className="px-3 py-3 whitespace-nowrap overflow-hidden">
                     {canEdit && (
                       <div className="flex gap-1.5">
-                        <Link
-                          to={`/records/${emp.employeeId}/edit`}
+                        <button
+                          onClick={() => setEditingId(emp.employeeId)}
                           title="แก้ไข"
                           className="inline-flex items-center justify-center w-7 h-7 rounded-md text-blue-600 hover:bg-blue-50 transition-colors"
                         >
@@ -586,7 +670,7 @@ export default function AllRecordsPage() {
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                           </svg>
-                        </Link>
+                        </button>
                         {role === "SUPER_ADMIN" && (
                           <button
                             onClick={() => handleDelete(emp.employeeId)}
@@ -604,8 +688,8 @@ export default function AllRecordsPage() {
                       </div>
                     )}
                   </td>
-                  <TCell className="text-slate-400 text-center">{(page - 1) * PAGE_SIZE + i + 1}</TCell>
-                  <TCell title={emp.employeeId} className="font-mono text-xs text-slate-600">{emp.employeeId}</TCell>
+                  {visibleCols.has(1) && <TCell className="text-slate-400 text-center">{(page - 1) * PAGE_SIZE + i + 1}</TCell>}
+                  {visibleCols.has(2) && <TCell title={emp.employeeId} className="font-mono text-xs text-slate-600">{emp.employeeId}</TCell>}
                   <td
                     className="px-3 py-3 overflow-hidden cursor-pointer"
                     style={{ maxWidth: 0 }}
@@ -623,17 +707,17 @@ export default function AllRecordsPage() {
                       )}
                     </div>
                   </td>
-                  <TCell title={emp.nameEn ?? "-"} className="text-slate-500">{emp.nameEn ?? "-"}</TCell>
-                  <TCell title={emp.position ?? "-"}>{emp.position ?? "-"}</TCell>
-                  <TCell title={emp.level ?? "-"}>{emp.level ?? "-"}</TCell>
-                  <TCell title={emp.department ?? "-"}>{emp.department ?? "-"}</TCell>
-                  <TCell title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>
-                  <TCell title={formatDate(emp.endDate)}>{formatDate(emp.endDate)}</TCell>
-                  <TCell title={emp.email ?? "-"}>{emp.email ?? "-"}</TCell>
-                  <ITStatusCell value={emp.fmis} />
-                  <ITStatusCell value={emp.eMeeting} />
-                  <ITStatusCell value={emp.software} />
-                  <ITStatusCell value={emp.phonebook} />
+                  {visibleCols.has(4) && <TCell title={emp.nameEn ?? "-"} className="text-slate-500">{emp.nameEn ?? "-"}</TCell>}
+                  {visibleCols.has(5) && <TCell title={emp.position ?? "-"}>{emp.position ?? "-"}</TCell>}
+                  {visibleCols.has(6) && <TCell title={emp.level ?? "-"}>{emp.level ?? "-"}</TCell>}
+                  {visibleCols.has(7) && <TCell title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>}
+                  {visibleCols.has(8) && <TCell title={emp.department ?? "-"}>{emp.department ?? "-"}</TCell>}
+                  {visibleCols.has(9) && <TCell title={formatDate(emp.endDate)}>{formatDate(emp.endDate)}</TCell>}
+                  {visibleCols.has(10) && <TCell title={emp.email ?? "-"}>{emp.email ?? "-"}</TCell>}
+                  {visibleCols.has(11) && <ITStatusCell value={emp.fmis} />}
+                  {visibleCols.has(12) && <ITStatusCell value={emp.eMeeting} />}
+                  {visibleCols.has(13) && <ITStatusCell value={emp.software} />}
+                  {visibleCols.has(14) && <ITStatusCell value={emp.phonebook} />}
                 </tr>
               ))}
             </tbody>
@@ -671,8 +755,8 @@ export default function AllRecordsPage() {
                 </div>
                 {canEdit && (
                   <div className="flex gap-1.5 shrink-0">
-                    <Link
-                      to={`/records/${emp.employeeId}/edit`}
+                    <button
+                      onClick={() => setEditingId(emp.employeeId)}
                       title="แก้ไข"
                       className="inline-flex items-center justify-center w-8 h-8 rounded-md text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors"
                     >
@@ -680,7 +764,7 @@ export default function AllRecordsPage() {
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
-                    </Link>
+                    </button>
                     {role === "SUPER_ADMIN" && (
                       <button
                         onClick={() => handleDelete(emp.employeeId)}
@@ -706,12 +790,12 @@ export default function AllRecordsPage() {
                   <span className="text-slate-700">{emp.position ?? "-"}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="text-slate-400 w-24 shrink-0">ฝ่าย/กลุ่มงาน</span>
-                  <span className="text-slate-700">{emp.department ?? "-"}</span>
-                </div>
-                <div className="flex gap-2">
                   <span className="text-slate-400 w-24 shrink-0">หน่วยงาน</span>
                   <span className="text-slate-700">{emp.bureau ?? "-"}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-slate-400 w-24 shrink-0">ฝ่าย/กลุ่มงาน</span>
+                  <span className="text-slate-700">{emp.department ?? "-"}</span>
                 </div>
                 <div className="flex gap-2">
                   <span className="text-slate-400 w-24 shrink-0">วันพ้นสภาพ</span>
@@ -753,7 +837,7 @@ export default function AllRecordsPage() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(page - 1)}
-                className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-default hover:bg-slate-50 transition-colors cursor-pointer"
               >← ก่อนหน้า</button>
 
               {getPageNumbers(page, totalPages).map((p, i) =>
@@ -763,7 +847,7 @@ export default function AllRecordsPage() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`min-w-[36px] px-2 py-1.5 text-sm border rounded-lg transition-colors ${
+                    className={`min-w-[36px] px-2 py-1.5 text-sm border rounded-lg transition-colors cursor-pointer ${
                       p === page
                         ? "bg-blue-600 text-white border-blue-600 font-medium"
                         : "border-slate-300 hover:bg-slate-50 text-slate-700"
@@ -775,13 +859,20 @@ export default function AllRecordsPage() {
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(page + 1)}
-                className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-default hover:bg-slate-50 transition-colors cursor-pointer"
               >ถัดไป →</button>
             </div>
           )}
         </div>
       )}
       {selectedEmp && <EmployeeDetailModal emp={selectedEmp} onClose={() => setSelectedEmp(null)} />}
+      {editingId && (
+        <EditRecordModal
+          employeeId={editingId}
+          onClose={() => setEditingId(null)}
+          onSaved={() => { setEditingId(null); fetchData(); }}
+        />
+      )}
     </AppLayout>
   );
 }
@@ -792,10 +883,10 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
     <div
       ref={ref}
       onMouseDown={onMouseDown}
-      onMouseEnter={() => { if (ref.current) ref.current.style.backgroundColor = "#93c5fd"; }}
-      onMouseLeave={() => { if (ref.current) ref.current.style.backgroundColor = "transparent"; }}
-      className="absolute right-0 top-0 h-full"
-      style={{ width: 5, cursor: "col-resize", backgroundColor: "transparent" }}
+      onMouseEnter={() => { if (ref.current) ref.current.style.backgroundColor = "#3b82f6"; }}
+      onMouseLeave={() => { if (ref.current) ref.current.style.backgroundColor = "#cbd5e1"; }}
+      className="absolute right-0 top-1/2 -translate-y-1/2"
+      style={{ width: 2, height: "60%", cursor: "col-resize", backgroundColor: "#cbd5e1", borderRadius: 2 }}
     />
   );
 }

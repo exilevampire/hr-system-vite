@@ -192,8 +192,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
     { key: "nameEn",       width: 26  },
     { key: "position",     width: 22  },
     { key: "level",        width: 10  },
-    { key: "department",   width: 20  },
     { key: "bureau",       width: 24  },
+    { key: "department",   width: 20  },
     { key: "endDate",      width: 13  },
     { key: "email",         width: 26  },
     { key: "itStatus",     width: 13  },
@@ -212,7 +212,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   const HEADERS = [
     "ลำดับ", "ข้อมูลต้นทาง", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
-    "ตำแหน่ง", "ประเภท", "ฝ่าย/กลุ่มงาน", "หน่วยงาน/สำนัก", "วันพ้นสภาพ",
+    "ตำแหน่ง", "ประเภท", "หน่วยงาน/สำนัก", "ฝ่าย/กลุ่มงาน", "วันพ้นสภาพ",
     "Email",
     "สถานะการดำเนินงาน",
     "FMIS", "วันที่ FMIS",
@@ -253,8 +253,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
       e.nameEn ?? "",                       // 5  ชื่อ-สกุล (อังกฤษ)
       e.position ?? "",                     // 6  ตำแหน่ง
       e.level ?? "",                        // 7  ประเภท
-      e.department ?? "",                   // 8  ฝ่าย/กลุ่มงาน
-      e.bureau ?? "",                       // 9  หน่วยงาน/สำนัก
+      e.bureau ?? "",                       // 8  หน่วยงาน/สำนัก
+      e.department ?? "",                   // 9  ฝ่าย/กลุ่มงาน
       toBE(e.endDate),                      // 10 วันพ้นสภาพ
       e.email ?? "",                        // 11 Email
       cleared ? "ดำเนินการแล้ว" : "อยู่ระหว่างดำเนินการ",  // 12 สถานะการดำเนินงาน
@@ -393,7 +393,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   const bureauHRow = ws2.getRow(7);
   bureauHRow.height = 28;
-  ["หน่วยงาน/สำนัก", "จำนวนพนักงาน", "ดำเนินการแล้ว IT", "อยู่ระหว่างดำเนินการ IT", "% ดำเนินการแล้ว IT"].forEach((h, i) => {
+  ["หน่วยงาน/สำนัก", "จำนวนพนักงาน", "ดำเนินการแล้ว", "อยู่ระหว่างดำเนินการ", "% ดำเนินการแล้ว"].forEach((h, i) => {
     const cell = bureauHRow.getCell(i + 1);
     cell.value = h;
     applyHeaderStyle(cell, i > 0);
@@ -472,7 +472,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   const itHRow = ws2.getRow(itSectionRow + 1);
   itHRow.height = 28;
-  ["ระบบ", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่พบบัญชี", "% ดำเนินการแล้ว"].forEach((h, i) => {
+  ["ระบบ", "ดำเนินการแล้ว", "ไม่พบบัญชี", "ยังไม่ดำเนินการ", "% ดำเนินการแล้ว"].forEach((h, i) => {
     const cell = itHRow.getCell(i + 1);
     cell.value = h;
     applyHeaderStyle(cell, i > 0);
@@ -493,14 +493,14 @@ router.get("/employees", authMiddleware, async (req, res) => {
     const row = ws2.getRow(itSectionRow + 2 + idx);
     row.height = 22;
     const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
-    [label, cnt.done, cnt.pending, cnt.na, pct].forEach((v, ci) => {
+    [label, cnt.done, cnt.na, cnt.pending, pct].forEach((v, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = v;
       cell.font = { name: "TH SarabunPSK", size: 12 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
-      if (ci === 1 || ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
-      else if (ci === 2) { cell.font = { ...cell.font, bold: true, color: { argb: ORANGE_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; }
+      if (ci === 1 || ci === 2) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
+      else if (ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: ORANGE_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; }
     });
     row.getCell(5).numFmt = "0%";
   });
@@ -509,7 +509,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   // ── Stream response ───────────────────────────────────────────────────
   const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  const filename = `HR_Report_${stamp}.xlsx`;
+  const filename = `Retire_Report_${stamp}.xlsx`;
 
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
