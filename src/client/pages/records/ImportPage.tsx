@@ -77,16 +77,13 @@ export default function ImportPage() {
           <div>
             <p className="font-semibold mb-2">📋 รูปแบบไฟล์ Excel ที่รองรับ (Template ใหม่):</p>
             <p className="text-xs text-blue-600 font-mono">
-              ข้อมูลต้นทาง | เดือน | ปี | วันที่ได้รับข้อมูล | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ประเภท | ฝ่าย/กลุ่ม/งาน | หน่วยงาน | วันที่พ้นสภาพ | อีเมล
+              ข้อมูลต้นทาง | เดือน | ปี | วันที่ได้รับข้อมูล | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ประเภท | ฝ่าย/กลุ่มงาน | หน่วยงาน/สำนัก | วันที่พ้นสภาพ | อีเมล
             </p>
             <p className="text-xs text-blue-500 mt-1.5">
               คอลัมน์ที่ต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นเป็น optional)
             </p>
             <p className="text-xs text-blue-400 mt-0.5">
               ถ้ารหัสพนักงานมีอยู่แล้ว ระบบจะอัปเดตข้อมูลทั่วไปอัตโนมัติ (สถานะการดำเนินงานจะไม่ถูกแตะ)
-            </p>
-            <p className="text-xs text-blue-400 mt-0.5">
-              ชื่อหัวคอลัมน์ Email รองรับ: <span className="font-mono">อีเมล</span> / <span className="font-mono">email</span> / <span className="font-mono">e-mail</span>
             </p>
           </div>
           <a

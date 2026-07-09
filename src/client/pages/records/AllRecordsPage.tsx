@@ -154,7 +154,7 @@ function getPageNumbers(current: number, total: number): (number | "…")[] {
 
 const HEADERS = [
   "จัดการ", "#", "รหัส", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
-  "ตำแหน่ง", "ประเภท", "หน่วยงาน", "ฝ่าย/กลุ่มงาน", "วันพ้นสภาพ",
+  "ตำแหน่ง", "ประเภท", "หน่วยงาน/สำนัก", "ฝ่าย/กลุ่มงาน", "วันพ้นสภาพ",
   "Email", "FMIS", "eMeeting", "Software", "Phonebook",
 ];
 
@@ -448,7 +448,7 @@ export default function AllRecordsPage() {
           className="flex-1 border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <SearchableSelect
-          placeholder="กรองตามหน่วยงาน..."
+          placeholder="กรองหน่วยงาน/สำนัก..."
           value={bureau}
           onChange={(v) => { setBureau(v); setPage(1); }}
           options={bureauOptions}

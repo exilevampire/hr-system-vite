@@ -36,6 +36,7 @@ const HEADER_MAP: Record<string, string> = {
   "หน่วยงาน/สำนัก": "bureau",
   "วันที่พ้นสภาพ": "endDate",
   "อีเมล": "email",
+  "เมล": "email",
   "e-mail": "email",
   "email": "email",
 };
