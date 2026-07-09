@@ -292,6 +292,8 @@ export default function AllRecordsPage() {
         document.removeEventListener("mouseup", onMouseUp);
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
+        // Cancel the click event that bubbles up to <th> after resize, which would trigger sort
+        document.addEventListener("click", (e) => e.stopPropagation(), { capture: true, once: true });
       };
 
       document.addEventListener("mousemove", onMouseMove);
