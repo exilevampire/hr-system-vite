@@ -499,6 +499,143 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
   res.json({ created, updated, unchanged, errors, updatedDetails });
 });
 
+// ── อัพเดตสถานะดำเนินการ IT (SUPER_ADMIN เท่านั้น) ─────────────────────────
+const IT_STATUS_HEADER_MAP: Record<string, string> = {
+  "รหัสประจำตัว": "employeeId",
+  "fmis": "fmis",
+  "วันที่ fmis": "fmisDate",
+  "emeeting": "eMeeting",
+  "วันที่ emeeting": "eMeetingDate",
+  "software": "software",
+  "วันที่ software": "softwareDate",
+  "phonebook": "phonebook",
+  "วันที่ phonebook": "phonebookDate",
+};
+
+router.post("/update-it-status", authMiddleware, requireRole("SUPER_ADMIN"), upload.single("file"), async (req: AuthenticatedRequest, res) => {
+  const adminUser = (req.body.adminUser as string) ?? req.user?.email ?? "unknown";
+
+  if (!req.file) {
+    res.status(400).json({ error: "ไม่พบไฟล์" });
+    return;
+  }
+
+  const buffer = req.file.buffer;
+  const isCsv = /\.csv$/i.test(req.file.originalname);
+  let rows: unknown[][];
+
+  if (isCsv) {
+    const text = buffer.toString("utf-8").replace(/^﻿/, "");
+    const lines = text.split(/\r?\n/);
+    rows = lines
+      .filter((line) => line.trim() !== "")
+      .map((line) => {
+        const cells: string[] = [];
+        let cur = "";
+        let inQuote = false;
+        for (let ci = 0; ci < line.length; ci++) {
+          const ch = line[ci];
+          if (ch === '"') { inQuote = !inQuote; continue; }
+          if (ch === "," && !inQuote) { cells.push(cur); cur = ""; continue; }
+          cur += ch;
+        }
+        cells.push(cur);
+        return cells;
+      });
+  } else {
+    const wb = XLSX.read(buffer, { type: "buffer", cellDates: false, raw: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+  }
+
+  if (rows.length < 2) {
+    res.status(400).json({ error: "ไฟล์ไม่มีข้อมูล" });
+    return;
+  }
+
+  const headers = (rows[0] as string[]).map((h) => String(h ?? "").replace(/^﻿/, "").toLowerCase().trim());
+  const colIndex: Record<string, number> = {};
+  for (let ci = 0; ci < headers.length; ci++) {
+    const mapped = IT_STATUS_HEADER_MAP[headers[ci]];
+    if (mapped) colIndex[mapped] = ci;
+  }
+
+  if (colIndex["employeeId"] === undefined) {
+    res.status(400).json({ error: "ไม่พบคอลัมน์ รหัสประจำตัว" });
+    return;
+  }
+
+  let updated = 0;
+  let unchanged = 0;
+  const errors: string[] = [];
+  const updatedDetails: { employeeId: string; nameTh: string; changedFields: string[] }[] = [];
+
+  const IT_FIELDS = [
+    { statusKey: "fmis",      dateKey: "fmisDate",      label: "FMIS" },
+    { statusKey: "eMeeting",  dateKey: "eMeetingDate",  label: "eMeeting" },
+    { statusKey: "software",  dateKey: "softwareDate",  label: "Software" },
+    { statusKey: "phonebook", dateKey: "phonebookDate", label: "Phonebook" },
+  ] as const;
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i] as unknown[];
+    const raw: Record<string, unknown> = {};
+    for (const [field, idx] of Object.entries(colIndex)) {
+      raw[field] = row[idx] ?? "";
+    }
+
+    const employeeId = String(raw.employeeId ?? "").trim();
+    if (!employeeId) continue;
+
+    try {
+      const exists = await prisma.employee.findUnique({ where: { employeeId } });
+      if (!exists) {
+        errors.push(`แถว ${i + 1}: ไม่พบรหัสพนักงาน ${employeeId}`);
+        continue;
+      }
+
+      const changedFields: string[] = [];
+      const updateData: Record<string, string | Date | null> = {};
+      const today = new Date();
+      const DONE = "ดำเนินการแล้ว";
+
+      for (const f of IT_FIELDS) {
+        const newStatus = parseITStatusForImport(raw[f.statusKey]);
+        if (newStatus === undefined) continue;
+
+        const existingStatus = String((exists as Record<string, unknown>)[f.statusKey] ?? "");
+        const existingDate   = (exists as Record<string, unknown>)[f.dateKey] as Date | null;
+
+        updateData[f.statusKey] = newStatus === "ไม่พบบัญชี" ? null : newStatus || null;
+        updateData[f.dateKey]   = newStatus === DONE
+          ? (parseDate(raw[f.dateKey]) ?? existingDate ?? today)
+          : null;
+
+        if (newStatus !== existingStatus) changedFields.push(f.label);
+      }
+
+      if (changedFields.length > 0) {
+        await prisma.employee.update({
+          where: { employeeId },
+          data: { ...updateData, updatedBy: adminUser },
+        });
+        await createAuditLog(employeeId, "UPDATE", adminUser,
+          exists as unknown as Record<string, unknown>,
+          { ...exists, ...updateData } as unknown as Record<string, unknown>
+        );
+        updatedDetails.push({ employeeId, nameTh: exists.nameTh ?? employeeId, changedFields });
+        updated++;
+      } else {
+        unchanged++;
+      }
+    } catch (err) {
+      errors.push(`แถว ${i + 1} (${employeeId}): ${err instanceof Error ? err.message : "error"}`);
+    }
+  }
+
+  res.json({ updated, unchanged, errors, updatedDetails });
+});
+
 router.get("/meta", authMiddleware, async (_req, res) => {
   const [positions, bureaus, levels, departments] = await Promise.all([
     prisma.employee.findMany({

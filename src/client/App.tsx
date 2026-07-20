@@ -5,6 +5,7 @@ import DashboardPage from "./pages/DashboardPage";
 import AllRecordsPage from "./pages/records/AllRecordsPage";
 import AddRecordPage from "./pages/records/AddRecordPage";
 import ImportPage from "./pages/records/ImportPage";
+import UpdateITStatusPage from "./pages/records/UpdateITStatusPage";
 import LogsPage from "./pages/LogsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AccountPage from "./pages/AccountPage";
@@ -32,6 +33,7 @@ function AppRoutes() {
       <Route path="/records/all" element={<ProtectedRoute><AllRecordsPage /></ProtectedRoute>} />
       <Route path="/records/add" element={<ProtectedRoute><AddRecordPage /></ProtectedRoute>} />
       <Route path="/records/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
+      <Route path="/records/update-it-status" element={<ProtectedRoute><UpdateITStatusPage /></ProtectedRoute>} />
       <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />

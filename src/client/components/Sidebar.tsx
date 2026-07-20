@@ -6,6 +6,7 @@ const navItems = [
   { to: "/dashboard", label: "แดชบอร์ด", icon: "📊" },
   { to: "/records/all", label: "ข้อมูลพนักงานที่พ้นสภาพ", icon: "📋" },
   { to: "/records/import", label: "นำเข้าข้อมูล", icon: "📥", roles: ["SUPER_ADMIN", "ADMIN"] },
+  { to: "/records/update-it-status", label: "อัพเดตสถานะ IT", icon: "🔄", roles: ["SUPER_ADMIN"] },
   { to: "/records/add", label: "เพิ่มบุคคลพ้นสภาพ", icon: "➕", roles: ["SUPER_ADMIN", "ADMIN"] },
   { to: "/logs", label: "Audit Log", icon: "📝", roles: ["SUPER_ADMIN", "ADMIN"] },
   { to: "/settings", label: "จัดการผู้ใช้งาน", icon: "⚙️", roles: ["SUPER_ADMIN"] },
