@@ -40,17 +40,18 @@ export default function ImportPage() {
     return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
   }, [countdown, navigate]);
 
-  const MAX_FILES = 10;
+  const MAX_FILES = 20;
 
   function addFiles(incoming: FileList | null) {
     if (!incoming) return;
     const allowed = Array.from(incoming).filter((f) => /\.(xlsx|xls|csv)$/i.test(f.name));
     setFiles((prev) => {
       const existing = new Set(prev.map((f) => f.name));
-      const merged = [...prev, ...allowed.filter((f) => !existing.has(f.name))];
-      return merged.slice(0, MAX_FILES);
+      return [...prev, ...allowed.filter((f) => !existing.has(f.name))];
     });
   }
+
+  const tooManyFiles = files.length > MAX_FILES;
 
   function removeFile(name: string) {
     setFiles((prev) => prev.filter((f) => f.name !== name));
@@ -138,7 +139,7 @@ export default function ImportPage() {
           >
             <div className="text-4xl mb-3">📄</div>
             <p className="font-medium text-slate-600">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง</p>
-            <p className="text-sm text-slate-400 mt-1">รองรับสูงสุด {MAX_FILES} ไฟล์พร้อมกัน (.xlsx, .xls, .csv)</p>
+            <p className="text-sm text-slate-400 mt-1">รองรับ .xlsx, .xls, .csv — <span className="font-medium">สูงสุด {MAX_FILES} ไฟล์ต่อครั้ง</span></p>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" multiple className="hidden"
               onChange={(e) => addFiles(e.target.files)} />
           </div>
@@ -164,6 +165,17 @@ export default function ImportPage() {
                 </li>
               ))}
             </ul>
+          )}
+
+          {/* Too many files warning */}
+          {tooManyFiles && (
+            <div className="mt-3 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <span className="text-red-500 shrink-0">⚠️</span>
+              <div>
+                <p className="text-sm font-semibold text-red-700">เลือกไฟล์มากเกินไป ({files.length} ไฟล์)</p>
+                <p className="text-xs text-red-500 mt-0.5">อนุญาตสูงสุด {MAX_FILES} ไฟล์ต่อครั้ง กรุณาลบไฟล์ออกก่อนนำเข้า</p>
+              </div>
+            </div>
           )}
 
           {/* Validation errors (Phase 1 fail) */}
@@ -285,7 +297,7 @@ export default function ImportPage() {
                 ยกเลิก
               </button>
             )}
-            <button onClick={handleImport} disabled={files.length === 0 || loading || !!result}
+            <button onClick={handleImport} disabled={files.length === 0 || tooManyFiles || loading || !!result}
               className="px-5 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg transition-colors">
               {loading ? "กำลังนำเข้า..." : `นำเข้าข้อมูล${files.length > 1 ? ` (${files.length} ไฟล์)` : ""}`}
             </button>

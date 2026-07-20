@@ -355,7 +355,16 @@ function toDateStr(d: Date | null | undefined): string {
 }
 
 router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
-  upload.fields([{ name: "files", maxCount: 10 }, { name: "file", maxCount: 1 }]),
+  (req, res, next) => {
+    upload.fields([{ name: "files", maxCount: 20 }, { name: "file", maxCount: 1 }])(req, res, (err) => {
+      if (err?.code === "LIMIT_FILE_COUNT") {
+        res.status(400).json({ error: "อัปโหลดได้สูงสุด 20 ไฟล์ต่อครั้ง" });
+        return;
+      }
+      if (err) { next(err); return; }
+      next();
+    });
+  },
   async (req: AuthenticatedRequest, res) => {
   const adminUser = (req.body.adminUser as string) ?? req.user?.email ?? "unknown";
   const filesMap = req.files as Record<string, Express.Multer.File[]> | undefined;
