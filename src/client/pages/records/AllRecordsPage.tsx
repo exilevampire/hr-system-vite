@@ -387,7 +387,7 @@ export default function AllRecordsPage() {
               onClick={() => setShowColPicker(v => !v)}
               className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 hover:bg-slate-50 transition-colors text-slate-600"
             >
-              ⚙️ เลือกคอลัมน์
+              ⚙️ แสดง/ซ่อนคอลัมน์
             </button>
             {showColPicker && (
               <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-[180px]">
