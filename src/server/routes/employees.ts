@@ -298,6 +298,11 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req
   }
 });
 
+// ── Helper: decode filename (browser sends UTF-8 bytes, multer reads as latin1)
+function decodeFilename(name: string): string {
+  return Buffer.from(name, "latin1").toString("utf8");
+}
+
 // ── Helper: parse Excel/CSV file to rows ────────────────────────────────────
 function parseFileToRows(file: Express.Multer.File): unknown[][] {
   const buffer = file.buffer;
@@ -363,16 +368,17 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
   const parsedFiles: { filename: string; headers: string[]; rows: unknown[][] }[] = [];
 
   for (const file of files) {
+    const filename = decodeFilename(file.originalname);
     let rows: unknown[][];
     try {
       rows = parseFileToRows(file);
     } catch {
-      validationErrors.push(`ไฟล์ "${file.originalname}": อ่านไฟล์ไม่ได้`);
+      validationErrors.push(`ไฟล์ "${filename}": อ่านไฟล์ไม่ได้`);
       continue;
     }
 
     if (rows.length < 2) {
-      validationErrors.push(`ไฟล์ "${file.originalname}": ไม่มีข้อมูล`);
+      validationErrors.push(`ไฟล์ "${filename}": ไม่มีข้อมูล`);
       continue;
     }
 
@@ -380,7 +386,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
     const empIdColIdx = headers.findIndex((h) => (HEADER_MAP[h] ?? HEADER_MAP[h.replace(/\s+/g, " ")]) === "employeeId");
 
     if (empIdColIdx === -1) {
-      validationErrors.push(`ไฟล์ "${file.originalname}": ไม่พบคอลัมน์ "รหัสประจำตัว"`);
+      validationErrors.push(`ไฟล์ "${filename}": ไม่พบคอลัมน์ "รหัสประจำตัว"`);
       continue;
     }
 
@@ -391,11 +397,11 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
       if (!hasAnyData) continue; // row ว่างทั้งหมด → ข้ามได้
       const empId = String(row[empIdColIdx] ?? "").trim();
       if (!empId) {
-        validationErrors.push(`ไฟล์ "${file.originalname}" แถว ${i + 1}: ไม่มีรหัสพนักงาน`);
+        validationErrors.push(`ไฟล์ "${filename}" แถว ${i + 1}: ไม่มีรหัสพนักงาน`);
       }
     }
 
-    parsedFiles.push({ filename: file.originalname, headers, rows });
+    parsedFiles.push({ filename, headers, rows });
   }
 
   // ถ้า validation ไม่ผ่าน → คืน error ทั้งหมด ไม่ทำอะไรเลย
