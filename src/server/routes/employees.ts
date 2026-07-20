@@ -354,11 +354,14 @@ function toDateStr(d: Date | null | undefined): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), upload.array("files", 20), async (req: AuthenticatedRequest, res) => {
+router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
+  upload.fields([{ name: "files", maxCount: 20 }, { name: "file", maxCount: 1 }]),
+  async (req: AuthenticatedRequest, res) => {
   const adminUser = (req.body.adminUser as string) ?? req.user?.email ?? "unknown";
-  const files = req.files as Express.Multer.File[] | undefined;
+  const filesMap = req.files as Record<string, Express.Multer.File[]> | undefined;
+  const files = [...(filesMap?.["files"] ?? []), ...(filesMap?.["file"] ?? [])];
 
-  if (!files || files.length === 0) {
+  if (files.length === 0) {
     res.status(400).json({ error: "ไม่พบไฟล์" });
     return;
   }
