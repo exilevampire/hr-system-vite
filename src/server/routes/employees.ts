@@ -298,201 +298,235 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req
   }
 });
 
-router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), upload.single("file"), async (req: AuthenticatedRequest, res) => {
-  const adminUser = (req.body.adminUser as string) ?? req.user?.email ?? "unknown";
-
-  if (!req.file) {
-    res.status(400).json({ error: "ไม่พบไฟล์" });
-    return;
-  }
-
-  const buffer = req.file.buffer;
-  const isCsv = /\.csv$/i.test(req.file!.originalname);
-  let rows: unknown[][];
-
-  if (isCsv) {
-    // สำหรับ CSV: parse ด้วยตัวเองทั้งหมด ไม่ผ่าน XLSX เพื่อป้องกัน date auto-detection
-    const text = buffer.toString("utf-8").replace(/^﻿/, ""); // strip BOM
-    const lines = text.split(/\r?\n/);
-    rows = lines
+// ── Helper: parse Excel/CSV file to rows ────────────────────────────────────
+function parseFileToRows(file: Express.Multer.File): unknown[][] {
+  const buffer = file.buffer;
+  if (/\.csv$/i.test(file.originalname)) {
+    const text = buffer.toString("utf-8").replace(/^﻿/, "");
+    return text.split(/\r?\n/)
       .filter((line) => line.trim() !== "")
       .map((line) => {
         const cells: string[] = [];
         let cur = "";
         let inQuote = false;
-        for (let ci = 0; ci < line.length; ci++) {
-          const ch = line[ci];
-          if (ch === '"') {
-            inQuote = !inQuote;
-          } else if (ch === "," && !inQuote) {
-            cells.push(cur.trim());
-            cur = "";
-          } else {
-            cur += ch;
-          }
+        for (const ch of line) {
+          if (ch === '"') { inQuote = !inQuote; }
+          else if (ch === "," && !inQuote) { cells.push(cur.trim()); cur = ""; }
+          else { cur += ch; }
         }
         cells.push(cur.trim());
         return cells;
       });
-  } else {
-    const workbook = XLSX.read(buffer, { type: "buffer", cellDates: false });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true }) as unknown[][];
   }
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: false });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true }) as unknown[][];
+}
 
-  if (rows.length < 2) {
-    res.status(400).json({ error: "ไฟล์ว่างเปล่า" });
+// ── Helper: map raw row to field record using HEADER_MAP ─────────────────────
+function mapRowToRaw(headers: string[], row: unknown[]): Record<string, unknown> {
+  const raw: Record<string, unknown> = {};
+  headers.forEach((h, idx) => {
+    const mapped = HEADER_MAP[h] ?? HEADER_MAP[h.replace(/\s+/g, " ")];
+    if (!mapped) return;
+    let v = row[idx];
+    if (v instanceof Date) {
+      v = `${v.getUTCFullYear()}-${String(v.getUTCMonth() + 1).padStart(2, "0")}-${String(v.getUTCDate()).padStart(2, "0")}`;
+    }
+    raw[mapped] = v;
+  });
+  return raw;
+}
+
+const UPDATABLE_LABELS: Record<string, string> = {
+  nameTh: "ชื่อ-สกุล (ไทย)", nameEn: "ชื่อ-สกุล (อังกฤษ)", position: "ตำแหน่ง",
+  level: "ประเภท", department: "ฝ่าย/กลุ่มงาน", bureau: "หน่วยงาน/สำนัก",
+  endDate: "วันพ้นสภาพ", dataSourceId: "ข้อมูลต้นทาง",
+};
+
+function toDateStr(d: Date | null | undefined): string {
+  if (!d) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), upload.array("files", 20), async (req: AuthenticatedRequest, res) => {
+  const adminUser = (req.body.adminUser as string) ?? req.user?.email ?? "unknown";
+  const files = req.files as Express.Multer.File[] | undefined;
+
+  if (!files || files.length === 0) {
+    res.status(400).json({ error: "ไม่พบไฟล์" });
     return;
   }
 
-  // strip UTF-8 BOM (﻿) ที่อาจติดมากับ CSV
-  const headers = (rows[0] as string[]).map((h) => String(h ?? "").replace(/^﻿/, "").toLowerCase().trim());
+  // ── Phase 1: Validate ALL files (no DB writes) ───────────────────────────
+  const validationErrors: string[] = [];
+  const parsedFiles: { filename: string; headers: string[]; rows: unknown[][] }[] = [];
 
-  const UPDATABLE_LABELS: Record<string, string> = {
-    nameTh: "ชื่อ-สกุล (ไทย)", nameEn: "ชื่อ-สกุล (อังกฤษ)", position: "ตำแหน่ง",
-    level: "ประเภท", department: "ฝ่าย/กลุ่มงาน", bureau: "หน่วยงาน/สำนัก",
-    endDate: "วันพ้นสภาพ", dataSourceId: "ข้อมูลต้นทาง",
-  };
+  for (const file of files) {
+    let rows: unknown[][];
+    try {
+      rows = parseFileToRows(file);
+    } catch {
+      validationErrors.push(`ไฟล์ "${file.originalname}": อ่านไฟล์ไม่ได้`);
+      continue;
+    }
 
-  function toDateStr(d: Date | null | undefined): string {
-    if (!d) return "";
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (rows.length < 2) {
+      validationErrors.push(`ไฟล์ "${file.originalname}": ไม่มีข้อมูล`);
+      continue;
+    }
+
+    const headers = (rows[0] as string[]).map((h) => String(h ?? "").replace(/^﻿/, "").toLowerCase().trim());
+    const empIdColIdx = headers.findIndex((h) => (HEADER_MAP[h] ?? HEADER_MAP[h.replace(/\s+/g, " ")]) === "employeeId");
+
+    if (empIdColIdx === -1) {
+      validationErrors.push(`ไฟล์ "${file.originalname}": ไม่พบคอลัมน์ "รหัสประจำตัว"`);
+      continue;
+    }
+
+    // ตรวจสอบทุก row ต้องมีรหัสพนักงาน
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] as unknown[];
+      const hasAnyData = row.some((v) => String(v ?? "").trim() !== "");
+      if (!hasAnyData) continue; // row ว่างทั้งหมด → ข้ามได้
+      const empId = String(row[empIdColIdx] ?? "").trim();
+      if (!empId) {
+        validationErrors.push(`ไฟล์ "${file.originalname}" แถว ${i + 1}: ไม่มีรหัสพนักงาน`);
+      }
+    }
+
+    parsedFiles.push({ filename: file.originalname, headers, rows });
   }
 
+  // ถ้า validation ไม่ผ่าน → คืน error ทั้งหมด ไม่ทำอะไรเลย
+  if (validationErrors.length > 0) {
+    res.status(422).json({ validationErrors });
+    return;
+  }
+
+  // ── Phase 2: Process ALL files ───────────────────────────────────────────
   let created = 0;
   let updated = 0;
   let unchanged = 0;
   const errors: string[] = [];
   const updatedDetails: { employeeId: string; nameTh: string; changedFields: string[] }[] = [];
 
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i] as unknown[];
-    const raw: Record<string, unknown> = {};
-    headers.forEach((h, idx) => {
-      const mapped = HEADER_MAP[h] ?? HEADER_MAP[h.replace(/\s+/g, " ")];
-      if (!mapped) return;
-      let v = row[idx];
-      if (v instanceof Date) {
-        v = `${v.getUTCFullYear()}-${String(v.getUTCMonth() + 1).padStart(2, "0")}-${String(v.getUTCDate()).padStart(2, "0")}`;
+  const IT_IMPORT_FIELDS = [
+    { statusKey: "fmis",      dateKey: "fmisDate",      label: "FMIS" },
+    { statusKey: "eMeeting",  dateKey: "eMeetingDate",  label: "eMeeting" },
+    { statusKey: "software",  dateKey: "softwareDate",  label: "Software" },
+    { statusKey: "phonebook", dateKey: "phonebookDate", label: "Phonebook" },
+  ] as const;
+
+  for (const { filename, headers, rows } of parsedFiles) {
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] as unknown[];
+      const hasAnyData = row.some((v) => String(v ?? "").trim() !== "");
+      if (!hasAnyData) continue;
+
+      const raw = mapRowToRaw(headers, row);
+      const employeeId = String(raw.employeeId ?? "").trim();
+      const nameTh = String(raw.nameTh ?? "").trim();
+
+      if (!employeeId || !nameTh) {
+        if (employeeId || nameTh) errors.push(`[${filename}] แถว ${i + 1}: ข้อมูลไม่ครบถ้วน`);
+        continue;
       }
-      raw[mapped] = v;
-    });
 
-    const employeeId = String(raw.employeeId ?? "").trim();
-    const nameTh = String(raw.nameTh ?? "").trim();
+      const dataSourceId = await resolveDataSource(raw.sourceType, raw.sourceMonth, raw.sourceYear);
+      const newData = {
+        dataSourceId,
+        nameTh,
+        nameEn:     String(raw.nameEn     ?? "").trim() || null,
+        position:   String(raw.position   ?? "").trim() || null,
+        level:      String(raw.level      ?? "").trim() || null,
+        department: String(raw.department ?? "").trim() || null,
+        bureau:     String(raw.bureau     ?? "").trim() || null,
+        endDate:    parseDate(raw.endDate),
+        email:      String(raw.email      ?? "").trim() || null,
+      };
 
-    if (!employeeId || !nameTh) {
-      if (employeeId || nameTh) errors.push(`แถว ${i + 1}: ข้อมูลไม่ครบถ้วน`);
-      continue;
-    }
+      try {
+        const exists = await prisma.employee.findUnique({ where: { employeeId } });
 
-    const dataSourceId = await resolveDataSource(raw.sourceType, raw.sourceMonth, raw.sourceYear);
+        if (!exists) {
+          const fmisStatus = normalizeITStatus(raw.fmis);
+          const eMtgStatus = normalizeITStatus(raw.eMeeting);
+          const softStatus = normalizeITStatus(raw.software);
+          const phonStatus = normalizeITStatus(raw.phonebook);
+          const today      = new Date();
+          const DONE       = "ดำเนินการแล้ว";
 
-    const newData = {
-      dataSourceId,
-      nameTh,
-      nameEn: String(raw.nameEn ?? "").trim() || null,
-      position: String(raw.position ?? "").trim() || null,
-      level: String(raw.level ?? "").trim() || null,
-      department: String(raw.department ?? "").trim() || null,
-      bureau: String(raw.bureau ?? "").trim() || null,
-      endDate: parseDate(raw.endDate),
-      email: String(raw.email ?? "").trim() || null,
-    };
-
-    try {
-      const exists = await prisma.employee.findUnique({ where: { employeeId } });
-
-      if (!exists) {
-        // ── สร้างใหม่ ──────────────────────────────────────────
-        const fmisStatus    = normalizeITStatus(raw.fmis);
-        const eMtgStatus    = normalizeITStatus(raw.eMeeting);
-        const softStatus    = normalizeITStatus(raw.software);
-        const phonStatus    = normalizeITStatus(raw.phonebook);
-        const today         = new Date();
-        const DONE          = "ดำเนินการแล้ว";
-
-        const emp = await prisma.employee.create({
-          data: {
-            employeeId,
-            ...newData,
-            startDate:    parseDate(raw.startDate),
-            receivedDate: parseDate(raw.receivedDate) ?? new Date(),
-            fmis:          fmisStatus,
-            fmisDate:      fmisStatus === DONE ? (parseDate(raw.fmisDate) ?? today) : null,
-            eMeeting:      eMtgStatus,
-            eMeetingDate:  eMtgStatus === DONE ? (parseDate(raw.eMeetingDate) ?? today) : null,
-            software:      softStatus,
-            softwareDate:  softStatus === DONE ? (parseDate(raw.softwareDate) ?? today) : null,
-            phonebook:     phonStatus,
-            phonebookDate: phonStatus === DONE ? (parseDate(raw.phonebookDate) ?? today) : null,
-            createdBy:  adminUser,
-            updatedBy:  adminUser,
-          },
-        });
-        await createAuditLog(emp.employeeId, "CREATE", adminUser);
-        created++;
-      } else {
-        // ── เปรียบเทียบ field ที่ update ได้ ──────────────────
-        const changedFields: string[] = [];
-        const normalize = (v: string | null | undefined) => (v ?? "").trim();
-
-        if (normalize(newData.nameTh) !== normalize(exists.nameTh)) changedFields.push(UPDATABLE_LABELS.nameTh);
-        if (normalize(newData.nameEn) !== normalize(exists.nameEn)) changedFields.push(UPDATABLE_LABELS.nameEn);
-        if (normalize(newData.position) !== normalize(exists.position)) changedFields.push(UPDATABLE_LABELS.position);
-        if (normalize(newData.level) !== normalize(exists.level)) changedFields.push(UPDATABLE_LABELS.level);
-        if (normalize(newData.department) !== normalize(exists.department)) changedFields.push(UPDATABLE_LABELS.department);
-        if (normalize(newData.bureau) !== normalize(exists.bureau)) changedFields.push(UPDATABLE_LABELS.bureau);
-        if (newData.dataSourceId !== exists.dataSourceId) changedFields.push(UPDATABLE_LABELS.dataSourceId);
-        if (toDateStr(newData.endDate) !== toDateStr(exists.endDate)) changedFields.push(UPDATABLE_LABELS.endDate);
-
-        // ── IT status fields (blank column = skip, non-blank = update) ──
-        const IT_IMPORT_FIELDS = [
-          { statusKey: "fmis",      dateKey: "fmisDate",      label: "FMIS" },
-          { statusKey: "eMeeting",  dateKey: "eMeetingDate",  label: "eMeeting" },
-          { statusKey: "software",  dateKey: "softwareDate",  label: "Software" },
-          { statusKey: "phonebook", dateKey: "phonebookDate", label: "Phonebook" },
-        ] as const;
-
-        const itUpdateData: Record<string, string | Date | null> = {};
-        const today = new Date();
-        const DONE  = "ดำเนินการแล้ว";
-
-        for (const f of IT_IMPORT_FIELDS) {
-          const newStatus = parseITStatusForImport(raw[f.statusKey]);
-          if (newStatus === undefined) continue; // blank → skip
-
-          const existingStatus = String((exists as Record<string, unknown>)[f.statusKey] ?? "");
-          const existingDate   = (exists as Record<string, unknown>)[f.dateKey] as Date | null;
-
-          // Store status (ไม่พบบัญชี → null in DB, others as-is)
-          itUpdateData[f.statusKey] = newStatus === "ไม่พบบัญชี" ? null : newStatus || null;
-
-          // Use provided date → fall back to existing date → fall back to today
-          itUpdateData[f.dateKey] = newStatus === DONE
-            ? (parseDate(raw[f.dateKey]) ?? existingDate ?? today)
-            : null;
-
-          if (newStatus !== existingStatus) changedFields.push(f.label);
-        }
-
-        if (changedFields.length > 0) {
-          await prisma.employee.update({
-            where: { employeeId },
-            data: { ...newData, ...itUpdateData, updatedBy: adminUser },
+          const emp = await prisma.employee.create({
+            data: {
+              employeeId,
+              ...newData,
+              startDate:     parseDate(raw.startDate),
+              receivedDate:  parseDate(raw.receivedDate) ?? new Date(),
+              fmis:          fmisStatus,
+              fmisDate:      fmisStatus === DONE ? (parseDate(raw.fmisDate)      ?? today) : null,
+              eMeeting:      eMtgStatus,
+              eMeetingDate:  eMtgStatus === DONE ? (parseDate(raw.eMeetingDate)  ?? today) : null,
+              software:      softStatus,
+              softwareDate:  softStatus === DONE ? (parseDate(raw.softwareDate)  ?? today) : null,
+              phonebook:     phonStatus,
+              phonebookDate: phonStatus === DONE ? (parseDate(raw.phonebookDate) ?? today) : null,
+              createdBy: adminUser,
+              updatedBy: adminUser,
+            },
           });
-          await createAuditLog(employeeId, "UPDATE", adminUser,
-            exists as unknown as Record<string, unknown>,
-            { ...exists, ...newData, ...itUpdateData } as unknown as Record<string, unknown>
-          );
-          updatedDetails.push({ employeeId, nameTh, changedFields });
-          updated++;
+          await createAuditLog(emp.employeeId, "CREATE", adminUser);
+          created++;
         } else {
-          unchanged++;
+          const changedFields: string[] = [];
+          const normalize = (v: string | null | undefined) => (v ?? "").trim();
+
+          if (normalize(newData.nameTh)     !== normalize(exists.nameTh))     changedFields.push(UPDATABLE_LABELS.nameTh);
+          if (normalize(newData.nameEn)     !== normalize(exists.nameEn))     changedFields.push(UPDATABLE_LABELS.nameEn);
+          if (normalize(newData.position)   !== normalize(exists.position))   changedFields.push(UPDATABLE_LABELS.position);
+          if (normalize(newData.level)      !== normalize(exists.level))      changedFields.push(UPDATABLE_LABELS.level);
+          if (normalize(newData.department) !== normalize(exists.department)) changedFields.push(UPDATABLE_LABELS.department);
+          if (normalize(newData.bureau)     !== normalize(exists.bureau))     changedFields.push(UPDATABLE_LABELS.bureau);
+          if (newData.dataSourceId !== exists.dataSourceId)                   changedFields.push(UPDATABLE_LABELS.dataSourceId);
+          if (toDateStr(newData.endDate)    !== toDateStr(exists.endDate))    changedFields.push(UPDATABLE_LABELS.endDate);
+
+          const itUpdateData: Record<string, string | Date | null> = {};
+          const today = new Date();
+          const DONE  = "ดำเนินการแล้ว";
+
+          for (const f of IT_IMPORT_FIELDS) {
+            const newStatus = parseITStatusForImport(raw[f.statusKey]);
+            if (newStatus === undefined) continue;
+
+            const existingStatus = String((exists as Record<string, unknown>)[f.statusKey] ?? "");
+            const existingDate   = (exists as Record<string, unknown>)[f.dateKey] as Date | null;
+
+            itUpdateData[f.statusKey] = newStatus === "ไม่พบบัญชี" ? null : newStatus || null;
+            itUpdateData[f.dateKey]   = newStatus === DONE
+              ? (parseDate(raw[f.dateKey]) ?? existingDate ?? today)
+              : null;
+
+            if (newStatus !== existingStatus) changedFields.push(f.label);
+          }
+
+          if (changedFields.length > 0) {
+            await prisma.employee.update({
+              where: { employeeId },
+              data: { ...newData, ...itUpdateData, updatedBy: adminUser },
+            });
+            await createAuditLog(employeeId, "UPDATE", adminUser,
+              exists as unknown as Record<string, unknown>,
+              { ...exists, ...newData, ...itUpdateData } as unknown as Record<string, unknown>
+            );
+            updatedDetails.push({ employeeId, nameTh, changedFields });
+            updated++;
+          } else {
+            unchanged++;
+          }
         }
+      } catch (err) {
+        errors.push(`[${filename}] แถว ${i + 1} (${employeeId}): ${err instanceof Error ? err.message : "error"}`);
       }
-    } catch (err) {
-      errors.push(`แถว ${i + 1} (${employeeId}): ${err instanceof Error ? err.message : "error"}`);
     }
   }
 

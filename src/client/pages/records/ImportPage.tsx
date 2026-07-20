@@ -22,9 +22,10 @@ export default function ImportPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -39,15 +40,29 @@ export default function ImportPage() {
     return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
   }, [countdown, navigate]);
 
+  function addFiles(incoming: FileList | null) {
+    if (!incoming) return;
+    const allowed = Array.from(incoming).filter((f) => /\.(xlsx|xls|csv)$/i.test(f.name));
+    setFiles((prev) => {
+      const existing = new Set(prev.map((f) => f.name));
+      return [...prev, ...allowed.filter((f) => !existing.has(f.name))];
+    });
+  }
+
+  function removeFile(name: string) {
+    setFiles((prev) => prev.filter((f) => f.name !== name));
+  }
+
   async function handleImport() {
-    if (!file) return;
+    if (files.length === 0) return;
     setLoading(true);
     setError("");
     setResult(null);
+    setValidationErrors([]);
     setShowUpdated(false);
 
     const formData = new FormData();
-    formData.append("file", file);
+    files.forEach((f) => formData.append("files", f));
     formData.append("adminUser", user?.email ?? "unknown");
 
     const res = await fetch("/api/employees/import", {
@@ -55,14 +70,29 @@ export default function ImportPage() {
       headers: authHeaders(),
       body: formData,
     });
+
     const data = await res.json();
     setLoading(false);
-    if (res.ok) {
+
+    if (res.status === 422) {
+      setValidationErrors(data.validationErrors ?? []);
+    } else if (res.ok) {
       setResult(data);
       setCountdown(60);
     } else {
       setError(data.error ?? "เกิดข้อผิดพลาด");
     }
+  }
+
+  function reset() {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setResult(null);
+    setFiles([]);
+    setCountdown(null);
+    setShowUpdated(false);
+    setValidationErrors([]);
+    setError("");
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   return (
@@ -96,44 +126,75 @@ export default function ImportPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          {/* Drop zone */}
           <div
-            className="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center cursor-pointer hover:border-blue-400 transition-colors"
+            className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
             onClick={() => fileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const dropped = e.dataTransfer.files?.[0];
-              if (dropped) setFile(dropped);
-            }}
+            onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
           >
             <div className="text-4xl mb-3">📄</div>
-            {file ? (
-              <div>
-                <p className="font-medium text-slate-700">{file.name}</p>
-                <p className="text-sm text-slate-500 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
-              </div>
-            ) : (
-              <div>
-                <p className="font-medium text-slate-600">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง</p>
-                <p className="text-sm text-slate-400 mt-1">รองรับไฟล์ .xlsx, .xls และ .csv</p>
-              </div>
-            )}
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <p className="font-medium text-slate-600">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง</p>
+            <p className="text-sm text-slate-400 mt-1">รองรับหลายไฟล์พร้อมกัน (.xlsx, .xls, .csv)</p>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" multiple className="hidden"
+              onChange={(e) => addFiles(e.target.files)} />
           </div>
 
+          {/* File list */}
+          {files.length > 0 && (
+            <ul className="mt-4 space-y-2">
+              {files.map((f) => (
+                <li key={f.name} className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg">📄</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-700 truncate">{f.name}</p>
+                      <p className="text-xs text-slate-400">{(f.size / 1024).toFixed(1)} KB</p>
+                    </div>
+                  </div>
+                  {!result && (
+                    <button type="button" onClick={() => removeFile(f.name)}
+                      className="ml-3 text-slate-300 hover:text-red-400 transition-colors text-xl leading-none shrink-0">
+                      ×
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Validation errors (Phase 1 fail) */}
+          {validationErrors.length > 0 && (
+            <div className="mt-4 rounded-xl border border-red-200 overflow-hidden">
+              <div className="bg-red-50 px-4 py-3 border-b border-red-200 flex items-center gap-2">
+                <span className="text-red-500">❌</span>
+                <p className="font-semibold text-red-700">ตรวจพบข้อผิดพลาด — ไม่มีข้อมูลใดถูกนำเข้า</p>
+              </div>
+              <ul className="px-4 py-3 space-y-1">
+                {validationErrors.map((e, i) => (
+                  <li key={i} className="text-sm text-red-600 flex items-start gap-2">
+                    <span className="shrink-0 mt-0.5">•</span>{e}
+                  </li>
+                ))}
+              </ul>
+              <div className="px-4 py-2.5 bg-red-50 border-t border-red-100">
+                <p className="text-xs text-red-500">กรุณาแก้ไขไฟล์ทั้งหมดแล้วลองใหม่อีกครั้ง</p>
+              </div>
+            </div>
+          )}
+
+          {/* General error */}
           {error && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
           )}
 
+          {/* Success result */}
           {result && (
             <div className="mt-4 rounded-xl border border-green-200 overflow-hidden">
-              {/* Header */}
               <div className="bg-green-50 px-4 py-3 border-b border-green-200">
-                <p className="font-semibold text-green-700">✅ นำเข้าสำเร็จ</p>
+                <p className="font-semibold text-green-700">✅ นำเข้าสำเร็จ ({files.length} ไฟล์)</p>
               </div>
 
-              {/* Summary grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-green-100">
                 <div className="px-4 py-3 text-center">
                   <p className="text-2xl font-bold text-blue-600">{result.created}</p>
@@ -153,7 +214,6 @@ export default function ImportPage() {
                 </div>
               </div>
 
-              {/* Updated details */}
               {result.updatedDetails.length > 0 && (
                 <div className="border-t border-green-100">
                   <button
@@ -179,17 +239,15 @@ export default function ImportPage() {
                 </div>
               )}
 
-              {/* Errors */}
               {result.errors.length > 0 && (
                 <div className="border-t border-red-100 px-4 py-3 bg-red-50">
-                  <p className="text-xs font-medium text-red-600 mb-1">ข้อผิดพลาด:</p>
+                  <p className="text-xs font-medium text-red-600 mb-1">ข้อผิดพลาดระหว่างนำเข้า:</p>
                   <ul className="list-disc list-inside text-red-500 text-xs space-y-0.5">
                     {result.errors.slice(0, 10).map((e, i) => <li key={i}>{e}</li>)}
                   </ul>
                 </div>
               )}
 
-              {/* Countdown */}
               {countdown !== null && (
                 <div className="border-t border-green-200 px-4 py-3 bg-green-50">
                   <div className="flex items-center justify-between gap-3 mb-2">
@@ -214,14 +272,8 @@ export default function ImportPage() {
 
           <div className="mt-6 flex gap-3 justify-end">
             {result ? (
-              <button
-                onClick={() => {
-                  if (countdownRef.current) clearInterval(countdownRef.current);
-                  setResult(null); setFile(null); setCountdown(null); setShowUpdated(false);
-                  if (fileRef.current) fileRef.current.value = "";
-                }}
-                className="px-5 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
+              <button onClick={reset}
+                className="px-5 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
                 นำเข้าไฟล์ใหม่
               </button>
             ) : (
@@ -230,9 +282,9 @@ export default function ImportPage() {
                 ยกเลิก
               </button>
             )}
-            <button onClick={handleImport} disabled={!file || loading || !!result}
+            <button onClick={handleImport} disabled={files.length === 0 || loading || !!result}
               className="px-5 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg transition-colors">
-              {loading ? "กำลังนำเข้า..." : "นำเข้าข้อมูล"}
+              {loading ? "กำลังนำเข้า..." : `นำเข้าข้อมูล${files.length > 1 ? ` (${files.length} ไฟล์)` : ""}`}
             </button>
           </div>
         </div>
