@@ -40,9 +40,13 @@ const HEADER_MAP: Record<string, string> = {
   "e-mail": "email",
   "email": "email",
   "fmis": "fmis",
+  "วันที่ fmis": "fmisDate",
   "emeeting": "eMeeting",
+  "วันที่ emeeting": "eMeetingDate",
   "software": "software",
+  "วันที่ software": "softwareDate",
   "phonebook": "phonebook",
+  "วันที่ phonebook": "phonebookDate",
 };
 
 const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
@@ -415,13 +419,13 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
             startDate:    parseDate(raw.startDate),
             receivedDate: parseDate(raw.receivedDate) ?? new Date(),
             fmis:          fmisStatus,
-            fmisDate:      fmisStatus === DONE ? today : null,
+            fmisDate:      fmisStatus === DONE ? (parseDate(raw.fmisDate) ?? today) : null,
             eMeeting:      eMtgStatus,
-            eMeetingDate:  eMtgStatus === DONE ? today : null,
+            eMeetingDate:  eMtgStatus === DONE ? (parseDate(raw.eMeetingDate) ?? today) : null,
             software:      softStatus,
-            softwareDate:  softStatus === DONE ? today : null,
+            softwareDate:  softStatus === DONE ? (parseDate(raw.softwareDate) ?? today) : null,
             phonebook:     phonStatus,
-            phonebookDate: phonStatus === DONE ? today : null,
+            phonebookDate: phonStatus === DONE ? (parseDate(raw.phonebookDate) ?? today) : null,
             createdBy:  adminUser,
             updatedBy:  adminUser,
           },
@@ -444,10 +448,10 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
 
         // ── IT status fields (blank column = skip, non-blank = update) ──
         const IT_IMPORT_FIELDS = [
-          { rawKey: "fmis",      statusKey: "fmis",      dateKey: "fmisDate",      label: "FMIS" },
-          { rawKey: "eMeeting",  statusKey: "eMeeting",  dateKey: "eMeetingDate",  label: "eMeeting" },
-          { rawKey: "software",  statusKey: "software",  dateKey: "softwareDate",  label: "Software" },
-          { rawKey: "phonebook", statusKey: "phonebook", dateKey: "phonebookDate", label: "Phonebook" },
+          { statusKey: "fmis",      dateKey: "fmisDate",      label: "FMIS" },
+          { statusKey: "eMeeting",  dateKey: "eMeetingDate",  label: "eMeeting" },
+          { statusKey: "software",  dateKey: "softwareDate",  label: "Software" },
+          { statusKey: "phonebook", dateKey: "phonebookDate", label: "Phonebook" },
         ] as const;
 
         const itUpdateData: Record<string, string | Date | null> = {};
@@ -455,7 +459,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
         const DONE  = "ดำเนินการแล้ว";
 
         for (const f of IT_IMPORT_FIELDS) {
-          const newStatus = parseITStatusForImport(raw[f.rawKey]);
+          const newStatus = parseITStatusForImport(raw[f.statusKey]);
           if (newStatus === undefined) continue; // blank → skip
 
           const existingStatus = String((exists as Record<string, unknown>)[f.statusKey] ?? "");
@@ -464,8 +468,10 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
           // Store status (ไม่พบบัญชี → null in DB, others as-is)
           itUpdateData[f.statusKey] = newStatus === "ไม่พบบัญชี" ? null : newStatus || null;
 
-          // Auto-fill date when done, keep existing date if already set; clear date otherwise
-          itUpdateData[f.dateKey] = newStatus === DONE ? (existingDate ?? today) : null;
+          // Use provided date → fall back to existing date → fall back to today
+          itUpdateData[f.dateKey] = newStatus === DONE
+            ? (parseDate(raw[f.dateKey]) ?? existingDate ?? today)
+            : null;
 
           if (newStatus !== existingStatus) changedFields.push(f.label);
         }
