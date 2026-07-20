@@ -39,6 +39,10 @@ const HEADER_MAP: Record<string, string> = {
   "เมล": "email",
   "e-mail": "email",
   "email": "email",
+  "fmis": "fmis",
+  "emeeting": "eMeeting",
+  "software": "software",
+  "phonebook": "phonebook",
 };
 
 const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
@@ -60,6 +64,14 @@ const VALID_IT_VALUES = new Set(["ดำเนินการแล้ว", "ย
 function normalizeITStatus(val: unknown): string {
   const s = String(val ?? "").trim();
   return VALID_IT_VALUES.has(s) ? s : "ยังไม่ดำเนินการ";
+}
+
+// Returns undefined when blank (skip), or the normalized status string for UPDATE
+function parseITStatusForImport(val: unknown): string | undefined {
+  const s = String(val ?? "").trim();
+  if (!s) return undefined; // blank → skip, don't touch existing value
+  if (s === "ดำเนินการแล้ว" || s === "ยังไม่ดำเนินการ" || s === "ไม่พบบัญชี") return s;
+  return undefined; // unrecognized → skip
 }
 
 function parseDate(val: unknown): Date | null {
@@ -389,18 +401,29 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
 
       if (!exists) {
         // ── สร้างใหม่ ──────────────────────────────────────────
+        const fmisStatus    = normalizeITStatus(raw.fmis);
+        const eMtgStatus    = normalizeITStatus(raw.eMeeting);
+        const softStatus    = normalizeITStatus(raw.software);
+        const phonStatus    = normalizeITStatus(raw.phonebook);
+        const today         = new Date();
+        const DONE          = "ดำเนินการแล้ว";
+
         const emp = await prisma.employee.create({
           data: {
             employeeId,
             ...newData,
-            startDate: parseDate(raw.startDate),
+            startDate:    parseDate(raw.startDate),
             receivedDate: parseDate(raw.receivedDate) ?? new Date(),
-            fmis: normalizeITStatus(raw.fmis),
-            eMeeting: normalizeITStatus(raw.eMeeting),
-            software: normalizeITStatus(raw.software),
-            phonebook: normalizeITStatus(raw.phonebook),
-            createdBy: adminUser,
-            updatedBy: adminUser,
+            fmis:          fmisStatus,
+            fmisDate:      fmisStatus === DONE ? today : null,
+            eMeeting:      eMtgStatus,
+            eMeetingDate:  eMtgStatus === DONE ? today : null,
+            software:      softStatus,
+            softwareDate:  softStatus === DONE ? today : null,
+            phonebook:     phonStatus,
+            phonebookDate: phonStatus === DONE ? today : null,
+            createdBy:  adminUser,
+            updatedBy:  adminUser,
           },
         });
         await createAuditLog(emp.employeeId, "CREATE", adminUser);
@@ -419,14 +442,42 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), uplo
         if (newData.dataSourceId !== exists.dataSourceId) changedFields.push(UPDATABLE_LABELS.dataSourceId);
         if (toDateStr(newData.endDate) !== toDateStr(exists.endDate)) changedFields.push(UPDATABLE_LABELS.endDate);
 
+        // ── IT status fields (blank column = skip, non-blank = update) ──
+        const IT_IMPORT_FIELDS = [
+          { rawKey: "fmis",      statusKey: "fmis",      dateKey: "fmisDate",      label: "FMIS" },
+          { rawKey: "eMeeting",  statusKey: "eMeeting",  dateKey: "eMeetingDate",  label: "eMeeting" },
+          { rawKey: "software",  statusKey: "software",  dateKey: "softwareDate",  label: "Software" },
+          { rawKey: "phonebook", statusKey: "phonebook", dateKey: "phonebookDate", label: "Phonebook" },
+        ] as const;
+
+        const itUpdateData: Record<string, string | Date | null> = {};
+        const today = new Date();
+        const DONE  = "ดำเนินการแล้ว";
+
+        for (const f of IT_IMPORT_FIELDS) {
+          const newStatus = parseITStatusForImport(raw[f.rawKey]);
+          if (newStatus === undefined) continue; // blank → skip
+
+          const existingStatus = String((exists as Record<string, unknown>)[f.statusKey] ?? "");
+          const existingDate   = (exists as Record<string, unknown>)[f.dateKey] as Date | null;
+
+          // Store status (ไม่พบบัญชี → null in DB, others as-is)
+          itUpdateData[f.statusKey] = newStatus === "ไม่พบบัญชี" ? null : newStatus || null;
+
+          // Auto-fill date when done, keep existing date if already set; clear date otherwise
+          itUpdateData[f.dateKey] = newStatus === DONE ? (existingDate ?? today) : null;
+
+          if (newStatus !== existingStatus) changedFields.push(f.label);
+        }
+
         if (changedFields.length > 0) {
           await prisma.employee.update({
             where: { employeeId },
-            data: { ...newData, updatedBy: adminUser },
+            data: { ...newData, ...itUpdateData, updatedBy: adminUser },
           });
           await createAuditLog(employeeId, "UPDATE", adminUser,
             exists as unknown as Record<string, unknown>,
-            { ...exists, ...newData } as unknown as Record<string, unknown>
+            { ...exists, ...newData, ...itUpdateData } as unknown as Record<string, unknown>
           );
           updatedDetails.push({ employeeId, nameTh, changedFields });
           updated++;
