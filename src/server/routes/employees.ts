@@ -355,7 +355,7 @@ function toDateStr(d: Date | null | undefined): string {
 }
 
 router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
-  upload.fields([{ name: "files", maxCount: 20 }, { name: "file", maxCount: 1 }]),
+  upload.fields([{ name: "files", maxCount: 10 }, { name: "file", maxCount: 1 }]),
   async (req: AuthenticatedRequest, res) => {
   const adminUser = (req.body.adminUser as string) ?? req.user?.email ?? "unknown";
   const filesMap = req.files as Record<string, Express.Multer.File[]> | undefined;

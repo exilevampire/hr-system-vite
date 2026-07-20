@@ -40,12 +40,15 @@ export default function ImportPage() {
     return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
   }, [countdown, navigate]);
 
+  const MAX_FILES = 10;
+
   function addFiles(incoming: FileList | null) {
     if (!incoming) return;
     const allowed = Array.from(incoming).filter((f) => /\.(xlsx|xls|csv)$/i.test(f.name));
     setFiles((prev) => {
       const existing = new Set(prev.map((f) => f.name));
-      return [...prev, ...allowed.filter((f) => !existing.has(f.name))];
+      const merged = [...prev, ...allowed.filter((f) => !existing.has(f.name))];
+      return merged.slice(0, MAX_FILES);
     });
   }
 
@@ -135,7 +138,7 @@ export default function ImportPage() {
           >
             <div className="text-4xl mb-3">📄</div>
             <p className="font-medium text-slate-600">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง</p>
-            <p className="text-sm text-slate-400 mt-1">รองรับหลายไฟล์พร้อมกัน (.xlsx, .xls, .csv)</p>
+            <p className="text-sm text-slate-400 mt-1">รองรับสูงสุด {MAX_FILES} ไฟล์พร้อมกัน (.xlsx, .xls, .csv)</p>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" multiple className="hidden"
               onChange={(e) => addFiles(e.target.files)} />
           </div>
