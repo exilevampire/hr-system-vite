@@ -75,9 +75,9 @@ export default function ImportPage() {
 
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-700 flex items-start justify-between gap-4">
           <div>
-            <p className="font-semibold mb-2">📋 รูปแบบไฟล์ Excel ที่รองรับ (Template ใหม่):</p>
+            <p className="font-semibold mb-2">📋 รูปแบบไฟล์ Excel ที่รองรับ:</p>
             <p className="text-xs text-blue-600 font-mono">
-              ข้อมูลต้นทาง | เดือน | ปี | วันที่ได้รับข้อมูล | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ประเภท | ฝ่าย/กลุ่มงาน | หน่วยงาน/สำนัก | วันที่พ้นสภาพ | อีเมล | FMIS | eMeeting | Software | Phonebook
+              ข้อมูลต้นทาง | เดือน | ปี | วันที่ได้รับข้อมูล | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ประเภท | ฝ่าย/กลุ่มงาน | หน่วยงาน/สำนัก | วันที่พ้นสภาพ | อีเมล | FMIS | วันที่ FMIS | eMeeting | วันที่ eMeeting | Software | วันที่ Software | Phonebook | วันที่ Phonebook
             </p>
             <p className="text-xs text-blue-500 mt-1.5">
               คอลัมน์ที่ต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นเป็น optional)
