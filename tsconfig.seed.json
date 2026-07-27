@@ -6,6 +6,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
-  }
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "rootDir": "prisma"
+  },
+  "files": ["prisma/seed.ts"]
 }

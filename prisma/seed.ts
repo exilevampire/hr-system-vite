@@ -23,27 +23,27 @@ async function main() {
   const password = await bcrypt.hash("admin1234", 12);
 
   await prisma.user.upsert({
-    where: { email: "superadmin@hr.local" },
+    where: { email: "superadmin@redcross.or.th" },
     update: {},
-    create: { name: "Super Admin", email: "superadmin@hr.local", password, role: "SUPER_ADMIN" },
+    create: { name: "Super Admin", email: "superadmin@redcross.or.th", password, role: "SUPER_ADMIN" },
   });
 
   await prisma.user.upsert({
-    where: { email: "hradmin@hr.local" },
+    where: { email: "hradmin@redcross.or.th" },
     update: {},
-    create: { name: "HR Admin", email: "hradmin@hr.local", password, role: "ADMIN" },
+    create: { name: "HR Admin", email: "hradmin@redcross.or.th", password, role: "ADMIN" },
   });
 
   await prisma.user.upsert({
-    where: { email: "viewer@hr.local" },
+    where: { email: "viewer@redcross.or.th" },
     update: {},
-    create: { name: "Viewer", email: "viewer@hr.local", password, role: "VIEWER" },
+    create: { name: "Viewer", email: "viewer@redcross.or.th", password, role: "VIEWER" },
   });
 
   console.log("✅ Seed completed");
-  console.log("Super Admin: superadmin@hr.local / admin1234");
-  console.log("HR Admin:    hradmin@hr.local / admin1234");
-  console.log("Viewer:      viewer@hr.local / admin1234");
+  console.log("Super Admin: superadmin@redcross.or.th / admin1234");
+  console.log("HR Admin:    hradmin@redcross.or.th / admin1234");
+  console.log("Viewer:      viewer@redcross.or.th / admin1234");
 }
 
 main()
