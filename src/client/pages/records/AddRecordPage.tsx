@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../../lib/api";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
-const IT_OPTS = ["", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
+const IT_OPTS = ["ไม่พบบัญชี", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
 
 const SOURCE_TYPE_OPTIONS = [
   { value: 1, label: "1 - สบค. (สำนักงานบริหารทรัพยากรบุคคล)" },
@@ -310,7 +310,7 @@ export default function AddRecordPage() {
                       className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-44"
                     >
                       {IT_OPTS.map((opt) => (
-                        <option key={opt} value={opt}>{opt || "ไม่พบบัญชี"}</option>
+                        <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>
                     {isDone && (

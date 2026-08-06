@@ -45,7 +45,7 @@ router.get("/", authMiddleware, async (_req, res) => {
   };
   for (const e of allEmployees) {
     const itFields = [e.fmis, e.eMeeting, e.software, e.phonebook];
-    if (itFields.every((v) => !v || v === "ดำเนินการแล้ว")) cleared++;
+    if (itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี")) cleared++;
     if (e.email) withEmail++;
     for (const [key, val] of [
       ["fmis", e.fmis], ["eMeeting", e.eMeeting],

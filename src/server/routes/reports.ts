@@ -44,7 +44,7 @@ function isItCleared(e: {
   phonebook: string | null;
 }): boolean {
   const itFields = [e.fmis, e.eMeeting, e.software, e.phonebook];
-  return itFields.every((v) => !v || v === "ดำเนินการแล้ว");
+  return itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี");
 }
 
 function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {
@@ -114,10 +114,10 @@ router.get("/employees", authMiddleware, async (req, res) => {
   if (closedStatus === "closed") {
     conditions.push({
       AND: [
-        { OR: [{ fmis: null }, { NOT: { fmis: "ยังไม่ดำเนินการ" } }] },
-        { OR: [{ eMeeting: null }, { NOT: { eMeeting: "ยังไม่ดำเนินการ" } }] },
-        { OR: [{ software: null }, { NOT: { software: "ยังไม่ดำเนินการ" } }] },
-        { OR: [{ phonebook: null }, { NOT: { phonebook: "ยังไม่ดำเนินการ" } }] },
+        { NOT: { fmis: "ยังไม่ดำเนินการ" } },
+        { NOT: { eMeeting: "ยังไม่ดำเนินการ" } },
+        { NOT: { software: "ยังไม่ดำเนินการ" } },
+        { NOT: { phonebook: "ยังไม่ดำเนินการ" } },
       ],
     });
   } else if (closedStatus === "pending") {
@@ -142,9 +142,8 @@ router.get("/employees", authMiddleware, async (req, res) => {
   ];
   for (const [field, status, dateField] of itFilters) {
     if (!status) continue;
-    const statusCond = status === "ไม่พบบัญชี" ? null : status;
-    const cond: Record<string, unknown> = { [field]: statusCond };
-    if (itDateCond && statusCond !== null) cond[dateField] = itDateCond;
+    const cond: Record<string, unknown> = { [field]: status };
+    if (itDateCond && status !== "ไม่พบบัญชี") cond[dateField] = itDateCond;
     conditions.push(cond);
   }
   if (itDateCond && !fmisStatus && !eMeetingStatus && !softwareStatus && !phonebookStatus) {

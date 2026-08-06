@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../../lib/api";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
-const IT_OPTS = ["", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
+const IT_OPTS = ["ไม่พบบัญชี", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
 const IT_KEYS = new Set(["fmis", "eMeeting", "software", "phonebook"]);
 const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
 
@@ -394,7 +394,7 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
                         className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-44"
                       >
                         {IT_OPTS.map((opt) => (
-                          <option key={opt} value={opt}>{opt || "ไม่พบบัญชี"}</option>
+                          <option key={opt} value={opt}>{opt}</option>
                         ))}
                       </select>
                       {isDone && (

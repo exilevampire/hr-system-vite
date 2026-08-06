@@ -63,11 +63,10 @@ async function resolveDataSource(
   return ds.id;
 }
 
-const VALID_IT_VALUES = new Set(["ดำเนินการแล้ว", "ยังไม่ดำเนินการ"]);
-
 function normalizeITStatus(val: unknown): string {
   const s = String(val ?? "").trim();
-  return VALID_IT_VALUES.has(s) ? s : "ยังไม่ดำเนินการ";
+  if (s === "ดำเนินการแล้ว" || s === "ยังไม่ดำเนินการ" || s === "ไม่พบบัญชี") return s;
+  return "ยังไม่ดำเนินการ";
 }
 
 // Returns undefined when blank (skip), or the normalized status string for UPDATE
@@ -175,10 +174,10 @@ router.get("/", authMiddleware, async (req, res) => {
     // NULL = ไม่มีบัญชี = ผ่านแล้ว; ปิดสิทธิ์ = ไม่มีฟิลด์ไหนเป็น "ยังไม่ดำเนินการ"
     conditions.push({
       AND: [
-        { OR: [{ fmis: null }, { NOT: { fmis: "ยังไม่ดำเนินการ" } }] },
-        { OR: [{ eMeeting: null }, { NOT: { eMeeting: "ยังไม่ดำเนินการ" } }] },
-        { OR: [{ software: null }, { NOT: { software: "ยังไม่ดำเนินการ" } }] },
-        { OR: [{ phonebook: null }, { NOT: { phonebook: "ยังไม่ดำเนินการ" } }] },
+        { NOT: { fmis: "ยังไม่ดำเนินการ" } },
+        { NOT: { eMeeting: "ยังไม่ดำเนินการ" } },
+        { NOT: { software: "ยังไม่ดำเนินการ" } },
+        { NOT: { phonebook: "ยังไม่ดำเนินการ" } },
       ],
     });
   } else if (closedStatus === "pending") {
@@ -209,9 +208,8 @@ router.get("/", authMiddleware, async (req, res) => {
 
   for (const [field, status, dateField] of itFilters) {
     if (!status) continue;
-    const statusCond = status === "ไม่พบบัญชี" ? null : status;
-    const cond: Record<string, unknown> = { [field]: statusCond };
-    if (itDateCond && statusCond !== null) cond[dateField] = itDateCond;
+    const cond: Record<string, unknown> = { [field]: status };
+    if (itDateCond && status !== "ไม่พบบัญชี") cond[dateField] = itDateCond;
     conditions.push(cond);
   }
 
@@ -658,7 +656,7 @@ router.post("/update-it-status", authMiddleware, requireRole("SUPER_ADMIN"), upl
         const existingStatus = String((exists as Record<string, unknown>)[f.statusKey] ?? "");
         const existingDate   = (exists as Record<string, unknown>)[f.dateKey] as Date | null;
 
-        updateData[f.statusKey] = newStatus === "ไม่พบบัญชี" ? null : newStatus || null;
+        updateData[f.statusKey] = newStatus;
         updateData[f.dateKey]   = newStatus === DONE
           ? (parseDate(raw[f.dateKey]) ?? existingDate ?? today)
           : null;

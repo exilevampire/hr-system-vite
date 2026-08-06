@@ -189,7 +189,7 @@ function formatDate(d?: string | null) {
 
 function isFullyClosed(emp: Employee): boolean {
   const itFields = [emp.fmis, emp.eMeeting, emp.software, emp.phonebook];
-  return itFields.every((v) => !v || v === "ดำเนินการแล้ว");
+  return itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี");
 }
 
 export default function AllRecordsPage() {
@@ -812,7 +812,7 @@ export default function AllRecordsPage() {
                   {itFields.map(({ label, value }) => (
                     <div key={label} className="flex items-center justify-between gap-1">
                       <span className="text-xs text-slate-500 shrink-0">{label}</span>
-                      {!value ? (
+                      {(!value || value === "ไม่พบบัญชี") ? (
                         <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่พบบัญชี</span>
                       ) : value === "ดำเนินการแล้ว" ? (
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">ดำเนินการแล้ว</span>
@@ -917,7 +917,7 @@ function TCell({
 }
 
 function ITStatusCell({ value }: { value?: string | null }) {
-  if (!value) {
+  if (!value || value === "ไม่พบบัญชี") {
     return (
       <td className="px-3 py-3 text-left overflow-hidden" title="ไม่พบบัญชี">
         <span className="inline-block text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่พบบัญชี</span>
@@ -937,7 +937,7 @@ function ITStatusCell({ value }: { value?: string | null }) {
 }
 
 function ITBadge({ value }: { value?: string | null }) {
-  if (!value) {
+  if (!value || value === "ไม่พบบัญชี") {
     return <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">ไม่พบบัญชี</span>;
   }
   return value === "ดำเนินการแล้ว" ? (
