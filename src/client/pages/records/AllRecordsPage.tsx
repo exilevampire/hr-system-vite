@@ -223,7 +223,7 @@ export default function AllRecordsPage() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [colWidths, setColWidths] = useState<number[]>(DEFAULT_WIDTHS);
-  const [visibleCols, setVisibleCols] = useState<Set<number>>(new Set(HEADERS.map((_, i) => i)));
+  const [visibleCols, setVisibleCols] = useState<Set<number>>(new Set(HEADERS.map((_, i) => i).filter((i) => i !== 4 && i !== 10)));
   const [showColPicker, setShowColPicker] = useState(false);
   const colPickerRef = useRef<HTMLDivElement>(null);
   const [positionOptions, setPositionOptions] = useState<string[]>([]);
