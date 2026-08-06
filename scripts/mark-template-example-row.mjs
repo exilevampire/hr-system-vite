@@ -69,7 +69,7 @@ headerRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
 });
 
 // Add dropdown validation to IT status columns (rows 3–200)
-const statusOptions = '"ดำเนินการแล้ว,ยังไม่ดำเนินการ,ไม่พบบัญชี"';
+const statusOptions = '"ดำเนินการแล้ว,ยังไม่ดำเนินการ,ไม่พบบัญชี,ไม่ทราบสถานะ"';
 for (const colNum of itStatusCols) {
   for (let r = 3; r <= 200; r++) {
     const cell = sheet.getCell(r, colNum);

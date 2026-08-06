@@ -189,7 +189,7 @@ function formatDate(d?: string | null) {
 
 function isFullyClosed(emp: Employee): boolean {
   const itFields = [emp.fmis, emp.eMeeting, emp.software, emp.phonebook];
-  return itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี");
+  return itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี" || v === "ไม่ทราบสถานะ");
 }
 
 export default function AllRecordsPage() {
@@ -523,6 +523,7 @@ export default function AllRecordsPage() {
                     <option value="ดำเนินการแล้ว">ดำเนินการแล้ว</option>
                     <option value="ยังไม่ดำเนินการ">ยังไม่ดำเนินการ</option>
                     <option value="ไม่พบบัญชี">ไม่พบบัญชี</option>
+                    <option value="ไม่ทราบสถานะ">ไม่ทราบสถานะ</option>
                   </select>
                 </div>
               ))}
@@ -859,6 +860,8 @@ export default function AllRecordsPage() {
                         <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่พบบัญชี</span>
                       ) : value === "ดำเนินการแล้ว" ? (
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">ดำเนินการแล้ว</span>
+                      ) : value === "ไม่ทราบสถานะ" ? (
+                        <span className="text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่ทราบสถานะ</span>
                       ) : (
                         <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full whitespace-nowrap">ยังไม่ดำเนินการ</span>
                       )}
@@ -967,6 +970,13 @@ function ITStatusCell({ value }: { value?: string | null }) {
       </td>
     );
   }
+  if (value === "ไม่ทราบสถานะ") {
+    return (
+      <td className="px-3 py-3 text-left overflow-hidden" title="ไม่ทราบสถานะ">
+        <span className="inline-block text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่ทราบสถานะ</span>
+      </td>
+    );
+  }
   const isDone = value === "ดำเนินการแล้ว";
   return (
     <td className="px-3 py-3 text-left overflow-hidden" title={value}>
@@ -982,6 +992,9 @@ function ITStatusCell({ value }: { value?: string | null }) {
 function ITBadge({ value }: { value?: string | null }) {
   if (!value || value === "ไม่พบบัญชี") {
     return <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">ไม่พบบัญชี</span>;
+  }
+  if (value === "ไม่ทราบสถานะ") {
+    return <span className="text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full">ไม่ทราบสถานะ</span>;
   }
   return value === "ดำเนินการแล้ว" ? (
     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">ดำเนินการแล้ว</span>

@@ -63,9 +63,11 @@ async function resolveDataSource(
   return ds.id;
 }
 
+const VALID_IT_STATUSES = ["ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่พบบัญชี", "ไม่ทราบสถานะ"] as const;
+
 function normalizeITStatus(val: unknown): string {
   const s = String(val ?? "").trim();
-  if (s === "ดำเนินการแล้ว" || s === "ยังไม่ดำเนินการ" || s === "ไม่พบบัญชี") return s;
+  if ((VALID_IT_STATUSES as readonly string[]).includes(s)) return s;
   return "ยังไม่ดำเนินการ";
 }
 
@@ -73,7 +75,7 @@ function normalizeITStatus(val: unknown): string {
 function parseITStatusForImport(val: unknown): string | undefined {
   const s = String(val ?? "").trim();
   if (!s) return undefined; // blank → skip, don't touch existing value
-  if (s === "ดำเนินการแล้ว" || s === "ยังไม่ดำเนินการ" || s === "ไม่พบบัญชี") return s;
+  if ((VALID_IT_STATUSES as readonly string[]).includes(s)) return s;
   return undefined; // unrecognized → skip
 }
 
@@ -517,7 +519,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
             const existingStatus = String((exists as Record<string, unknown>)[f.statusKey] ?? "");
             const existingDate   = (exists as Record<string, unknown>)[f.dateKey] as Date | null;
 
-            itUpdateData[f.statusKey] = newStatus === "ไม่พบบัญชี" ? null : newStatus || null;
+            itUpdateData[f.statusKey] = newStatus;
             itUpdateData[f.dateKey]   = newStatus === DONE
               ? (parseDate(raw[f.dateKey]) ?? existingDate ?? today)
               : null;

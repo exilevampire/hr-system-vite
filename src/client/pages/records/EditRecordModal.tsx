@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../../lib/api";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
-const IT_OPTS = ["ไม่พบบัญชี", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
+const IT_OPTS = ["ไม่พบบัญชี", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่ทราบสถานะ"];
 const IT_KEYS = new Set(["fmis", "eMeeting", "software", "phonebook"]);
 const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
 

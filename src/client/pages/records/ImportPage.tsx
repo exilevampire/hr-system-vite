@@ -117,7 +117,7 @@ export default function ImportPage() {
               คอลัมน์ที่ต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นไม่จำเป็นต้องกรอก)
             </p>
             <p className="text-xs text-blue-700 mt-0.5">
-              สถานะดำเนินการ: ใส่ <span className="font-semibold">ดำเนินการแล้ว / ยังไม่ดำเนินการ / ไม่พบบัญชี</span> หรือปล่อยว่าง (ปล่อยว่าง = ไม่เปลี่ยนแปลงค่าเดิม)
+              สถานะดำเนินการ: ใส่ <span className="font-semibold">ดำเนินการแล้ว / ยังไม่ดำเนินการ / ไม่พบบัญชี / ไม่ทราบสถานะ</span> หรือปล่อยว่าง (ปล่อยว่าง = ไม่เปลี่ยนแปลงค่าเดิม)
             </p>
           </div>
           <a

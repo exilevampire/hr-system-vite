@@ -9,7 +9,7 @@ import {
 interface BureauItem { bureau: string; count: number }
 interface MonthItem { month: string; count: number }
 
-interface ITCount { done: number; pending: number; na: number }
+interface ITCount { done: number; pending: number; na: number; unknown: number }
 
 interface Stats {
   total: number;
@@ -218,21 +218,27 @@ export default function DashboardPage() {
                     ["Software",  stats.itBreakdown.software],
                     ["Phonebook", stats.itBreakdown.phonebook],
                   ] as [string, ITCount][]).map(([label, cnt]) => {
-                    const total = cnt.done + cnt.pending + cnt.na;
-                    const donePct = total > 0 ? (cnt.done + cnt.na) / total : 0;
+                    const total = cnt.done + cnt.pending + cnt.na + (cnt.unknown ?? 0);
+                    const donePct = total > 0 ? (cnt.done + cnt.na + (cnt.unknown ?? 0)) / total : 0;
                     return (
                       <div key={label}>
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-sm font-medium text-slate-600 w-24 shrink-0">{label}</span>
-                          <div className="flex items-center gap-4 text-xs text-slate-500">
+                          <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
                             <span className="flex items-center gap-1">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                               ดำเนินการแล้ว <span className="font-semibold text-slate-700 ml-0.5">{cnt.done.toLocaleString()}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
                               ไม่พบบัญชี <span className="font-semibold text-slate-700 ml-0.5">{cnt.na.toLocaleString()}</span>
                             </span>
+                            {(cnt.unknown ?? 0) > 0 && (
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-violet-400 inline-block" />
+                                ไม่ทราบสถานะ <span className="font-semibold text-slate-700 ml-0.5">{cnt.unknown.toLocaleString()}</span>
+                              </span>
+                            )}
                             <span className="flex items-center gap-1">
                               <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
                               ยังไม่ดำเนินการ <span className="font-semibold text-slate-700 ml-0.5">{cnt.pending.toLocaleString()}</span>
@@ -244,6 +250,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
                           <div className="h-full bg-emerald-500 transition-all" style={{ width: `${total > 0 ? ((cnt.done + cnt.na) / total) * 100 : 0}%` }} />
+                          <div className="h-full bg-violet-400 transition-all" style={{ width: `${total > 0 ? ((cnt.unknown ?? 0) / total) * 100 : 0}%` }} />
                           <div className="h-full bg-amber-400 transition-all" style={{ width: `${total > 0 ? (cnt.pending / total) * 100 : 0}%` }} />
                         </div>
                       </div>

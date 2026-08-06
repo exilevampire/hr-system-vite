@@ -44,7 +44,7 @@ function isItCleared(e: {
   phonebook: string | null;
 }): boolean {
   const itFields = [e.fmis, e.eMeeting, e.software, e.phonebook];
-  return itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี");
+  return itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี" || v === "ไม่ทราบสถานะ");
 }
 
 function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {
@@ -305,10 +305,10 @@ router.get("/employees", authMiddleware, async (req, res) => {
   let totalCleared = 0;
   let withEmail = 0;
   const itBreakdown = {
-    fmis:      { done: 0, pending: 0, na: 0 },
-    eMeeting:  { done: 0, pending: 0, na: 0 },
-    software:  { done: 0, pending: 0, na: 0 },
-    phonebook: { done: 0, pending: 0, na: 0 },
+    fmis:      { done: 0, pending: 0, na: 0, unknown: 0 },
+    eMeeting:  { done: 0, pending: 0, na: 0, unknown: 0 },
+    software:  { done: 0, pending: 0, na: 0, unknown: 0 },
+    phonebook: { done: 0, pending: 0, na: 0, unknown: 0 },
   };
   for (const e of filtered) {
     const b = e.bureau ?? "ไม่ระบุ";
@@ -327,6 +327,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     ] as [keyof typeof itBreakdown, string | null][]) {
       if (val === "ดำเนินการแล้ว") itBreakdown[key].done++;
       else if (val === "ยังไม่ดำเนินการ") itBreakdown[key].pending++;
+      else if (val === "ไม่ทราบสถานะ") itBreakdown[key].unknown++;
       else itBreakdown[key].na++;
     }
   }
@@ -467,11 +468,11 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   // ── Section 4: สถานะดำเนินการรายระบบ ─────────────────────────────
   const itSectionRow = monthSectionRow + 2 + monthList.length + 3;
-  s2SectionHeader(itSectionRow, "  สถานะดำเนินการรายระบบ", 5);
+  s2SectionHeader(itSectionRow, "  สถานะดำเนินการรายระบบ", 6);
 
   const itHRow = ws2.getRow(itSectionRow + 1);
   itHRow.height = 28;
-  ["ระบบ", "ดำเนินการแล้ว", "ไม่พบบัญชี", "ยังไม่ดำเนินการ", "% ดำเนินการแล้ว"].forEach((h, i) => {
+  ["ระบบ", "ดำเนินการแล้ว", "ไม่พบบัญชี", "ไม่ทราบสถานะ", "ยังไม่ดำเนินการ", "% ดำเนินการแล้ว"].forEach((h, i) => {
     const cell = itHRow.getCell(i + 1);
     cell.value = h;
     applyHeaderStyle(cell, i > 0);
@@ -487,21 +488,22 @@ router.get("/employees", authMiddleware, async (req, res) => {
 
   IT_BREAKDOWN_ROWS.forEach(([label, key], idx) => {
     const cnt = itBreakdown[key];
-    const total = cnt.done + cnt.pending + cnt.na;
-    const pct = total > 0 ? (cnt.done + cnt.na) / total : 0;
+    const total = cnt.done + cnt.pending + cnt.na + cnt.unknown;
+    const pct = total > 0 ? (cnt.done + cnt.na + cnt.unknown) / total : 0;
     const row = ws2.getRow(itSectionRow + 2 + idx);
     row.height = 22;
     const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
-    [label, cnt.done, cnt.na, cnt.pending, pct].forEach((v, ci) => {
+    [label, cnt.done, cnt.na, cnt.unknown, cnt.pending, pct].forEach((v, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = v;
       cell.font = { name: "TH SarabunPSK", size: 12 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
       if (ci === 1 || ci === 2) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
-      else if (ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: ORANGE_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; }
+      else if (ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: "FF7C3AED" } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDE9FE" } }; }
+      else if (ci === 4) { cell.font = { ...cell.font, bold: true, color: { argb: ORANGE_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; }
     });
-    row.getCell(5).numFmt = "0%";
+    row.getCell(6).numFmt = "0%";
   });
 
   ws2.views = [{ state: "frozen", xSplit: 0, ySplit: 1, topLeftCell: "A2", activeCell: "A2" }];

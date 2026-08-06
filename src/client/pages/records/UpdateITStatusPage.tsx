@@ -71,7 +71,7 @@ export default function UpdateITStatusPage() {
               รหัสประจำตัว | FMIS | วันที่ FMIS | eMeeting | วันที่ eMeeting | Software | วันที่ Software | Phonebook | วันที่ Phonebook
             </p>
             <p className="text-xs text-amber-600 mt-1.5">
-              สถานะที่รองรับ: <span className="font-semibold">ดำเนินการแล้ว / ยังไม่ดำเนินการ / ไม่พบบัญชี</span>
+              สถานะที่รองรับ: <span className="font-semibold">ดำเนินการแล้ว / ยังไม่ดำเนินการ / ไม่พบบัญชี / ไม่ทราบสถานะ</span>
             </p>
             <p className="text-xs text-amber-500 mt-0.5">
               ปล่อยว่าง = ไม่เปลี่ยนแปลงค่าเดิม &nbsp;|&nbsp; วันที่ดำเนินการ: วว/ดด/ปปปป (พ.ศ.) หรือปล่อยว่าง (auto-fill วันนี้)

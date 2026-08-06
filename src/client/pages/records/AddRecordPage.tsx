@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../../lib/api";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
-const IT_OPTS = ["ไม่พบบัญชี", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ"];
+const IT_OPTS = ["ไม่พบบัญชี", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่ทราบสถานะ"];
 
 const SOURCE_TYPE_OPTIONS = [
   { value: 1, label: "1 - สบค. (สำนักงานบริหารทรัพยากรบุคคล)" },

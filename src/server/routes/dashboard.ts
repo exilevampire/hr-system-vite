@@ -38,14 +38,14 @@ router.get("/", authMiddleware, async (_req, res) => {
   let cleared = 0;
   let withEmail = 0;
   const itBreakdown = {
-    fmis:      { done: 0, pending: 0, na: 0 },
-    eMeeting:  { done: 0, pending: 0, na: 0 },
-    software:  { done: 0, pending: 0, na: 0 },
-    phonebook: { done: 0, pending: 0, na: 0 },
+    fmis:      { done: 0, pending: 0, na: 0, unknown: 0 },
+    eMeeting:  { done: 0, pending: 0, na: 0, unknown: 0 },
+    software:  { done: 0, pending: 0, na: 0, unknown: 0 },
+    phonebook: { done: 0, pending: 0, na: 0, unknown: 0 },
   };
   for (const e of allEmployees) {
     const itFields = [e.fmis, e.eMeeting, e.software, e.phonebook];
-    if (itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี")) cleared++;
+    if (itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี" || v === "ไม่ทราบสถานะ")) cleared++;
     if (e.email) withEmail++;
     for (const [key, val] of [
       ["fmis", e.fmis], ["eMeeting", e.eMeeting],
@@ -53,6 +53,7 @@ router.get("/", authMiddleware, async (_req, res) => {
     ] as [keyof typeof itBreakdown, string | null][]) {
       if (val === "ดำเนินการแล้ว") itBreakdown[key].done++;
       else if (val === "ยังไม่ดำเนินการ") itBreakdown[key].pending++;
+      else if (val === "ไม่ทราบสถานะ") itBreakdown[key].unknown++;
       else itBreakdown[key].na++;
     }
   }
