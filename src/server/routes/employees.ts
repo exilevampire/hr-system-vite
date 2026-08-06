@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { createAuditLog } from "../lib/audit";
 import { authMiddleware, requireRole, AuthenticatedRequest } from "../middleware/auth";
+import { sendImportNotification } from "../lib/mailer";
 import multer from "multer";
 import * as XLSX from "xlsx";
 
@@ -549,6 +550,27 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
   }
 
   res.json({ created, updated, unchanged, errors, updatedDetails });
+
+  // ส่ง email แจ้งเตือนหลัง import — fire-and-forget ไม่บล็อก response
+  if (created + updated > 0) {
+    prisma.user.findMany({
+      where: { notifyOnImport: true },
+      select: { email: true },
+    }).then((notifyUsers) => {
+      const recipients = notifyUsers.map((u) => u.email);
+      if (recipients.length === 0) return;
+      const sourceName = parsedFiles.map((f) => f.filename).join(", ");
+      return sendImportNotification(recipients, {
+        inserted: created,
+        updated,
+        unchanged,
+        errors: errors.length,
+        sourceName,
+        importedBy: adminUser,
+        appUrl: process.env.FRONTEND_URL ?? "",
+      });
+    }).catch((err) => console.error("[mailer] ส่ง email ไม่สำเร็จ:", err));
+  }
 });
 
 // ── อัพเดตสถานะดำเนินการ IT (SUPER_ADMIN เท่านั้น) ─────────────────────────

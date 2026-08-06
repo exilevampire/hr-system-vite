@@ -8,6 +8,7 @@ interface User {
   name?: string;
   email: string;
   role: string;
+  notifyOnImport: boolean;
   createdAt: string;
 }
 
@@ -158,6 +159,14 @@ export default function SettingsPage() {
     setEditError("");
   }
 
+  async function handleToggleNotify(u: User) {
+    const updated = await apiFetch(`/api/users/${u.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ notifyOnImport: !u.notifyOnImport }),
+    });
+    if (updated.ok) fetchUsers();
+  }
+
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!editUser) return;
@@ -272,6 +281,7 @@ export default function SettingsPage() {
                 <th className="px-4 py-3 text-left font-semibold text-slate-600">Email</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-600">บทบาท</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-600">วันที่สร้าง</th>
+                {isSuperAdmin && <th className="px-4 py-3 text-center font-semibold text-slate-600">แจ้งเตือน Import</th>}
                 {isSuperAdmin && <th className="px-4 py-3"></th>}
               </tr>
             </thead>
@@ -288,6 +298,17 @@ export default function SettingsPage() {
                   <td className="px-4 py-3 text-slate-500 text-xs">
                     {new Date(u.createdAt).toLocaleDateString("th-TH")}
                   </td>
+                  {isSuperAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleToggleNotify(u)}
+                        title={u.notifyOnImport ? "คลิกเพื่อปิดการแจ้งเตือน" : "คลิกเพื่อเปิดการแจ้งเตือน"}
+                        className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${u.notifyOnImport ? "bg-blue-500" : "bg-slate-200"}`}
+                      >
+                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${u.notifyOnImport ? "left-5" : "left-1"}`} />
+                      </button>
+                    </td>
+                  )}
                   {isSuperAdmin && (
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3 justify-end">
