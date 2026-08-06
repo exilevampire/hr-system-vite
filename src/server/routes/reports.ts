@@ -500,7 +500,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
       if (ci === 1 || ci === 2) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
-      else if (ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: "FF7C3AED" } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDE9FE" } }; }
+      else if (ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: "FF0284C7" } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0F2FE" } }; }
       else if (ci === 4) { cell.font = { ...cell.font, bold: true, color: { argb: ORANGE_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; }
     });
     row.getCell(6).numFmt = "0%";

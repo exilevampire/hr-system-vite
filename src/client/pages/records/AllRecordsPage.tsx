@@ -861,7 +861,7 @@ export default function AllRecordsPage() {
                       ) : value === "ดำเนินการแล้ว" ? (
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">ดำเนินการแล้ว</span>
                       ) : value === "ไม่ทราบสถานะ" ? (
-                        <span className="text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่ทราบสถานะ</span>
+                        <span className="text-xs bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่ทราบสถานะ</span>
                       ) : (
                         <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full whitespace-nowrap">ยังไม่ดำเนินการ</span>
                       )}
@@ -973,7 +973,7 @@ function ITStatusCell({ value }: { value?: string | null }) {
   if (value === "ไม่ทราบสถานะ") {
     return (
       <td className="px-3 py-3 text-left overflow-hidden" title="ไม่ทราบสถานะ">
-        <span className="inline-block text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่ทราบสถานะ</span>
+        <span className="inline-block text-xs bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่ทราบสถานะ</span>
       </td>
     );
   }
@@ -994,7 +994,7 @@ function ITBadge({ value }: { value?: string | null }) {
     return <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">ไม่พบบัญชี</span>;
   }
   if (value === "ไม่ทราบสถานะ") {
-    return <span className="text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full">ไม่ทราบสถานะ</span>;
+    return <span className="text-xs bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full">ไม่ทราบสถานะ</span>;
   }
   return value === "ดำเนินการแล้ว" ? (
     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">ดำเนินการแล้ว</span>
