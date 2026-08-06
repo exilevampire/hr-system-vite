@@ -17,6 +17,8 @@ model User {
   backupCodes String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("user")
 }
 
 model DataSource {
@@ -28,6 +30,7 @@ model DataSource {
   employees  Employee[]
 
   @@unique([sourceType, month, year])
+  @@map("datasource")
 }
 
 model Employee {
@@ -59,6 +62,8 @@ model Employee {
   updatedAt    DateTime  @updatedAt
 
   logs AuditLog[]
+
+  @@map("employee")
 }
 
 model AuditLog {
@@ -70,6 +75,8 @@ model AuditLog {
   createdAt     DateTime @default(now())
 
   employee Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+
+  @@map("auditlog")
 }
 
 enum Role {

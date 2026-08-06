@@ -1,5 +1,5 @@
 import { AppLayout } from "../components/AppLayout";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../lib/api";
 
 interface AuditLog {
@@ -25,10 +25,14 @@ const FIELD_LABELS: Record<string, string> = {
   endDate: "วันพ้นสภาพ",
   receivedDate: "วันที่ได้รับข้อมูล",
   fmis: "FMIS",
+  fmisDate: "วันที่ FMIS",
   eMeeting: "eMeeting",
-  website: "Website",
-  phone3cx: "3CX",
-  intranet: "Intranet",
+  eMeetingDate: "วันที่ eMeeting",
+  software: "Software",
+  softwareDate: "วันที่ Software",
+  phonebook: "Phonebook",
+  phonebookDate: "วันที่ Phonebook",
+  email: "อีเมล",
 };
 
 const ACTION_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -40,14 +44,10 @@ const ACTION_CONFIG: Record<string, { label: string; color: string; icon: string
 function formatValue(val: unknown): string {
   if (val === null || val === undefined || val === "") return "—";
   if (typeof val === "string") {
-    // ISO date string
     if (/^\d{4}-\d{2}-\d{2}(T|$)/.test(val)) {
       const d = new Date(val);
       if (!isNaN(d.getTime())) {
-        const day = d.getDate();
-        const month = d.getMonth() + 1;
-        const year = d.getFullYear() + 543;
-        return `${day}/${month}/${year}`;
+        return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`;
       }
     }
     return val;
@@ -71,52 +71,155 @@ export default function LogsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [filterAction, setFilterAction] = useState<string>("ALL");
 
-  function fetchLogs(p: number) {
+  // filters
+  const [search, setSearch] = useState("");
+  const [filterAction, setFilterAction] = useState("ALL");
+  const [adminUser, setAdminUser] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function fetchLogs(p: number, params?: { search: string; filterAction: string; adminUser: string; dateFrom: string; dateTo: string }) {
+    const s = params ?? { search, filterAction, adminUser, dateFrom, dateTo };
     setLoading(true);
-    apiFetch(`/api/logs?page=${p}&pageSize=${PAGE_SIZE}`)
+    const q = new URLSearchParams({
+      page: String(p),
+      pageSize: String(PAGE_SIZE),
+      ...(s.search ? { search: s.search } : {}),
+      ...(s.filterAction !== "ALL" ? { action: s.filterAction } : {}),
+      ...(s.adminUser ? { adminUser: s.adminUser } : {}),
+      ...(s.dateFrom ? { dateFrom: s.dateFrom } : {}),
+      ...(s.dateTo ? { dateTo: s.dateTo } : {}),
+    });
+    apiFetch(`/api/logs?${q}`)
       .then((r) => r.json())
       .then((d) => { setLogs(d.data ?? []); setTotal(d.total ?? 0); setLoading(false); });
   }
 
   useEffect(() => { fetchLogs(page); }, [page]);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  function handleSearchChange(val: string) {
+    setSearch(val);
+    setPage(1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchLogs(1, { search: val, filterAction, adminUser, dateFrom, dateTo });
+    }, 400);
+  }
 
-  const filtered = filterAction === "ALL" ? logs : logs.filter((l) => l.action === filterAction);
+  function handleFilterChange(newAction?: string, newAdmin?: string, newFrom?: string, newTo?: string) {
+    const a = newAction ?? filterAction;
+    const u = newAdmin ?? adminUser;
+    const f = newFrom ?? dateFrom;
+    const t = newTo ?? dateTo;
+    if (newAction !== undefined) setFilterAction(a);
+    if (newAdmin !== undefined) setAdminUser(u);
+    if (newFrom !== undefined) setDateFrom(f);
+    if (newTo !== undefined) setDateTo(t);
+    setPage(1);
+    fetchLogs(1, { search, filterAction: a, adminUser: u, dateFrom: f, dateTo: t });
+  }
+
+  function clearFilters() {
+    setSearch(""); setFilterAction("ALL"); setAdminUser(""); setDateFrom(""); setDateTo("");
+    setPage(1);
+    fetchLogs(1, { search: "", filterAction: "ALL", adminUser: "", dateFrom: "", dateTo: "" });
+  }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const hasFilters = search || filterAction !== "ALL" || adminUser || dateFrom || dateTo;
 
   return (
     <AppLayout>
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Audit Log</h1>
-          <p className="text-slate-500 text-sm mt-1">ประวัติการเปลี่ยนแปลงข้อมูลทั้งหมด ({total.toLocaleString()} รายการ)</p>
-        </div>
-        <div className="flex gap-2">
-          {["ALL", "CREATE", "UPDATE", "DELETE"].map((a) => (
-            <button
-              key={a}
-              onClick={() => setFilterAction(a)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                filterAction === a
-                  ? "bg-slate-800 text-white border-slate-800"
-                  : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
-              }`}
-            >
-              {a === "ALL" ? "ทั้งหมด" : ACTION_CONFIG[a]?.label ?? a}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Audit Log</h1>
+            <p className="text-slate-500 text-sm mt-1">ประวัติการเปลี่ยนแปลงข้อมูลทั้งหมด ({total.toLocaleString()} รายการ)</p>
+          </div>
+          {hasFilters && (
+            <button onClick={clearFilters}
+              className="text-sm text-slate-500 hover:text-red-500 border border-slate-300 hover:border-red-300 px-3 py-1.5 rounded-lg transition-colors">
+              ล้างตัวกรอง ✕
             </button>
-          ))}
+          )}
+        </div>
+
+        {/* Search & Filters */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+          {/* Row 1: search + admin */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+              <input
+                type="text"
+                placeholder="ค้นหารหัสพนักงาน หรือ ชื่อ..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">👤</span>
+              <input
+                type="text"
+                placeholder="ผู้ดำเนินการ (email)..."
+                value={adminUser}
+                onChange={(e) => handleFilterChange(undefined, e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: action + date range */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-1.5">
+              {["ALL", "CREATE", "UPDATE", "DELETE"].map((a) => (
+                <button
+                  key={a}
+                  onClick={() => handleFilterChange(a)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                    filterAction === a
+                      ? "bg-slate-800 text-white border-slate-800"
+                      : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  {a === "ALL" ? "ทั้งหมด" : ACTION_CONFIG[a]?.label ?? a}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-slate-500">วันที่</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => handleFilterChange(undefined, undefined, e.target.value)}
+                className="text-sm border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-xs text-slate-400">ถึง</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => handleFilterChange(undefined, undefined, undefined, e.target.value)}
+                className="text-sm border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="space-y-3">
         {loading ? (
           <div className="py-20 text-center text-slate-400 bg-white rounded-xl border border-slate-200">กำลังโหลด...</div>
-        ) : filtered.length === 0 ? (
-          <div className="py-20 text-center text-slate-400 bg-white rounded-xl border border-slate-200">ยังไม่มีประวัติการดำเนินการ</div>
+        ) : logs.length === 0 ? (
+          <div className="py-20 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
+            {hasFilters ? "ไม่พบรายการที่ตรงกับเงื่อนไข" : "ยังไม่มีประวัติการดำเนินการ"}
+          </div>
         ) : (
-          filtered.map((log) => {
+          logs.map((log) => {
             const cfg = ACTION_CONFIG[log.action] ?? { label: log.action, color: "bg-slate-100 text-slate-600 border-slate-200", icon: "•" };
             const { date, time } = formatDateTime(log.createdAt);
             const changes = log.changedFields ? Object.entries(log.changedFields) : [];
@@ -125,12 +228,10 @@ export default function LogsPage() {
             return (
               <div key={log.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-4 px-5 py-4">
-                  {/* Action badge */}
                   <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.color}`}>
                     {cfg.icon} {cfg.label}
                   </span>
 
-                  {/* Employee info */}
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-slate-800 text-sm">
                       {log.employee?.nameTh ?? log.employeeId}
@@ -138,7 +239,6 @@ export default function LogsPage() {
                     <span className="text-slate-400 text-xs ml-2 font-mono">{log.employeeId}</span>
                   </div>
 
-                  {/* Who + when */}
                   <div className="text-right flex-shrink-0 hidden sm:block">
                     <div className="text-xs text-slate-500">{log.adminUser}</div>
                     <div className="text-xs text-slate-400 mt-0.5">
@@ -148,7 +248,6 @@ export default function LogsPage() {
                     </div>
                   </div>
 
-                  {/* Expand button (UPDATE only) */}
                   {changes.length > 0 && (
                     <button
                       onClick={() => setExpanded(isOpen ? null : log.id)}
@@ -160,13 +259,11 @@ export default function LogsPage() {
                   )}
                 </div>
 
-                {/* Mobile: who + when */}
                 <div className="sm:hidden px-5 pb-3 flex justify-between text-xs text-slate-500">
                   <span>{log.adminUser}</span>
                   <span>{date} {time} น.</span>
                 </div>
 
-                {/* Changed fields detail */}
                 {isOpen && changes.length > 0 && (
                   <div className="border-t border-slate-100 bg-slate-50 px-5 py-4">
                     <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">ฟิลด์ที่เปลี่ยนแปลง</p>

@@ -128,6 +128,7 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
   const modalBodyRef = useRef<HTMLDivElement>(null);
 
   const [form, setFormState] = useState<Record<string, string>>({});
+  const [noDateKeys, setNoDateKeys] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -163,6 +164,12 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
           sourceMonth:   d.dataSource ? String(d.dataSource.month) : "",
           sourceYear:    d.dataSource ? String(d.dataSource.year) : "",
         });
+        // pre-check "ไม่ทราบวันที่" ถ้า status = ดำเนินการแล้ว แต่ไม่มีวันที่
+        const preNoDate = new Set<string>();
+        IT_FIELDS.forEach(({ key, dateKey }) => {
+          if (d[key] === "ดำเนินการแล้ว" && !d[dateKey]) preNoDate.add(dateKey);
+        });
+        setNoDateKeys(preNoDate);
         setLoading(false);
       });
   }, [employeeId]);
@@ -177,15 +184,30 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
     setFormState((prev) => {
       const next: Record<string, string> = { ...prev, [key]: val };
       if (IT_TO_DATE[key]) {
+        const dateKey = IT_TO_DATE[key];
         if (val === "ดำเนินการแล้ว") {
-          if (!prev[IT_TO_DATE[key]]) next[IT_TO_DATE[key]] = todayIso;
+          if (!noDateKeys.has(dateKey) && !prev[dateKey]) next[dateKey] = todayIso;
         } else {
-          next[IT_TO_DATE[key]] = "";
+          next[dateKey] = "";
+          setNoDateKeys((prev) => { const s = new Set(prev); s.delete(dateKey); return s; });
         }
       }
       return next;
     });
     if (errors[key]) setErrors((prev) => { const e = { ...prev }; delete e[key]; return e; });
+  }
+
+  function toggleNoDate(dateKey: string) {
+    setNoDateKeys((prev) => {
+      const s = new Set(prev);
+      if (s.has(dateKey)) {
+        s.delete(dateKey);
+      } else {
+        s.add(dateKey);
+        setFormState((f) => ({ ...f, [dateKey]: "" }));
+      }
+      return s;
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -362,6 +384,7 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
                   const val = form[key] ?? "";
                   const dateVal = form[dateKey] ?? "";
                   const isDone = val === "ดำเนินการแล้ว";
+                  const isNoDate = noDateKeys.has(dateKey);
                   return (
                     <div key={key} className="flex flex-wrap items-center gap-3">
                       <span className="text-sm font-medium text-slate-600 w-24 shrink-0">{label}</span>
@@ -375,14 +398,27 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
                         ))}
                       </select>
                       {isDone && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-400 shrink-0">วันที่ดำเนินการ</span>
-                          <ThaiDatePicker
-                            value={dateVal}
-                            onChange={(v) => setField(dateKey, v)}
-                            placeholder="วว/ดด/ปปปป"
-                            className="w-44"
-                          />
+                        <div className="flex flex-wrap items-center gap-3">
+                          {!isNoDate && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-600 shrink-0">วันที่ดำเนินการ</span>
+                              <ThaiDatePicker
+                                value={dateVal}
+                                onChange={(v) => setField(dateKey, v)}
+                                placeholder="วว/ดด/ปปปป"
+                                className="w-44"
+                              />
+                            </div>
+                          )}
+                          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isNoDate}
+                              onChange={() => toggleNoDate(dateKey)}
+                              className="w-3.5 h-3.5 rounded accent-slate-500"
+                            />
+                            <span className="text-xs text-slate-600">ไม่ทราบวันที่</span>
+                          </label>
                         </div>
                       )}
                     </div>

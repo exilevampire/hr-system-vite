@@ -953,7 +953,7 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
 
   const Row = ({ label, value }: { label: string; value?: string | null }) => (
     <div className="flex gap-2 py-1.5 border-b border-slate-100 last:border-0">
-      <span className="text-slate-400 text-xs w-36 shrink-0">{label}</span>
+      <span className="text-slate-600 text-xs w-36 shrink-0">{label}</span>
       <span className="text-slate-700 text-xs break-all">{value || "-"}</span>
     </div>
   );
@@ -980,7 +980,7 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 font-mono mt-1">{emp.employeeId}</p>
+            <p className="text-sm text-slate-600 font-mono mt-1">รหัส {emp.employeeId}</p>
           </div>
           <button
             onClick={onClose}
@@ -993,14 +993,14 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
         <div className="p-5 space-y-5">
           {/* ข้อมูลทั่วไป */}
           <section>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ข้อมูลทั่วไป</h3>
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">ข้อมูลทั่วไป</h3>
             <Row label="ชื่อ-สกุล (อังกฤษ)" value={emp.nameEn} />
             <Row label="ข้อมูลต้นทาง" value={formatDataSource(emp.dataSource)} />
           </section>
 
           {/* ตำแหน่ง */}
           <section>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ตำแหน่งงาน</h3>
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">ตำแหน่งงาน</h3>
             <Row label="ตำแหน่ง" value={emp.position} />
             <Row label="ประเภท" value={emp.level} />
             <Row label="ฝ่าย/กลุ่มงาน" value={emp.department} />
@@ -1009,7 +1009,7 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
 
           {/* วันที่ */}
           <section>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">วันที่</h3>
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">วันที่</h3>
             <Row label="วันที่พ้นสภาพ" value={formatDate(emp.endDate)} />
             <Row label="Email" value={emp.email} />
             <Row label="วันที่ได้รับข้อมูล" value={formatDate(emp.receivedDate)} />
@@ -1017,7 +1017,7 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
 
           {/* สถานะการดำเนินงาน */}
           <section>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">สถานะการดำเนินงาน</h3>
+            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">สถานะการดำเนินงาน</h3>
             <div className="space-y-2">
               {([
                 ["FMIS",      emp.fmis,      emp.fmisDate],
@@ -1026,10 +1026,12 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
                 ["Phonebook", emp.phonebook, emp.phonebookDate],
               ] as [string, string | undefined, string | undefined][]).map(([label, val, dateVal]) => (
                 <div key={label} className="flex items-center justify-between gap-2 py-1.5 border-b border-slate-100 last:border-0">
-                  <span className="text-xs text-slate-400 w-36 shrink-0">{label}</span>
+                  <span className="text-xs text-slate-600 w-36 shrink-0">{label}</span>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
-                    {val === "ดำเนินการแล้ว" && dateVal && (
-                      <span className="text-xs text-slate-400">{formatDate(dateVal)}</span>
+                    {val === "ดำเนินการแล้ว" && (
+                      <span className="text-xs text-slate-600">
+                        {dateVal ? formatDate(dateVal) : "ไม่ทราบวันที่"}
+                      </span>
                     )}
                     <ITBadge value={val} />
                   </div>
