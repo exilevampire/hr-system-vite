@@ -79,7 +79,7 @@ export async function sendImportNotification(
   await transporter.sendMail({
     from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
     to: recipients.join(", "),
-    subject: `[HR System] นำเข้าข้อมูลสำเร็จ — ${sourceName} (${inserted + updated} รายการ)`,
+    subject: `[Redcross Retire] มีการนำเข้าข้อมูล (${inserted + updated} รายการ)`,
     html,
   });
 }

@@ -424,6 +424,10 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
   }
 
   // ── Phase 2: Process ALL files ───────────────────────────────────────────
+  const SOURCE_TYPE_LABELS: Record<number, string> = { 1: "สบค.", 2: "ศล." };
+  const THAI_MONTHS_FULL = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  const importedSources = new Set<string>();
+
   let created = 0;
   let updated = 0;
   let unchanged = 0;
@@ -453,6 +457,13 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
       }
 
       const dataSourceId = await resolveDataSource(raw.sourceType, raw.sourceMonth, raw.sourceYear);
+      const srcType = Number(raw.sourceType);
+      const srcMonth = Number(raw.sourceMonth);
+      const srcYear = Number(raw.sourceYear);
+      if (srcType && srcMonth && srcYear) {
+        const label = `${SOURCE_TYPE_LABELS[srcType] ?? `ต้นทาง ${srcType}`} ${THAI_MONTHS_FULL[srcMonth] ?? srcMonth} ${srcYear + 543}`;
+        importedSources.add(label);
+      }
       const newData = {
         dataSourceId,
         nameTh,
@@ -559,7 +570,9 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
     }).then((notifyUsers) => {
       const recipients = notifyUsers.map((u) => u.email);
       if (recipients.length === 0) return;
-      const sourceName = parsedFiles.map((f) => f.filename).join(", ");
+      const sourceName = importedSources.size > 0
+        ? [...importedSources].join(", ")
+        : parsedFiles.map((f) => f.filename).join(", ");
       return sendImportNotification(recipients, {
         inserted: created,
         updated,
