@@ -338,6 +338,15 @@ export default function AllRecordsPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  function clearAllFilters() {
+    setSearch(""); setBureau(""); setDepartment(""); setPosition(""); setLevel("");
+    setEndDateFrom(""); setEndDateTo("");
+    setFmisStatus(""); setEMeetingStatus(""); setSoftwareStatus(""); setPhonebookStatus("");
+    setClosedStatus(""); setItDateFrom(""); setItDateTo("");
+    setSourceTypeFilter(""); setSourceMonthFilter(""); setSourceYearFilter("");
+    setPage(1);
+  }
+
   async function handleDelete(employeeId: string) {
     if (!confirm("ยืนยันการลบข้อมูลนี้?")) return;
     await apiFetch(`/api/employees/${employeeId}`, { method: "DELETE" });
@@ -596,6 +605,40 @@ export default function AllRecordsPage() {
           </div>
         </div>
       )}
+
+      {/* Active Filter Badges */}
+      {(() => {
+        const filters: { label: string; clear: () => void }[] = [];
+        if (search) filters.push({ label: `ค้นหา: ${search}`, clear: () => { setSearch(""); setPage(1); } });
+        if (bureau) filters.push({ label: `สำนัก: ${bureau}`, clear: () => { setBureau(""); setPage(1); } });
+        if (department) filters.push({ label: `กลุ่ม/ฝ่าย: ${department}`, clear: () => { setDepartment(""); setPage(1); } });
+        if (position) filters.push({ label: `ตำแหน่ง: ${position}`, clear: () => { setPosition(""); setPage(1); } });
+        if (level) filters.push({ label: `ระดับ: ${level}`, clear: () => { setLevel(""); setPage(1); } });
+        if (endDateFrom) filters.push({ label: `ครบกำหนด ≥ ${endDateFrom}`, clear: () => { setEndDateFrom(""); setPage(1); } });
+        if (endDateTo) filters.push({ label: `ครบกำหนด ≤ ${endDateTo}`, clear: () => { setEndDateTo(""); setPage(1); } });
+        if (fmisStatus) filters.push({ label: `FMIS: ${fmisStatus}`, clear: () => { setFmisStatus(""); setPage(1); } });
+        if (eMeetingStatus) filters.push({ label: `eMeeting: ${eMeetingStatus}`, clear: () => { setEMeetingStatus(""); setPage(1); } });
+        if (softwareStatus) filters.push({ label: `Software: ${softwareStatus}`, clear: () => { setSoftwareStatus(""); setPage(1); } });
+        if (phonebookStatus) filters.push({ label: `Phonebook: ${phonebookStatus}`, clear: () => { setPhonebookStatus(""); setPage(1); } });
+        if (itDateFrom) filters.push({ label: `วันที่ IT ≥ ${itDateFrom}`, clear: () => { setItDateFrom(""); setPage(1); } });
+        if (itDateTo) filters.push({ label: `วันที่ IT ≤ ${itDateTo}`, clear: () => { setItDateTo(""); setPage(1); } });
+        if (closedStatus) filters.push({ label: `สถานะ: ${closedStatus}`, clear: () => { setClosedStatus(""); setPage(1); } });
+        if (sourceTypeFilter) filters.push({ label: `ต้นทาง: ${SOURCE_TYPE_NAMES[Number(sourceTypeFilter)] ?? sourceTypeFilter}`, clear: () => { setSourceTypeFilter(""); setPage(1); } });
+        if (sourceMonthFilter) filters.push({ label: `เดือน: ${THAI_MONTHS[Number(sourceMonthFilter)] ?? sourceMonthFilter}`, clear: () => { setSourceMonthFilter(""); setPage(1); } });
+        if (sourceYearFilter) filters.push({ label: `ปี: ${sourceYearFilter}`, clear: () => { setSourceYearFilter(""); setPage(1); } });
+        if (filters.length === 0) return null;
+        return (
+          <div className="flex flex-wrap gap-2 items-center px-1 py-2">
+            {filters.map((f, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200">
+                {f.label}
+                <button onClick={f.clear} className="ml-0.5 hover:text-blue-900 font-bold leading-none">×</button>
+              </span>
+            ))}
+            <button onClick={clearAllFilters} className="text-xs text-slate-500 hover:text-slate-700 underline ml-1">ล้างทั้งหมด</button>
+          </div>
+        );
+      })()}
 
       {/* Desktop Table */}
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

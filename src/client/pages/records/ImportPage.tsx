@@ -110,14 +110,14 @@ export default function ImportPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-700 flex items-start justify-between gap-4">
           <div>
             <p className="font-semibold mb-2">📋 รูปแบบไฟล์ Excel ที่รองรับ:</p>
-            <p className="text-xs text-blue-600 font-mono">
+            <p className="text-xs text-blue-700 font-mono">
               ข้อมูลต้นทาง | เดือน | ปี | วันที่ได้รับข้อมูล | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ประเภท | ฝ่าย/กลุ่มงาน | หน่วยงาน/สำนัก | วันที่พ้นสภาพ | อีเมล | FMIS | วันที่ FMIS | eMeeting | วันที่ eMeeting | Software | วันที่ Software | Phonebook | วันที่ Phonebook
             </p>
-            <p className="text-xs text-blue-500 mt-1.5">
-              คอลัมน์ที่ต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นเป็น optional)
+            <p className="text-xs text-blue-700 mt-1.5">
+              คอลัมน์ที่ต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นไม่จำเป็นต้องกรอก)
             </p>
-            <p className="text-xs text-blue-400 mt-0.5">
-              IT status: ใส่ <span className="font-semibold">ดำเนินการแล้ว / ยังไม่ดำเนินการ / ไม่พบบัญชี</span> หรือปล่อยว่าง (ปล่อยว่าง = ไม่เปลี่ยนแปลงค่าเดิม)
+            <p className="text-xs text-blue-700 mt-0.5">
+              สถานะดำเนินการ: ใส่ <span className="font-semibold">ดำเนินการแล้ว / ยังไม่ดำเนินการ / ไม่พบบัญชี</span> หรือปล่อยว่าง (ปล่อยว่าง = ไม่เปลี่ยนแปลงค่าเดิม)
             </p>
           </div>
           <a
@@ -130,8 +130,8 @@ export default function ImportPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-          {/* Drop zone */}
-          <div
+          {/* Drop zone — ซ่อนหลัง import สำเร็จ */}
+          {!result && <div
             className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
             onClick={() => fileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
@@ -142,10 +142,10 @@ export default function ImportPage() {
             <p className="text-sm text-slate-400 mt-1">รองรับ .xlsx, .xls, .csv — <span className="font-medium">สูงสุด {MAX_FILES} ไฟล์ต่อครั้ง</span></p>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" multiple className="hidden"
               onChange={(e) => addFiles(e.target.files)} />
-          </div>
+          </div>}
 
-          {/* File list */}
-          {files.length > 0 && (
+          {/* File list — ซ่อนหลัง import สำเร็จ */}
+          {!result && files.length > 0 && (
             <ul className="mt-4 space-y-2">
               {files.map((f) => (
                 <li key={f.name} className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-2.5">
@@ -269,12 +269,20 @@ export default function ImportPage() {
                     <p className="text-xs text-green-600">
                       นำทางไปหน้าข้อมูลพ้นสภาพใน <span className="font-bold text-green-700">{countdown}</span> วินาที...
                     </p>
-                    <button
-                      onClick={() => { if (countdownRef.current) clearInterval(countdownRef.current); navigate("/records/all"); }}
-                      className="shrink-0 text-xs font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      ไปเลย →
-                    </button>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => { if (countdownRef.current) clearInterval(countdownRef.current); setCountdown(null); }}
+                        className="text-xs font-medium text-green-700 bg-white hover:bg-green-50 border border-green-300 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        ⏸ หยุด
+                      </button>
+                      <button
+                        onClick={() => { if (countdownRef.current) clearInterval(countdownRef.current); navigate("/records/all"); }}
+                        className="text-xs font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        ไปเลย →
+                      </button>
+                    </div>
                   </div>
                   <div className="w-full h-1.5 bg-green-200 rounded-full overflow-hidden">
                     <div className="h-full bg-green-500 rounded-full transition-all duration-1000 ease-linear"
