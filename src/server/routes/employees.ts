@@ -461,7 +461,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
       const srcMonth = Number(raw.sourceMonth);
       const srcYear = Number(raw.sourceYear);
       if (srcType && srcMonth && srcYear) {
-        const label = `${SOURCE_TYPE_LABELS[srcType] ?? `ต้นทาง ${srcType}`} ${THAI_MONTHS_FULL[srcMonth] ?? srcMonth} ${srcYear + 543}`;
+        const label = `${SOURCE_TYPE_LABELS[srcType] ?? `ต้นทาง ${srcType}`} ${THAI_MONTHS_FULL[srcMonth] ?? srcMonth} ${srcYear}`;
         importedSources.add(label);
       }
       const newData = {
