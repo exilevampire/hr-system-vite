@@ -107,7 +107,23 @@
       "Bash(git commit -m 'fix: decode Thai filename from latin1 to UTF-8 in import error messages *)",
       "Bash(git commit -m 'fix: accept both '\\\\''file'\\\\'' and '\\\\''files'\\\\'' field names in import route *)",
       "Bash(git commit -m 'feat: limit import to max 10 files per upload *)",
-      "Bash(git commit -m 'feat: enforce 20-file limit with warning instead of silent truncation *)"
+      "Bash(git commit -m 'feat: enforce 20-file limit with warning instead of silent truncation *)",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"SELECT id, email, role, password IS NOT NULL as has_password, LEFT\\(password, 7\\) as hash_prefix FROM User ORDER BY role;\")",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"SELECT email, role, totpEnabled, totpSecret IS NOT NULL as has_totp FROM User WHERE role='SUPER_ADMIN';\")",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"SELECT email, role, LEFT\\(password, 7\\) as hash_prefix, totpEnabled FROM User WHERE email='superadmin@redcross.or.th';\")",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"DELETE FROM User;\")",
+      "Bash(npx ts-node *)",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"SELECT email, role FROM User;\")",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"SELECT employeeId, nameTh, nameEn, position, bureau, department FROM Employee LIMIT 5;\")",
+      "Bash(C:/xampp/mysql/bin/mysql.exe -u root hr_integrity_db -e ' *)",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"SELECT id, email, createdAt, updatedAt FROM \\\\`user\\\\` WHERE email='pornpetch.superadmin@redcross.or.th';\")",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"UPDATE \\\\`user\\\\` SET updatedAt = createdAt WHERE updatedAt = '0000-00-00 00:00:00' OR updatedAt IS NULL;\")",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root hr_integrity_db -e \"SELECT email, createdAt, updatedAt FROM \\\\`user\\\\` WHERE email='pornpetch.superadmin@redcross.or.th';\")",
+      "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; $env:DATABASE_URL = \\(Get-Content .env | Where-Object { $_ -match \"^DATABASE_URL\" }\\) -replace 'DATABASE_URL=\"?\\([^\"]+\\)\"?','$1'; node \"C:\\\\Users\\\\Lenovo\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Website-hr-system-vite\\\\8c45086b-c922-4ec6-8287-a69ac3adbc51\\\\scratchpad\\\\check-it-status.mjs\")",
+      "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; Get-Content .env | Where-Object { $_ -match \"DATABASE_URL\" })",
+      "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; $env:DATABASE_URL = \"mysql://root:@localhost:3306/hr_integrity_db\"; node scripts/check-it-status.mjs)",
+      "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"error TS\" } | Select-Object -First 20)",
+      "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"error TS\" } | Select-Object -First 10)"
     ]
   }
 }

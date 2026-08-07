@@ -23,3 +23,6 @@ Thumbs.db
 # Editor
 .vscode/
 *.swp
+
+# TypeScript build info
+*.tsbuildinfo
