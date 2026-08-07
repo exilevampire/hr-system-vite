@@ -230,12 +230,12 @@ export default function DashboardPage() {
                               ดำเนินการแล้ว <span className="font-semibold text-slate-700 ml-0.5">{cnt.done.toLocaleString()}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                               ไม่พบบัญชี <span className="font-semibold text-slate-700 ml-0.5">{cnt.na.toLocaleString()}</span>
                             </span>
                             {(cnt.unknown ?? 0) > 0 && (
                               <span className="flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" />
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                                 ไม่ทราบสถานะ <span className="font-semibold text-slate-700 ml-0.5">{cnt.unknown.toLocaleString()}</span>
                               </span>
                             )}
@@ -249,8 +249,7 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
-                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${total > 0 ? ((cnt.done + cnt.na) / total) * 100 : 0}%` }} />
-                          <div className="h-full bg-sky-400 transition-all" style={{ width: `${total > 0 ? ((cnt.unknown ?? 0) / total) * 100 : 0}%` }} />
+                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${total > 0 ? ((cnt.done + cnt.na + (cnt.unknown ?? 0)) / total) * 100 : 0}%` }} />
                           <div className="h-full bg-amber-400 transition-all" style={{ width: `${total > 0 ? (cnt.pending / total) * 100 : 0}%` }} />
                         </div>
                       </div>

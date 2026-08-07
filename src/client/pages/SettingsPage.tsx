@@ -9,6 +9,7 @@ interface User {
   email: string;
   role: string;
   notifyOnImport: boolean;
+  notifyOnRetire: boolean;
   createdAt: string;
 }
 
@@ -110,6 +111,13 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // System settings
+  const [retireTime, setRetireTime] = useState("08:00");
+  const [retireTimeSaving, setRetireTimeSaving] = useState(false);
+  const [retireTimeSaved, setRetireTimeSaved] = useState(false);
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
   // Add form
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "VIEWER" });
@@ -127,7 +135,38 @@ export default function SettingsPage() {
     apiFetch("/api/users").then((r) => r.json()).then((d) => { setUsers(d); setLoading(false); });
   }
 
-  useEffect(() => { fetchUsers(); }, []);
+  function fetchSettings() {
+    apiFetch("/api/settings").then((r) => r.json()).then((d) => {
+      if (d.retire_notify_time) setRetireTime(d.retire_notify_time);
+    });
+  }
+
+  useEffect(() => { fetchUsers(); fetchSettings(); }, []);
+
+  async function handleTestRetireNotify() {
+    setTestSending(true);
+    setTestResult(null);
+    const res = await apiFetch("/api/settings/test-retire-notify", { method: "POST" });
+    const d = await res.json();
+    setTestSending(false);
+    if (res.ok) {
+      setTestResult({ ok: true, msg: `ส่งแล้วไปยัง ${(d.sentTo as string[]).join(", ")}` });
+    } else {
+      setTestResult({ ok: false, msg: d.error ?? "เกิดข้อผิดพลาด" });
+    }
+    setTimeout(() => setTestResult(null), 5000);
+  }
+
+  async function handleSaveRetireTime() {
+    setRetireTimeSaving(true);
+    await apiFetch("/api/settings", {
+      method: "PATCH",
+      body: JSON.stringify({ retire_notify_time: retireTime }),
+    });
+    setRetireTimeSaving(false);
+    setRetireTimeSaved(true);
+    setTimeout(() => setRetireTimeSaved(false), 2000);
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -163,6 +202,14 @@ export default function SettingsPage() {
     const updated = await apiFetch(`/api/users/${u.id}`, {
       method: "PATCH",
       body: JSON.stringify({ notifyOnImport: !u.notifyOnImport }),
+    });
+    if (updated.ok) fetchUsers();
+  }
+
+  async function handleToggleNotifyRetire(u: User) {
+    const updated = await apiFetch(`/api/users/${u.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ notifyOnRetire: !u.notifyOnRetire }),
     });
     if (updated.ok) fetchUsers();
   }
@@ -217,6 +264,46 @@ export default function SettingsPage() {
           </button>
         )}
       </div>
+
+      {/* System settings */}
+      {isSuperAdmin && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+          <h2 className="font-semibold text-slate-700 mb-1">ตั้งค่าระบบแจ้งเตือน</h2>
+          <p className="text-xs text-slate-400 mb-4">กำหนดเวลาส่งอีเมลแจ้งเตือนพนักงานพ้นสภาพประจำวัน</p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="text-sm font-medium text-slate-700 whitespace-nowrap">เวลาส่งอีเมลแจ้งเตือนพ้นสภาพ</label>
+            <input
+              type="time"
+              value={retireTime}
+              onChange={(e) => setRetireTime(e.target.value)}
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleSaveRetireTime}
+              disabled={retireTimeSaving}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                retireTimeSaved
+                  ? "bg-green-100 text-green-700 border border-green-300"
+                  : "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white"
+              }`}
+            >
+              {retireTimeSaved ? "✓ บันทึกแล้ว" : retireTimeSaving ? "กำลังบันทึก..." : "บันทึก"}
+            </button>
+            <button
+              onClick={handleTestRetireNotify}
+              disabled={testSending}
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 disabled:opacity-50 transition-colors"
+            >
+              {testSending ? "กำลังส่ง..." : "🧪 ทดสอบส่งอีเมล"}
+            </button>
+          </div>
+          {testResult && (
+            <div className={`mt-3 text-sm px-3 py-2 rounded-lg ${testResult.ok ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+              {testResult.ok ? "✅ " : "❌ "}{testResult.msg}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add form */}
       {showForm && (
@@ -282,6 +369,7 @@ export default function SettingsPage() {
                 <th className="px-4 py-3 text-left font-semibold text-slate-600">บทบาท</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-600">วันที่สร้าง</th>
                 {isSuperAdmin && <th className="px-4 py-3 text-center font-semibold text-slate-600">แจ้งเตือน Import</th>}
+                {isSuperAdmin && <th className="px-4 py-3 text-center font-semibold text-slate-600">แจ้งเตือนพ้นสภาพ</th>}
                 {isSuperAdmin && <th className="px-4 py-3"></th>}
               </tr>
             </thead>
@@ -306,6 +394,17 @@ export default function SettingsPage() {
                         className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${u.notifyOnImport ? "bg-blue-500" : "bg-slate-200"}`}
                       >
                         <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${u.notifyOnImport ? "left-5" : "left-1"}`} />
+                      </button>
+                    </td>
+                  )}
+                  {isSuperAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleToggleNotifyRetire(u)}
+                        title={u.notifyOnRetire ? "คลิกเพื่อปิดการแจ้งเตือน" : "คลิกเพื่อเปิดการแจ้งเตือน"}
+                        className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${u.notifyOnRetire ? "bg-emerald-500" : "bg-slate-200"}`}
+                      >
+                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${u.notifyOnRetire ? "left-5" : "left-1"}`} />
                       </button>
                     </td>
                   )}

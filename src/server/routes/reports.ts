@@ -49,7 +49,7 @@ function isItCleared(e: {
 
 function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {
   cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_DARK}` } };
-  cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 12, name: "TH SarabunPSK" };
+  cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 14, name: "TH Sarabun New" };
   cell.alignment = { vertical: "middle", horizontal: center ? "center" : "left", wrapText: true };
   cell.border = { bottom: { style: "medium", color: { argb: `FF${HEADER_MID}` } } };
 }
@@ -177,7 +177,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   const now = new Date();
   const reportDate = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear() + 543}`;
   titleCell.value = `รายงานข้อมูลพนักงานพ้นสภาพ  —  ณ วันที่ ${reportDate}  (${filtered.length.toLocaleString()} รายการ)`;
-  titleCell.font = { name: "TH SarabunPSK", size: 14, bold: true, color: { argb: `FF${HEADER_DARK}` } };
+  titleCell.font = { name: "TH Sarabun New", size: 14, bold: true, color: { argb: `FF${HEADER_DARK}` } };
   titleCell.alignment = { vertical: "middle", horizontal: "center" };
   titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_MID } };
   ws.getRow(1).height = 32;
@@ -273,7 +273,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
       const colNum = ci + 1;
       const cell = row.getCell(colNum);
       cell.value = val;
-      cell.font = { name: "TH SarabunPSK", size: 12 };
+      cell.font = { name: "TH Sarabun New", size: 14 };
       cell.alignment = { vertical: "middle", horizontal: CENTER_COLS.has(colNum) ? "center" : "left" };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
     });
@@ -281,7 +281,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     // สถานะการดำเนินงาน coloring (col 12 — col 11 is Email)
     const itCell = row.getCell(12);
     itCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cleared ? GREEN_BG : ORANGE_BG } };
-    itCell.font = { name: "TH SarabunPSK", size: 12, bold: true, color: { argb: cleared ? GREEN_FG : ORANGE_FG } };
+    itCell.font = { name: "TH Sarabun New", size: 14, bold: true, color: { argb: cleared ? GREEN_FG : ORANGE_FG } };
   });
 
   ws.views = [{ state: "frozen", xSplit: 2, ySplit: 2, topLeftCell: "C3", activeCell: "C3" }];
@@ -343,7 +343,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     ws2.mergeCells(row, 1, row, cols);
     const cell = ws2.getCell(row, 1);
     cell.value = label;
-    cell.font = { name: "TH SarabunPSK", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.font = { name: "TH Sarabun New", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_DARK}` } };
     cell.alignment = { vertical: "middle", horizontal: "left" };
     ws2.getRow(row).height = 28;
@@ -353,7 +353,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   ws2.mergeCells("A1:F1");
   const t2 = ws2.getCell("A1");
   t2.value = `สรุปภาพรวม  —  ณ วันที่ ${reportDate}  (${filtered.length.toLocaleString()} รายการ)`;
-  t2.font = { name: "TH SarabunPSK", size: 14, bold: true, color: { argb: `FF${HEADER_DARK}` } };
+  t2.font = { name: "TH Sarabun New", size: 14, bold: true, color: { argb: `FF${HEADER_DARK}` } };
   t2.alignment = { vertical: "middle", horizontal: "center" };
   t2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_MID } };
   ws2.getRow(1).height = 32;
@@ -368,7 +368,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   statHeaders.forEach((h, i) => {
     const cell = statHRow.getCell(i + 1);
     cell.value = h;
-    cell.font = { name: "TH SarabunPSK", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.font = { name: "TH Sarabun New", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_MID}` } };
     cell.alignment = { vertical: "middle", horizontal: "center" };
   });
@@ -380,7 +380,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   statVals.forEach((v, i) => {
     const cell = statRow.getCell(i + 1);
     cell.value = v;
-    cell.font = { name: "TH SarabunPSK", size: 14, bold: true };
+    cell.font = { name: "TH Sarabun New", size: 14, bold: true };
     cell.alignment = { vertical: "middle", horizontal: "center" };
     if (i === 1) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; cell.font = { ...cell.font, color: { argb: GREEN_FG } }; }
     else if (i === 2) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; cell.font = { ...cell.font, color: { argb: ORANGE_FG } }; }
@@ -407,7 +407,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     [bureau, data.total, data.cleared, data.total - data.cleared, data.total > 0 ? data.cleared / data.total : 0].forEach((v, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = v;
-      cell.font = { name: "TH SarabunPSK", size: 12 };
+      cell.font = { name: "TH Sarabun New", size: 14 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
     });
@@ -420,7 +420,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
   ["รวมทั้งหมด", filtered.length, totalCleared, totalPending, overallPct].forEach((v, ci) => {
     const cell = bureauTotalRow.getCell(ci + 1);
     cell.value = v;
-    cell.font = { name: "TH SarabunPSK", size: 11, bold: true };
+    cell.font = { name: "TH Sarabun New", size: 14, bold: true };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GRAY_BG } };
     cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
     cell.border = { top: { style: "medium", color: { argb: `FF${HEADER_DARK}` } } };
@@ -446,7 +446,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     [label, count].forEach((v, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = v;
-      cell.font = { name: "TH SarabunPSK", size: 12 };
+      cell.font = { name: "TH Sarabun New", size: 14 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
     });
@@ -459,7 +459,7 @@ router.get("/employees", authMiddleware, async (req, res) => {
     [v, n].forEach((val, ci) => {
       const cell = monthTotalRow.getCell(ci + 1);
       cell.value = val;
-      cell.font = { name: "TH SarabunPSK", size: 11, bold: true };
+      cell.font = { name: "TH Sarabun New", size: 14, bold: true };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GRAY_BG } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
       cell.border = { top: { style: "medium", color: { argb: `FF${HEADER_DARK}` } } };
@@ -496,11 +496,11 @@ router.get("/employees", authMiddleware, async (req, res) => {
     [label, cnt.done, cnt.na, cnt.unknown, cnt.pending, pct].forEach((v, ci) => {
       const cell = row.getCell(ci + 1);
       cell.value = v;
-      cell.font = { name: "TH SarabunPSK", size: 12 };
+      cell.font = { name: "TH Sarabun New", size: 14 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
       cell.alignment = { vertical: "middle", horizontal: ci === 0 ? "left" : "center" };
       if (ci === 1 || ci === 2) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
-      else if (ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: "FF0284C7" } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0F2FE" } }; }
+      else if (ci === 3) { cell.font = { ...cell.font, bold: true, color: { argb: GREEN_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG } }; }
       else if (ci === 4) { cell.font = { ...cell.font, bold: true, color: { argb: ORANGE_FG } }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ORANGE_BG } }; }
     });
     row.getCell(6).numFmt = "0%";

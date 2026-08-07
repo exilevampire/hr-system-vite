@@ -8,7 +8,7 @@ const VALID_ROLES = ["SUPER_ADMIN", "ADMIN", "VIEWER"];
 
 router.get("/", authMiddleware, requireRole("SUPER_ADMIN"), async (_req, res) => {
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, notifyOnImport: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, notifyOnImport: true, notifyOnRetire: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });
   res.json(users);
@@ -46,7 +46,7 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) =>
 
 router.patch("/:id", authMiddleware, requireRole("SUPER_ADMIN"), async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
-  const { name, email, password, role, notifyOnImport } = req.body;
+  const { name, email, password, role, notifyOnImport, notifyOnRetire } = req.body;
 
   if (role !== undefined && !VALID_ROLES.includes(role)) {
     res.status(400).json({ error: "บทบาทไม่ถูกต้อง" });
@@ -71,12 +71,13 @@ router.patch("/:id", authMiddleware, requireRole("SUPER_ADMIN"), async (req: Aut
   if (email !== undefined) data.email = email;
   if (role !== undefined) data.role = role;
   if (notifyOnImport !== undefined) data.notifyOnImport = Boolean(notifyOnImport);
+  if (notifyOnRetire !== undefined) data.notifyOnRetire = Boolean(notifyOnRetire);
   if (password) data.password = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.update({
     where: { id },
     data,
-    select: { id: true, name: true, email: true, role: true, notifyOnImport: true },
+    select: { id: true, name: true, email: true, role: true, notifyOnImport: true, notifyOnRetire: true },
   });
   res.json(user);
 });

@@ -571,8 +571,8 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
       const recipients = notifyUsers.map((u) => u.email);
       if (recipients.length === 0) return;
       const sourceName = importedSources.size > 0
-        ? [...importedSources].join(", ")
-        : parsedFiles.map((f) => f.filename).join(", ");
+        ? [...importedSources].join("<br>")
+        : parsedFiles.map((f) => f.filename).join("<br>");
       return sendImportNotification(recipients, {
         inserted: created,
         updated,

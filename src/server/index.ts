@@ -13,6 +13,9 @@ import logsRouter from "./routes/logs";
 import usersRouter from "./routes/users";
 import reportsRouter from "./routes/reports";
 import dataSourcesRouter from "./routes/datasources";
+import settingsRouter from "./routes/settings";
+import { prisma } from "./lib/prisma";
+import { scheduleRetireNotify } from "./lib/retireCron";
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? "3001");
@@ -67,6 +70,7 @@ app.use("/api/logs", logsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/datasources", dataSourcesRouter);
+app.use("/api/settings", settingsRouter);
 
 if (isProd) {
   const clientDist = path.join(__dirname, "../client");
@@ -79,6 +83,12 @@ if (isProd) {
   app.get("/", (_req, res) => res.redirect(`http://localhost:${VITE_PORT}`));
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
+  try {
+    const setting = await prisma.systemSetting.findUnique({ where: { key: "retire_notify_time" } });
+    scheduleRetireNotify(setting?.value ?? "08:00");
+  } catch (err) {
+    console.error("⚠️  Failed to init retire cron:", err);
+  }
 });

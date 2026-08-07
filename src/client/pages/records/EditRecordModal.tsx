@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../../lib/api";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
-const IT_OPTS = ["ไม่พบบัญชี", "ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่ทราบสถานะ"];
+const IT_OPTS = ["ยังไม่ดำเนินการ", "ดำเนินการแล้ว", "ไม่พบบัญชี", "ไม่ทราบสถานะ"];
 const IT_KEYS = new Set(["fmis", "eMeeting", "software", "phonebook"]);
 const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
 
@@ -53,6 +53,16 @@ function validate(form: Record<string, string>, isSuperAdmin: boolean): FormErro
     }
   }
   return err;
+}
+
+function isoToThaiDisplay(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return iso;
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear() + 543;
+  return `${day}/${month}/${year}`;
 }
 
 function toDateInput(d?: string | null) {
@@ -114,6 +124,85 @@ function BureauSelect({ value, onChange, options, hasError, disabled }: {
         </div>
       )}
     </div>
+  );
+}
+
+const IT_STATUS_CONFIG: Record<string, { dot: string; buttonCls: string; optionCls: string; optionHoverCls: string }> = {
+  "ดำเนินการแล้ว":   { dot: "bg-emerald-500", buttonCls: "bg-emerald-50 text-emerald-700 border-emerald-300",  optionCls: "bg-emerald-50 text-emerald-700",  optionHoverCls: "hover:bg-emerald-50 hover:text-emerald-700"  },
+  "ยังไม่ดำเนินการ": { dot: "bg-amber-400",   buttonCls: "bg-amber-50 text-amber-700 border-amber-300",        optionCls: "bg-amber-50 text-amber-700",        optionHoverCls: "hover:bg-amber-50 hover:text-amber-700"      },
+  "ไม่พบบัญชี":      { dot: "bg-slate-400",   buttonCls: "bg-slate-100 text-slate-600 border-slate-300",        optionCls: "bg-slate-100 text-slate-600",        optionHoverCls: "hover:bg-slate-100 hover:text-slate-600"      },
+  "ไม่ทราบสถานะ":    { dot: "bg-sky-400",     buttonCls: "bg-sky-50 text-sky-600 border-sky-300",              optionCls: "bg-sky-50 text-sky-600",              optionHoverCls: "hover:bg-sky-50 hover:text-sky-600"          },
+};
+const DEFAULT_IT_CFG = { dot: "bg-slate-300", buttonCls: "bg-white text-slate-600 border-slate-300", optionCls: "", optionHoverCls: "hover:bg-slate-50" };
+
+function ITStatusSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const cfg = IT_STATUS_CONFIG[value] ?? DEFAULT_IT_CFG;
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative w-48">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 ${cfg.buttonCls}`}
+      >
+        <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+        <span className="flex-1 text-left">{value || "เลือกสถานะ"}</span>
+        <span className="text-xs opacity-50">▾</span>
+      </button>
+      {open && (
+        <div className="absolute z-[70] mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+          {IT_OPTS.map((opt) => {
+            const s = IT_STATUS_CONFIG[opt] ?? DEFAULT_IT_CFG;
+            const isSelected = opt === value;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); onChange(opt); setOpen(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left transition-colors ${
+                  isSelected ? `${s.optionCls} font-semibold` : `text-slate-700 ${s.optionHoverCls}`
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy() {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={`absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium transition-colors whitespace-nowrap ${
+        copied ? "text-green-600" : "text-blue-500 hover:text-blue-700"
+      }`}
+    >
+      {copied ? "✓ คัดลอกแล้ว" : "คัดลอก"}
+    </button>
   );
 }
 
@@ -341,28 +430,37 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
                     </label>
 
                     {f.type === "autocomplete" ? (
-                      <BureauSelect
-                        value={form[f.key] ?? ""}
-                        onChange={(v) => setField(f.key, v)}
-                        options={bureauOptions}
-                        hasError={hasErr}
-                        disabled={!editable}
-                      />
+                      <div className="relative">
+                        <BureauSelect
+                          value={form[f.key] ?? ""}
+                          onChange={(v) => setField(f.key, v)}
+                          options={bureauOptions}
+                          hasError={hasErr}
+                          disabled={!editable}
+                        />
+                        {!editable && <CopyButton value={form[f.key] ?? ""} />}
+                      </div>
                     ) : f.type === "date" ? (
-                      <ThaiDatePicker
-                        value={form[f.key] ?? ""}
-                        onChange={(v) => setField(f.key, v)}
-                        disabled={!editable}
-                        className={hasErr ? "border-red-400" : ""}
-                      />
+                      <div className="relative">
+                        <ThaiDatePicker
+                          value={form[f.key] ?? ""}
+                          onChange={(v) => setField(f.key, v)}
+                          disabled={!editable}
+                          className={hasErr ? "border-red-400" : ""}
+                        />
+                        {!editable && <CopyButton value={isoToThaiDisplay(form[f.key] ?? "")} />}
+                      </div>
                     ) : (
-                      <input
-                        type="text"
-                        value={form[f.key] ?? ""}
-                        onChange={(e) => setField(f.key, e.target.value)}
-                        disabled={!editable}
-                        className={`${baseCls} ${disabledCls}`}
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={form[f.key] ?? ""}
+                          onChange={(e) => setField(f.key, e.target.value)}
+                          disabled={!editable}
+                          className={`${baseCls} ${disabledCls} ${!editable ? "pr-20" : ""}`}
+                        />
+                        {!editable && <CopyButton value={form[f.key] ?? ""} />}
+                      </div>
                     )}
 
                     {hasErr && <p className="mt-1 text-xs text-red-600">{errors[f.key]}</p>}
@@ -388,15 +486,10 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
                   return (
                     <div key={key} className="flex flex-wrap items-center gap-3">
                       <span className="text-sm font-medium text-slate-600 w-24 shrink-0">{label}</span>
-                      <select
+                      <ITStatusSelect
                         value={val}
-                        onChange={(e) => setField(key, e.target.value)}
-                        className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-44"
-                      >
-                        {IT_OPTS.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                        onChange={(v) => setField(key, v)}
+                      />
                       {isDone && (
                         <div className="flex flex-wrap items-center gap-3">
                           {!isNoDate && (
