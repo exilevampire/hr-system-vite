@@ -18,7 +18,8 @@ import { prisma } from "./lib/prisma";
 import { scheduleRetireNotify } from "./lib/retireCron";
 
 const app = express();
-const PORT = parseInt(process.env.PORT ?? "3001");
+const rawPort = process.env.PORT ?? "3001";
+const PORT: number | string = isNaN(Number(rawPort)) ? rawPort : Number(rawPort);
 const isProd = process.env.NODE_ENV === "production";
 
 // ── Warn on weak JWT secret ────────────────────────────────────────────
