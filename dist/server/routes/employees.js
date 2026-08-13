@@ -496,13 +496,13 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADM
             const newData = {
                 dataSourceId,
                 nameTh,
-                nameEn: String(raw.nameEn ?? "").trim() || null,
-                position: String(raw.position ?? "").trim() || null,
-                level: String(raw.level ?? "").trim() || null,
-                department: String(raw.department ?? "").trim() || null,
-                bureau: String(raw.bureau ?? "").trim() || null,
+                nameEn: String(raw.nameEn ?? "").trim() || "-",
+                position: String(raw.position ?? "").trim() || "-",
+                level: String(raw.level ?? "").trim() || "-",
+                department: String(raw.department ?? "").trim() || "-",
+                bureau: String(raw.bureau ?? "").trim() || "-",
                 endDate: parseDate(raw.endDate),
-                email: String(raw.email ?? "").trim() || null,
+                email: String(raw.email ?? "").trim() || "-",
             };
             try {
                 const exists = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
@@ -769,10 +769,10 @@ router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
         }),
     ]);
     res.json({
-        positions: positions.map((p) => p.position).filter(Boolean),
-        bureaus: bureaus.map((b) => b.bureau).filter(Boolean),
-        levels: levels.map((l) => l.level).filter(Boolean),
-        departments: departments.map((d) => d.department).filter(Boolean),
+        positions: positions.map((p) => p.position).filter((p) => !!p && p !== "-"),
+        bureaus: bureaus.map((b) => b.bureau).filter((b) => !!b && b !== "-"),
+        levels: levels.map((l) => l.level).filter((l) => !!l && l !== "-"),
+        departments: departments.map((d) => d.department).filter((d) => !!d && d !== "-"),
     });
 });
 router.get("/:employeeId", auth_1.authMiddleware, async (req, res) => {

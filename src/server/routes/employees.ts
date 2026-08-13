@@ -467,13 +467,13 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
       const newData = {
         dataSourceId,
         nameTh,
-        nameEn:     String(raw.nameEn     ?? "").trim() || null,
-        position:   String(raw.position   ?? "").trim() || null,
-        level:      String(raw.level      ?? "").trim() || null,
-        department: String(raw.department ?? "").trim() || null,
-        bureau:     String(raw.bureau     ?? "").trim() || null,
+        nameEn:     String(raw.nameEn     ?? "").trim() || "-",
+        position:   String(raw.position   ?? "").trim() || "-",
+        level:      String(raw.level      ?? "").trim() || "-",
+        department: String(raw.department ?? "").trim() || "-",
+        bureau:     String(raw.bureau     ?? "").trim() || "-",
         endDate:    parseDate(raw.endDate),
-        email:      String(raw.email      ?? "").trim() || null,
+        email:      String(raw.email      ?? "").trim() || "-",
       };
 
       try {
@@ -751,10 +751,10 @@ router.get("/meta", authMiddleware, async (_req, res) => {
     }),
   ]);
   res.json({
-    positions:   positions.map((p) => p.position).filter(Boolean) as string[],
-    bureaus:     bureaus.map((b) => b.bureau).filter(Boolean) as string[],
-    levels:      levels.map((l) => l.level).filter(Boolean) as string[],
-    departments: departments.map((d) => d.department).filter(Boolean) as string[],
+    positions:   positions.map((p) => p.position).filter((p): p is string => !!p && p !== "-"),
+    bureaus:     bureaus.map((b) => b.bureau).filter((b): b is string => !!b && b !== "-"),
+    levels:      levels.map((l) => l.level).filter((l): l is string => !!l && l !== "-"),
+    departments: departments.map((d) => d.department).filter((d): d is string => !!d && d !== "-"),
   });
 });
 
