@@ -61,7 +61,7 @@ router.get("/meta", authMiddleware, async (_req, res) => {
     distinct: ["bureau"],
     orderBy: { bureau: "asc" },
   });
-  const bureaus = rows.map((r) => r.bureau ?? "ไม่ระบุ").filter(Boolean).sort();
+  const bureaus = rows.map((r) => r.bureau).filter((b): b is string => !!b && b !== "-").sort();
   res.json({ bureaus });
 });
 

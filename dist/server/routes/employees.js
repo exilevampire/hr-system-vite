@@ -302,11 +302,11 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN", "
                 employeeId: body.employeeId,
                 dataSourceId,
                 nameTh: body.nameTh,
-                nameEn: body.nameEn || null,
-                position: body.position || null,
-                level: body.level || null,
-                department: body.department || null,
-                bureau: body.bureau || null,
+                nameEn: body.nameEn || "-",
+                position: body.position || "-",
+                level: body.level || "-",
+                department: body.department || "-",
+                bureau: body.bureau || "-",
                 endDate: body.endDate ? new Date(body.endDate) : null,
                 receivedDate: body.receivedDate ? new Date(body.receivedDate) : new Date(),
                 fmis: body.fmis || null,
@@ -811,17 +811,18 @@ router.patch("/:employeeId", auth_1.authMiddleware, (0, auth_1.requireRole)("SUP
     const dataSourceId = role === "SUPER_ADMIN"
         ? await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear)
         : null;
+    const pickStr = (val) => val !== undefined ? (String(val ?? "").trim() || "-") : undefined;
     const pick = (val, fallback = null) => val !== undefined ? (val || fallback) : undefined;
     const fullData = role === "SUPER_ADMIN" ? {
         ...("nameTh" in body && { nameTh: body.nameTh }),
-        ...("nameEn" in body && { nameEn: pick(body.nameEn) }),
-        ...("position" in body && { position: pick(body.position) }),
-        ...("level" in body && { level: pick(body.level) }),
-        ...("department" in body && { department: pick(body.department) }),
-        ...("bureau" in body && { bureau: pick(body.bureau) }),
+        ...("nameEn" in body && { nameEn: pickStr(body.nameEn) }),
+        ...("position" in body && { position: pickStr(body.position) }),
+        ...("level" in body && { level: pickStr(body.level) }),
+        ...("department" in body && { department: pickStr(body.department) }),
+        ...("bureau" in body && { bureau: pickStr(body.bureau) }),
         ...("endDate" in body && { endDate: body.endDate ? new Date(body.endDate) : null }),
         ...("receivedDate" in body && body.receivedDate && { receivedDate: new Date(body.receivedDate) }),
-        ...("email" in body && { email: pick(body.email) }),
+        ...("email" in body && { email: pickStr(body.email) }),
         ...itOnlyData,
         ...(dataSourceId !== null ? { dataSourceId } : body.sourceType === "" ? { dataSourceId: null } : {}),
     } : itOnlyData;
