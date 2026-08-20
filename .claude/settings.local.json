@@ -123,7 +123,17 @@
       "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; Get-Content .env | Where-Object { $_ -match \"DATABASE_URL\" })",
       "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; $env:DATABASE_URL = \"mysql://root:@localhost:3306/hr_integrity_db\"; node scripts/check-it-status.mjs)",
       "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"error TS\" } | Select-Object -First 20)",
-      "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"error TS\" } | Select-Object -First 10)"
+      "PowerShell(cd \"c:\\\\Website\\\\hr-system-vite\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"error TS\" } | Select-Object -First 10)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(git ls-remote *)",
+      "Bash(git commit *)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Pushing commits from this repository to its already-configured git remotes: 'origin' (git.redcross.or.th/pornpetch.n/hr-system) and 'github' (github.com/exilevampire/hr-system-vite). The owner of both repositories mirrors this project's code to them deliberately, so `git push origin <branch>` and `git push github <branch>` are routine here and do not need separate confirmation. This covers ordinary pushes only - force pushes, branch deletions, and pushes to any other remote still require confirmation."
     ]
   }
 }
