@@ -724,7 +724,7 @@ router.post("/update-it-status", authMiddleware, requireRole("SUPER_ADMIN"), upl
 });
 
 router.get("/meta", authMiddleware, async (_req, res) => {
-  const [positions, bureaus, levels, departments] = await Promise.all([
+  const [positions, bureaus, levels, departments, bureauDeptPairs] = await Promise.all([
     prisma.employee.findMany({
       where: { position: { not: null } },
       select: { position: true },
@@ -749,12 +749,36 @@ router.get("/meta", authMiddleware, async (_req, res) => {
       distinct: ["department"],
       orderBy: { department: "asc" },
     }),
+    // Distinct bureau/department combinations, used by the client to make the two
+    // filter dropdowns narrow each other. Department names repeat across bureaus
+    // (e.g. "ฝ่ายบริหารงานทั่วไป" exists in 16 of them), so the pair is what matters.
+    prisma.employee.findMany({
+      where: { bureau: { not: null }, department: { not: null } },
+      select: { bureau: true, department: true },
+      distinct: ["bureau", "department"],
+      orderBy: [{ bureau: "asc" }, { department: "asc" }],
+    }),
   ]);
+  const bureauList = bureaus.map((b) => b.bureau).filter((b): b is string => !!b && b !== "-");
+
+  // Grouped as { bureau: [departments] } — roughly half the payload of flat pairs,
+  // since each bureau name is written once instead of once per department. Every
+  // bureau gets a key so the client can tell "no departments here" apart from
+  // "no mapping known" and avoid falling back to the full department list.
+  const bureauDepartments: Record<string, string[]> = Object.fromEntries(
+    bureauList.map((b) => [b, [] as string[]])
+  );
+  for (const r of bureauDeptPairs) {
+    if (!r.bureau || !r.department || r.department === "-") continue;
+    bureauDepartments[r.bureau]?.push(r.department);
+  }
+
   res.json({
     positions:   positions.map((p) => p.position).filter((p): p is string => !!p && p !== "-"),
-    bureaus:     bureaus.map((b) => b.bureau).filter((b): b is string => !!b && b !== "-"),
+    bureaus:     bureauList,
     levels:      levels.map((l) => l.level).filter((l): l is string => !!l && l !== "-"),
     departments: departments.map((d) => d.department).filter((d): d is string => !!d && d !== "-"),
+    bureauDepartments,
   });
 });
 

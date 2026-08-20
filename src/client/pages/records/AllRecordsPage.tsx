@@ -1,6 +1,6 @@
 import { AppLayout } from "../../components/AppLayout";
 import { useAuth } from "../../contexts/AuthContext";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 import { EditRecordModal } from "./EditRecordModal";
@@ -230,6 +230,7 @@ export default function AllRecordsPage() {
   const [bureauOptions, setBureauOptions] = useState<string[]>([]);
   const [levelOptions, setLevelOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [bureauDepartments, setBureauDepartments] = useState<Record<string, string[]>>({});
   const [dataSources, setDataSources] = useState<DataSourceInfo[]>([]);
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -253,6 +254,7 @@ export default function AllRecordsPage() {
         setBureauOptions(d.bureaus ?? []);
         setLevelOptions(d.levels ?? []);
         setDepartmentOptions(d.departments ?? []);
+        setBureauDepartments(d.bureauDepartments ?? {});
       })
       .catch(() => {});
     apiFetch("/api/datasources")
@@ -337,6 +339,39 @@ export default function AllRecordsPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // ── Bureau ⇄ department cascade ────────────────────────────────────────────
+  // Picking one narrows the other's dropdown. Lookups are keyed on the exact
+  // option text, so free-typed partial text falls through to the full list.
+  const [deptsByBureau, bureausByDept] = useMemo(() => {
+    const byBureau = new Map<string, string[]>(Object.entries(bureauDepartments));
+    const byDept = new Map<string, string[]>();
+    for (const [b, depts] of byBureau) {
+      for (const d of depts) {
+        if (!byDept.has(d)) byDept.set(d, []);
+        byDept.get(d)!.push(b);
+      }
+    }
+    return [byBureau, byDept] as const;
+  }, [bureauDepartments]);
+
+  const bureauChoices = bureausByDept.get(department) ?? bureauOptions;
+  const departmentChoices = deptsByBureau.get(bureau) ?? departmentOptions;
+
+  function handleBureauChange(v: string) {
+    setBureau(v);
+    // Drop a department that doesn't exist under the newly picked bureau
+    const depts = deptsByBureau.get(v);
+    if (department && depts && !depts.includes(department)) setDepartment("");
+    setPage(1);
+  }
+
+  function handleDepartmentChange(v: string) {
+    setDepartment(v);
+    const bureaus = bureausByDept.get(v);
+    if (bureau && bureaus && !bureaus.includes(bureau)) setBureau("");
+    setPage(1);
+  }
 
   function clearAllFilters() {
     setSearch(""); setBureau(""); setDepartment(""); setPosition(""); setLevel("");
@@ -459,15 +494,15 @@ export default function AllRecordsPage() {
         <SearchableSelect
           placeholder="กรองหน่วยงาน/สำนัก..."
           value={bureau}
-          onChange={(v) => { setBureau(v); setPage(1); }}
-          options={bureauOptions}
+          onChange={handleBureauChange}
+          options={bureauChoices}
           className="w-full sm:w-52"
         />
         <SearchableSelect
           placeholder="กรองฝ่าย/กลุ่มงาน..."
           value={department}
-          onChange={(v) => { setDepartment(v); setPage(1); }}
-          options={departmentOptions}
+          onChange={handleDepartmentChange}
+          options={departmentChoices}
           className="w-full sm:w-52"
         />
         <SearchableSelect
