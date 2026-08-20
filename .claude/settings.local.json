@@ -127,7 +127,8 @@
       "Skill(update-config)",
       "Skill(update-config:*)",
       "Bash(git ls-remote *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('engines:', JSON.stringify\\(p.engines||'ไม่ได้ระบุ'\\)\\); console.log\\('start:', p.scripts.start\\);\")"
     ]
   },
   "autoMode": {
