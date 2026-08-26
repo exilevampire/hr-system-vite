@@ -1,6 +1,13 @@
 import { prisma } from "./prisma";
 
 type AuditAction = "CREATE" | "UPDATE" | "DELETE";
+type AuditSource = "MANUAL" | "IMPORT";
+
+interface AuditMeta {
+  source?: AuditSource;
+  fileName?: string;
+  importBatchId?: string;
+}
 
 const SKIP_FIELDS = new Set(["createdAt", "updatedAt", "updatedBy", "createdBy", "id"]);
 
@@ -16,7 +23,8 @@ export async function createAuditLog(
   action: AuditAction,
   adminUser: string,
   oldData?: Record<string, unknown>,
-  newData?: Record<string, unknown>
+  newData?: Record<string, unknown>,
+  meta?: AuditMeta
 ) {
   let changedFields: Record<string, { old: unknown; new: unknown }> | null = null;
 
@@ -37,6 +45,9 @@ export async function createAuditLog(
       action,
       changedFields: changedFields ? JSON.parse(JSON.stringify(changedFields)) : undefined,
       adminUser,
+      source: meta?.source ?? "MANUAL",
+      fileName: meta?.fileName,
+      importBatchId: meta?.importBatchId,
     },
   });
 }

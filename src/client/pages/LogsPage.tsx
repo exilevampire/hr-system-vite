@@ -8,6 +8,9 @@ interface AuditLog {
   action: string;
   changedFields?: Record<string, { old: unknown; new: unknown }>;
   adminUser: string;
+  source: string;
+  fileName?: string | null;
+  importBatchId?: string | null;
   createdAt: string;
   employee?: { nameTh: string };
 }
@@ -18,6 +21,7 @@ const FIELD_LABELS: Record<string, string> = {
   nameTh: "ชื่อ-สกุล (ไทย)",
   nameEn: "ชื่อ-สกุล (อังกฤษ)",
   employeeId: "รหัสพนักงาน",
+  dataSourceId: "ข้อมูลต้นทาง",
   position: "ตำแหน่ง",
   level: "ประเภท",
   department: "ฝ่าย/กลุ่มงาน",
@@ -39,6 +43,11 @@ const ACTION_CONFIG: Record<string, { label: string; color: string; icon: string
   CREATE: { label: "สร้างข้อมูล", color: "bg-green-100 text-green-700 border-green-200", icon: "✚" },
   UPDATE: { label: "แก้ไขข้อมูล", color: "bg-blue-100 text-blue-700 border-blue-200", icon: "✎" },
   DELETE: { label: "ลบข้อมูล", color: "bg-red-100 text-red-700 border-red-200", icon: "✕" },
+};
+
+const SOURCE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+  MANUAL: { label: "แก้ไขเอง", color: "bg-slate-100 text-slate-600 border-slate-200", icon: "🖱" },
+  IMPORT: { label: "นำเข้าไฟล์", color: "bg-amber-100 text-amber-700 border-amber-200", icon: "📄" },
 };
 
 function formatValue(val: unknown): string {
@@ -75,20 +84,22 @@ export default function LogsPage() {
   // filters
   const [search, setSearch] = useState("");
   const [filterAction, setFilterAction] = useState("ALL");
+  const [filterSource, setFilterSource] = useState("ALL");
   const [adminUser, setAdminUser] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function fetchLogs(p: number, params?: { search: string; filterAction: string; adminUser: string; dateFrom: string; dateTo: string }) {
-    const s = params ?? { search, filterAction, adminUser, dateFrom, dateTo };
+  function fetchLogs(p: number, params?: { search: string; filterAction: string; filterSource: string; adminUser: string; dateFrom: string; dateTo: string }) {
+    const s = params ?? { search, filterAction, filterSource, adminUser, dateFrom, dateTo };
     setLoading(true);
     const q = new URLSearchParams({
       page: String(p),
       pageSize: String(PAGE_SIZE),
       ...(s.search ? { search: s.search } : {}),
       ...(s.filterAction !== "ALL" ? { action: s.filterAction } : {}),
+      ...(s.filterSource !== "ALL" ? { source: s.filterSource } : {}),
       ...(s.adminUser ? { adminUser: s.adminUser } : {}),
       ...(s.dateFrom ? { dateFrom: s.dateFrom } : {}),
       ...(s.dateTo ? { dateTo: s.dateTo } : {}),
@@ -105,31 +116,33 @@ export default function LogsPage() {
     setPage(1);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchLogs(1, { search: val, filterAction, adminUser, dateFrom, dateTo });
+      fetchLogs(1, { search: val, filterAction, filterSource, adminUser, dateFrom, dateTo });
     }, 400);
   }
 
-  function handleFilterChange(newAction?: string, newAdmin?: string, newFrom?: string, newTo?: string) {
+  function handleFilterChange(newAction?: string, newAdmin?: string, newFrom?: string, newTo?: string, newSource?: string) {
     const a = newAction ?? filterAction;
     const u = newAdmin ?? adminUser;
     const f = newFrom ?? dateFrom;
     const t = newTo ?? dateTo;
+    const src = newSource ?? filterSource;
     if (newAction !== undefined) setFilterAction(a);
     if (newAdmin !== undefined) setAdminUser(u);
     if (newFrom !== undefined) setDateFrom(f);
     if (newTo !== undefined) setDateTo(t);
+    if (newSource !== undefined) setFilterSource(src);
     setPage(1);
-    fetchLogs(1, { search, filterAction: a, adminUser: u, dateFrom: f, dateTo: t });
+    fetchLogs(1, { search, filterAction: a, filterSource: src, adminUser: u, dateFrom: f, dateTo: t });
   }
 
   function clearFilters() {
-    setSearch(""); setFilterAction("ALL"); setAdminUser(""); setDateFrom(""); setDateTo("");
+    setSearch(""); setFilterAction("ALL"); setFilterSource("ALL"); setAdminUser(""); setDateFrom(""); setDateTo("");
     setPage(1);
-    fetchLogs(1, { search: "", filterAction: "ALL", adminUser: "", dateFrom: "", dateTo: "" });
+    fetchLogs(1, { search: "", filterAction: "ALL", filterSource: "ALL", adminUser: "", dateFrom: "", dateTo: "" });
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = search || filterAction !== "ALL" || adminUser || dateFrom || dateTo;
+  const hasFilters = search || filterAction !== "ALL" || filterSource !== "ALL" || adminUser || dateFrom || dateTo;
 
   return (
     <AppLayout>
@@ -173,26 +186,50 @@ export default function LogsPage() {
             </div>
           </div>
 
-          {/* Row 2: action + date range */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-1.5">
-              {["ALL", "CREATE", "UPDATE", "DELETE"].map((a) => (
-                <button
-                  key={a}
-                  onClick={() => handleFilterChange(a)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                    filterAction === a
-                      ? "bg-slate-800 text-white border-slate-800"
-                      : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
-                  }`}
-                >
-                  {a === "ALL" ? "ทั้งหมด" : ACTION_CONFIG[a]?.label ?? a}
-                </button>
-              ))}
+          {/* Row 2: action + source + date range */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400 whitespace-nowrap">การกระทำ</span>
+              <div className="flex gap-1.5">
+                {["ALL", "CREATE", "UPDATE", "DELETE"].map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => handleFilterChange(a)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      filterAction === a
+                        ? "bg-slate-800 text-white border-slate-800"
+                        : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {a === "ALL" ? "ทั้งหมด" : ACTION_CONFIG[a]?.label ?? a}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="hidden sm:block w-px h-6 bg-slate-200" />
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400 whitespace-nowrap">ช่องทาง</span>
+              <div className="flex gap-1.5">
+                {["ALL", "MANUAL", "IMPORT"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleFilterChange(undefined, undefined, undefined, undefined, s)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      filterSource === s
+                        ? "bg-slate-800 text-white border-slate-800"
+                        : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {s === "ALL" ? "ทั้งหมด" : SOURCE_CONFIG[s]?.label ?? s}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs text-slate-500">วันที่</span>
+              <span className="text-xs font-medium text-slate-400 whitespace-nowrap">วันที่</span>
               <input
                 type="date"
                 value={dateFrom}
@@ -221,6 +258,7 @@ export default function LogsPage() {
         ) : (
           logs.map((log) => {
             const cfg = ACTION_CONFIG[log.action] ?? { label: log.action, color: "bg-slate-100 text-slate-600 border-slate-200", icon: "•" };
+            const srcCfg = SOURCE_CONFIG[log.source] ?? SOURCE_CONFIG.MANUAL;
             const { date, time } = formatDateTime(log.createdAt);
             const changes = log.changedFields ? Object.entries(log.changedFields) : [];
             const isOpen = expanded === log.id;
@@ -232,11 +270,18 @@ export default function LogsPage() {
                     {cfg.icon} {cfg.label}
                   </span>
 
+                  <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${srcCfg.color}`} title={log.fileName ?? undefined}>
+                    {srcCfg.icon} {srcCfg.label}
+                  </span>
+
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-slate-800 text-sm">
                       {log.employee?.nameTh ?? log.employeeId}
                     </span>
-                    <span className="text-slate-400 text-xs ml-2 font-mono">{log.employeeId}</span>
+                    <span className="text-slate-700 text-xs ml-2 font-mono font-semibold">{log.employeeId}</span>
+                    {log.fileName && (
+                      <span className="block text-slate-400 text-xs mt-0.5 truncate">📎 {log.fileName}</span>
+                    )}
                   </div>
 
                   <div className="text-right flex-shrink-0 hidden sm:block">

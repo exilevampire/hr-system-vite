@@ -5,6 +5,7 @@ import { authMiddleware, requireRole, AuthenticatedRequest } from "../middleware
 import { sendImportNotification } from "../lib/mailer";
 import multer from "multer";
 import * as XLSX from "xlsx";
+import { randomUUID } from "crypto";
 
 const router = Router();
 const upload = multer({
@@ -424,6 +425,7 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
   }
 
   // ── Phase 2: Process ALL files ───────────────────────────────────────────
+  const importBatchId = randomUUID();
   const SOURCE_TYPE_LABELS: Record<number, string> = { 1: "สบค.", 2: "ศล." };
   const THAI_MONTHS_FULL = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
   const importedSources = new Set<string>();
@@ -505,7 +507,9 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
               updatedBy: adminUser,
             },
           });
-          await createAuditLog(emp.employeeId, "CREATE", adminUser);
+          await createAuditLog(emp.employeeId, "CREATE", adminUser, undefined, undefined,
+            { source: "IMPORT", fileName: filename, importBatchId }
+          );
           created++;
         } else {
           const changedFields: string[] = [];
@@ -546,7 +550,8 @@ router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
             });
             await createAuditLog(employeeId, "UPDATE", adminUser,
               exists as unknown as Record<string, unknown>,
-              { ...exists, ...newData, ...itUpdateData } as unknown as Record<string, unknown>
+              { ...exists, ...newData, ...itUpdateData } as unknown as Record<string, unknown>,
+              { source: "IMPORT", fileName: filename, importBatchId }
             );
             updatedDetails.push({ employeeId, nameTh, changedFields });
             updated++;
@@ -607,6 +612,8 @@ router.post("/update-it-status", authMiddleware, requireRole("SUPER_ADMIN"), upl
     return;
   }
 
+  const importBatchId = randomUUID();
+  const fileName = decodeFilename(req.file.originalname);
   const buffer = req.file.buffer;
   const isCsv = /\.csv$/i.test(req.file.originalname);
   let rows: unknown[][];
@@ -708,7 +715,8 @@ router.post("/update-it-status", authMiddleware, requireRole("SUPER_ADMIN"), upl
         });
         await createAuditLog(employeeId, "UPDATE", adminUser,
           exists as unknown as Record<string, unknown>,
-          { ...exists, ...updateData } as unknown as Record<string, unknown>
+          { ...exists, ...updateData } as unknown as Record<string, unknown>,
+          { source: "IMPORT", fileName, importBatchId }
         );
         updatedDetails.push({ employeeId, nameTh: exists.nameTh ?? employeeId, changedFields });
         updated++;

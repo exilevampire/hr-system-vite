@@ -9,7 +9,7 @@ generator client {
 model User {
   id          String   @id @default(cuid())
   name        String?
-  email       String   @unique
+  email       String   @unique(map: "User_email_key")
   password    String
   role        Role     @default(VIEWER)
   totpSecret        String?
@@ -31,15 +31,15 @@ model DataSource {
   createdAt  DateTime   @default(now())
   employees  Employee[]
 
-  @@unique([sourceType, month, year])
+  @@unique([sourceType, month, year], map: "DataSource_sourceType_month_year_key")
   @@map("datasource")
 }
 
 model Employee {
   id           Int         @id @default(autoincrement())
-  employeeId   String      @unique
+  employeeId   String      @unique(map: "Employee_employeeId_key")
   dataSourceId Int?
-  dataSource   DataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
+  dataSource   DataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull, map: "Employee_dataSourceId_fkey")
   nameTh       String
   nameEn       String?
   position     String?
@@ -69,16 +69,24 @@ model Employee {
 }
 
 model AuditLog {
-  id            Int      @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   employeeId    String
   action        String
   changedFields Json?
   adminUser     String
-  createdAt     DateTime @default(now())
+  source        AuditSource @default(MANUAL)
+  fileName      String?
+  importBatchId String?
+  createdAt     DateTime    @default(now())
 
-  employee Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade, map: "AuditLog_employeeId_fkey")
 
   @@map("auditlog")
+}
+
+enum AuditSource {
+  MANUAL
+  IMPORT
 }
 
 model SystemSetting {
