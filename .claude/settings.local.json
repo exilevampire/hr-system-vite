@@ -128,7 +128,13 @@
       "Skill(update-config:*)",
       "Bash(git ls-remote *)",
       "Bash(git commit *)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('engines:', JSON.stringify\\(p.engines||'ไม่ได้ระบุ'\\)\\); console.log\\('start:', p.scripts.start\\);\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('engines:', JSON.stringify\\(p.engines||'ไม่ได้ระบุ'\\)\\); console.log\\('start:', p.scripts.start\\);\")",
+      "PowerShell(Test-Path \"C:\\\\Website\\\\marisa-flow\"; \\(Get-ChildItem \"C:\\\\Website\\\\marisa-flow\" -Force | Measure-Object\\).Count)",
+      "PowerShell(git clone https://github.com/exilevampire/marisa-flow.git \"C:\\\\Website\\\\marisa-flow\")",
+      "PowerShell(git -C \"C:\\\\Website\\\\marisa-flow\" log --oneline -5)",
+      "PowerShell(git -C \"C:\\\\Website\\\\marisa-flow\" status -sb)",
+      "PowerShell(npm install --prefix \"C:\\\\Website\\\\marisa-flow\" 2>&1)",
+      "PowerShell(npm run dev --prefix \"C:\\\\Website\\\\marisa-flow\")"
     ]
   },
   "autoMode": {
