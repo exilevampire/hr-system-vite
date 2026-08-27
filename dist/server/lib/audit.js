@@ -12,7 +12,7 @@ function normalizeValue(v) {
         return JSON.stringify(v);
     return String(v);
 }
-async function createAuditLog(employeeId, action, adminUser, oldData, newData) {
+async function createAuditLog(employeeId, action, adminUser, oldData, newData, meta) {
     let changedFields = null;
     if (action === "UPDATE" && oldData && newData) {
         changedFields = {};
@@ -32,6 +32,9 @@ async function createAuditLog(employeeId, action, adminUser, oldData, newData) {
             action,
             changedFields: changedFields ? JSON.parse(JSON.stringify(changedFields)) : undefined,
             adminUser,
+            source: meta?.source ?? "MANUAL",
+            fileName: meta?.fileName,
+            importBatchId: meta?.importBatchId,
         },
     });
 }

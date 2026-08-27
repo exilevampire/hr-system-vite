@@ -43,6 +43,7 @@ const auth_1 = require("../middleware/auth");
 const mailer_1 = require("../lib/mailer");
 const multer_1 = __importDefault(require("multer"));
 const XLSX = __importStar(require("xlsx"));
+const crypto_1 = require("crypto");
 const router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
@@ -457,6 +458,7 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADM
         return;
     }
     // ── Phase 2: Process ALL files ───────────────────────────────────────────
+    const importBatchId = (0, crypto_1.randomUUID)();
     const SOURCE_TYPE_LABELS = { 1: "สบค.", 2: "ศล." };
     const THAI_MONTHS_FULL = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
     const importedSources = new Set();
@@ -531,7 +533,7 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADM
                             updatedBy: adminUser,
                         },
                     });
-                    await (0, audit_1.createAuditLog)(emp.employeeId, "CREATE", adminUser);
+                    await (0, audit_1.createAuditLog)(emp.employeeId, "CREATE", adminUser, undefined, undefined, { source: "IMPORT", fileName: filename, importBatchId });
                     created++;
                 }
                 else {
@@ -574,7 +576,7 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADM
                             where: { employeeId },
                             data: { ...newData, ...itUpdateData, updatedBy: adminUser },
                         });
-                        await (0, audit_1.createAuditLog)(employeeId, "UPDATE", adminUser, exists, { ...exists, ...newData, ...itUpdateData });
+                        await (0, audit_1.createAuditLog)(employeeId, "UPDATE", adminUser, exists, { ...exists, ...newData, ...itUpdateData }, { source: "IMPORT", fileName: filename, importBatchId });
                         updatedDetails.push({ employeeId, nameTh, changedFields });
                         updated++;
                     }
@@ -631,6 +633,8 @@ router.post("/update-it-status", auth_1.authMiddleware, (0, auth_1.requireRole)(
         res.status(400).json({ error: "ไม่พบไฟล์" });
         return;
     }
+    const importBatchId = (0, crypto_1.randomUUID)();
+    const fileName = decodeFilename(req.file.originalname);
     const buffer = req.file.buffer;
     const isCsv = /\.csv$/i.test(req.file.originalname);
     let rows;
@@ -727,7 +731,7 @@ router.post("/update-it-status", auth_1.authMiddleware, (0, auth_1.requireRole)(
                     where: { employeeId },
                     data: { ...updateData, updatedBy: adminUser },
                 });
-                await (0, audit_1.createAuditLog)(employeeId, "UPDATE", adminUser, exists, { ...exists, ...updateData });
+                await (0, audit_1.createAuditLog)(employeeId, "UPDATE", adminUser, exists, { ...exists, ...updateData }, { source: "IMPORT", fileName, importBatchId });
                 updatedDetails.push({ employeeId, nameTh: exists.nameTh ?? employeeId, changedFields });
                 updated++;
             }
