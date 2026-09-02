@@ -49,7 +49,7 @@
                 <mxCell id="d3" value="ส่งอีเมลแจ้งผลนำเข้า เพิ่ม /&lt;br&gt;อัปเดต / ไม่เปลี่ยนแปลง / ผิดพลาด&lt;br&gt;(เฉพาะการนำเข้าไฟล์)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;" parent="lane4" vertex="1">
                     <mxGeometry x="845" y="150" width="190" height="64" as="geometry"/>
                 </mxCell>
-                <mxCell id="d4" value="สถานะ 4 ระบบ FMIS / eMeeting /&lt;br&gt;Software / Phonebook&lt;br&gt;เว้นว่าง = ยังไม่ดำเนินการ" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;" parent="lane4" vertex="1">
+                <mxCell id="d4" value="ตั้งสถานะเริ่มต้น 4 ระบบ&lt;br&gt;FMIS / eMeeting / Software /&lt;br&gt;Phonebook = ยังไม่ดำเนินการ" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;" parent="lane4" vertex="1">
                     <mxGeometry x="1065" y="30" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="d8" value="แจ้งเตือนอัตโนมัติรายวัน&lt;br&gt;ตามเวลาที่ตั้งค่า (เริ่มต้น 08:00)&lt;br&gt;พนักงานที่พ้นสภาพวันนี้" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;dashed=1;" parent="lane4" vertex="1">
@@ -57,9 +57,6 @@
                 </mxCell>
                 <mxCell id="d2" value="เพิ่มรายคน: บันทึกข้อมูล&lt;br&gt;จับคู่ต้นทาง + AuditLog&lt;br&gt;(ไม่ส่งอีเมลแจ้งเตือน)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;" parent="lane4" vertex="1">
                     <mxGeometry x="845" y="256" width="190" height="64" as="geometry"/>
-                </mxCell>
-                <mxCell id="d9" value="สถานะที่เว้นว่าง = NULL&lt;br&gt;ระบบถือว่าผ่านแล้ว&lt;br&gt;(ไม่เข้าวงจรปิดสิทธิ์)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#f59e0b;fontSize=12;fontColor=#78350f;" parent="lane4" vertex="1">
-                    <mxGeometry x="1065" y="256" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="d5" value="บันทึกสถานะ&lt;br&gt;และลง AuditLog" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;" parent="lane4" vertex="1">
                     <mxGeometry x="1505" y="30" width="190" height="64" as="geometry"/>
@@ -145,10 +142,7 @@
                 <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;" parent="1" source="f2" target="endnode" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="d2" target="d9" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e21" value="ข้ามวงจรปิดสิทธิ์" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#f59e0b;strokeWidth=1.5;fontSize=11;fontColor=#78350f;endArrow=blockThin;endFill=1;dashed=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="d9" target="d7" edge="1">
+                <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="d2" target="d4" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="legend" value="สัญลักษณ์" style="swimlane;html=1;startSize=28;fillColor=#ffffff;strokeColor=#cbd5e1;fontSize=13;fontStyle=1;fontColor=#0f172a;verticalAlign=middle;align=left;spacingLeft=10;" parent="1" vertex="1">
