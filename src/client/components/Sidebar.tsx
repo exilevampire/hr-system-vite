@@ -13,7 +13,13 @@ const navItems = [
   { to: "/account", label: "บัญชีของฉัน / 2FA", icon: "🔐" },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  collapsed,
+  onToggleCollapsed,
+}: {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -34,6 +40,10 @@ export function Sidebar() {
 
   const filtered = navItems.filter((item) => !item.roles || item.roles.includes(role));
 
+  // Collapsing is a desktop affordance only — on mobile the drawer slides in at
+  // full width, so every "hide this when collapsed" rule is md-scoped.
+  const hideWhenCollapsed = collapsed ? "md:hidden" : "";
+
   function handleLogout() {
     logout();
     navigate("/login");
@@ -53,14 +63,29 @@ export function Sidebar() {
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-blue-900 text-white flex flex-col z-40 transition-transform duration-300
+        className={`fixed top-0 left-0 h-full bg-blue-900 text-white flex flex-col z-40 transition-all duration-300
+          w-64 ${collapsed ? "md:w-16" : "md:w-64"}
           ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
-        <div className="px-6 py-5 border-b border-blue-700 flex items-center gap-3">
+        <button
+          onClick={onToggleCollapsed}
+          title={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
+          aria-label={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
+          className="hidden md:flex absolute -right-3 top-6 z-50 h-6 w-6 items-center justify-center
+            rounded-full bg-blue-700 hover:bg-blue-600 text-white text-xs leading-none
+            shadow-md ring-2 ring-slate-50 transition-colors"
+        >
+          {collapsed ? "›" : "‹"}
+        </button>
+
+        <div
+          className={`py-5 border-b border-blue-700 flex items-center gap-3 px-6
+            ${collapsed ? "md:px-0 md:justify-center" : ""}`}
+        >
           <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold ${avatarColor}`}>
             {initials}
           </div>
-          <div className="min-w-0">
+          <div className={`min-w-0 ${hideWhenCollapsed}`}>
             <div className="text-sm font-semibold leading-snug truncate">{user?.name ?? user?.email}</div>
             <div className="text-xs text-blue-300 leading-tight">{role.replace("_", " ")}</div>
           </div>
@@ -74,24 +99,31 @@ export function Sidebar() {
                 key={item.to}
                 to={item.to}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-6 py-3 text-sm font-medium transition-colors
+                title={collapsed ? item.label : undefined}
+                className={`flex items-center gap-3 py-3 text-sm font-medium transition-colors px-6
+                  ${collapsed ? "md:px-0 md:justify-center md:gap-0" : ""}
                   ${active ? "bg-blue-700 text-white" : "text-blue-100 hover:bg-blue-800"}`}
               >
-                <span>{item.icon}</span>
-                {item.label}
+                <span className="flex-shrink-0">{item.icon}</span>
+                <span className={`truncate ${hideWhenCollapsed}`}>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="px-6 py-4 border-t border-blue-700">
-          <div className="text-xs text-blue-300 mb-1">{user?.email}</div>
-          <div className="text-xs text-blue-400 mb-3 capitalize">{role.replace("_", " ")}</div>
+        <div className={`py-4 border-t border-blue-700 px-6 ${collapsed ? "md:px-2" : ""}`}>
+          <div className={hideWhenCollapsed}>
+            <div className="text-xs text-blue-300 mb-1 truncate">{user?.email}</div>
+            <div className="text-xs text-blue-400 mb-3 capitalize">{role.replace("_", " ")}</div>
+          </div>
           <button
             onClick={handleLogout}
-            className="w-full text-sm text-blue-200 hover:text-white bg-blue-800 hover:bg-blue-700 rounded px-3 py-2 transition-colors"
+            title={collapsed ? "ออกจากระบบ" : undefined}
+            className={`w-full text-sm text-blue-200 hover:text-white bg-blue-800 hover:bg-blue-700
+              rounded py-2 transition-colors px-3 ${collapsed ? "md:px-0" : ""}`}
           >
-            ออกจากระบบ
+            <span className={hideWhenCollapsed}>ออกจากระบบ</span>
+            <span className={collapsed ? "hidden md:inline" : "hidden"}>⏻</span>
           </button>
         </div>
       </aside>
