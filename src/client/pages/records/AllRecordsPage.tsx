@@ -250,23 +250,29 @@ export default function AllRecordsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showColPicker]);
 
-  // Fetch dropdown options once on mount
+  // The dropdown options are deliberately not refetched as filters change — the
+  // payload is ~45KB and the values only move when a record is edited or removed,
+  // so this runs on mount and again after those two, not on every keystroke.
+  const fetchMeta = useCallback(async () => {
+    try {
+      const d = await (await apiFetch("/api/employees/meta")).json();
+      setPositionOptions(d.positions ?? []);
+      setBureauOptions(d.bureaus ?? []);
+      setLevelOptions(d.levels ?? []);
+      setDepartmentOptions(d.departments ?? []);
+      setCombinations(d.combinations ?? []);
+    } catch {
+      // keep whatever options are already loaded
+    }
+  }, []);
+
   useEffect(() => {
-    apiFetch("/api/employees/meta")
-      .then((r) => r.json())
-      .then((d) => {
-        setPositionOptions(d.positions ?? []);
-        setBureauOptions(d.bureaus ?? []);
-        setLevelOptions(d.levels ?? []);
-        setDepartmentOptions(d.departments ?? []);
-        setCombinations(d.combinations ?? []);
-      })
-      .catch(() => {});
+    fetchMeta();
     apiFetch("/api/datasources")
       .then((r) => r.json())
       .then((d: DataSourceInfo[]) => setDataSources(d ?? []))
       .catch(() => {});
-  }, []);
+  }, [fetchMeta]);
 
   // Cleanup cursor styles on unmount
   useEffect(() => {
@@ -432,6 +438,8 @@ export default function AllRecordsPage() {
     if (!confirm("ยืนยันการลบข้อมูลนี้?")) return;
     await apiFetch(`/api/employees/${employeeId}`, { method: "DELETE" });
     fetchData();
+    // Removing the last record under a bureau or position drops it from the filters
+    fetchMeta();
   }
 
   async function handleDownload() {
@@ -999,7 +1007,7 @@ export default function AllRecordsPage() {
         <EditRecordModal
           employeeId={editingId}
           onClose={() => setEditingId(null)}
-          onSaved={() => { setEditingId(null); fetchData(); }}
+          onSaved={() => { setEditingId(null); fetchData(); fetchMeta(); }}
         />
       )}
     </AppLayout>
