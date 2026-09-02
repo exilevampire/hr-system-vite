@@ -746,7 +746,7 @@ router.post("/update-it-status", auth_1.authMiddleware, (0, auth_1.requireRole)(
     res.json({ updated, unchanged, errors, updatedDetails });
 });
 router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
-    const [positions, bureaus, levels, departments, bureauDeptPairs] = await Promise.all([
+    const [positions, bureaus, levels, departments, combinations] = await Promise.all([
         prisma_1.prisma.employee.findMany({
             where: { position: { not: null } },
             select: { position: true },
@@ -771,33 +771,46 @@ router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
             distinct: ["department"],
             orderBy: { department: "asc" },
         }),
-        // Distinct bureau/department combinations, used by the client to make the two
-        // filter dropdowns narrow each other. Department names repeat across bureaus
-        // (e.g. "ฝ่ายบริหารงานทั่วไป" exists in 16 of them), so the pair is what matters.
+        // Every bureau/department/position/level combination that actually occurs.
+        // The client uses these to make all four filter dropdowns narrow each other,
+        // which matters because the values are not a clean hierarchy: department names
+        // repeat across bureaus ("ฝ่ายบริหารงานทั่วไป" exists in 16 of them) and the
+        // same position appears under many departments.
         prisma_1.prisma.employee.findMany({
-            where: { bureau: { not: null }, department: { not: null } },
-            select: { bureau: true, department: true },
-            distinct: ["bureau", "department"],
-            orderBy: [{ bureau: "asc" }, { department: "asc" }],
+            select: { bureau: true, department: true, position: true, level: true },
+            distinct: ["bureau", "department", "position", "level"],
         }),
     ]);
-    const bureauList = bureaus.map((b) => b.bureau).filter((b) => !!b && b !== "-");
-    // Grouped as { bureau: [departments] } — roughly half the payload of flat pairs,
-    // since each bureau name is written once instead of once per department. Every
-    // bureau gets a key so the client can tell "no departments here" apart from
-    // "no mapping known" and avoid falling back to the full department list.
-    const bureauDepartments = Object.fromEntries(bureauList.map((b) => [b, []]));
-    for (const r of bureauDeptPairs) {
-        if (!r.bureau || !r.department || r.department === "-")
-            continue;
-        bureauDepartments[r.bureau]?.push(r.department);
-    }
+    const clean = (values) => values.filter((v) => !!v && v !== "-");
+    const bureauList = clean(bureaus.map((b) => b.bureau));
+    const departmentList = clean(departments.map((d) => d.department));
+    const positionList = clean(positions.map((p) => p.position));
+    const levelList = clean(levels.map((l) => l.level));
+    // Combinations go out as index tuples into the four lists above rather than as
+    // names: the long Thai strings are then sent once each instead of being repeated
+    // across ~750 rows, which keeps this response near 45KB instead of ~175KB.
+    // -1 marks a blank field ("-" or null) — such a row still contributes its other
+    // fields, but never matches a filter the user actually selected.
+    const indexer = (list) => {
+        const positions = new Map(list.map((v, i) => [v, i]));
+        return (value) => (value == null ? -1 : positions.get(value) ?? -1);
+    };
+    const bureauAt = indexer(bureauList);
+    const departmentAt = indexer(departmentList);
+    const positionAt = indexer(positionList);
+    const levelAt = indexer(levelList);
     res.json({
-        positions: positions.map((p) => p.position).filter((p) => !!p && p !== "-"),
+        positions: positionList,
         bureaus: bureauList,
-        levels: levels.map((l) => l.level).filter((l) => !!l && l !== "-"),
-        departments: departments.map((d) => d.department).filter((d) => !!d && d !== "-"),
-        bureauDepartments,
+        levels: levelList,
+        departments: departmentList,
+        // [bureau, department, position, level] — order matches the client's field list
+        combinations: combinations.map((r) => [
+            bureauAt(r.bureau),
+            departmentAt(r.department),
+            positionAt(r.position),
+            levelAt(r.level),
+        ]),
     });
 });
 router.get("/:employeeId", auth_1.authMiddleware, async (req, res) => {

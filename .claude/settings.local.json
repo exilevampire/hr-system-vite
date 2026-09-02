@@ -134,7 +134,11 @@
       "PowerShell(git -C \"C:\\\\Website\\\\marisa-flow\" log --oneline -5)",
       "PowerShell(git -C \"C:\\\\Website\\\\marisa-flow\" status -sb)",
       "PowerShell(npm install --prefix \"C:\\\\Website\\\\marisa-flow\" 2>&1)",
-      "PowerShell(npm run dev --prefix \"C:\\\\Website\\\\marisa-flow\")"
+      "PowerShell(npm run dev --prefix \"C:\\\\Website\\\\marisa-flow\")",
+      "Bash(xargs -I{} echo \"{} ไฟล์ค้าง\")",
+      "Bash(grep -iE \"deploy|readme|\\\\.sh$|\\\\.md$\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); Object.entries\\(p.scripts\\).forEach\\(\\([k,v]\\)=>console.log\\(k.padEnd\\(14\\),'|',v\\)\\)\")",
+      "Bash(xargs -I{} echo \"{} ไฟล์ใน dist/ ถูก track\")"
     ]
   },
   "autoMode": {

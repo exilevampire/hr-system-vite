@@ -160,6 +160,11 @@ const HEADERS = [
 
 const NAME_COL_INDEX = 3;
 
+// The org filters that narrow each other. Order matches the index tuples that
+// /api/employees/meta returns in `combinations`.
+type FacetField = "bureau" | "department" | "position" | "level";
+const FACET_FIELDS: FacetField[] = ["bureau", "department", "position", "level"];
+
 const SORT_FIELDS: Record<number, string> = {
   2: "employeeId",
   3: "nameTh",
@@ -230,7 +235,7 @@ export default function AllRecordsPage() {
   const [bureauOptions, setBureauOptions] = useState<string[]>([]);
   const [levelOptions, setLevelOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
-  const [bureauDepartments, setBureauDepartments] = useState<Record<string, string[]>>({});
+  const [combinations, setCombinations] = useState<number[][]>([]);
   const [dataSources, setDataSources] = useState<DataSourceInfo[]>([]);
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -254,7 +259,7 @@ export default function AllRecordsPage() {
         setBureauOptions(d.bureaus ?? []);
         setLevelOptions(d.levels ?? []);
         setDepartmentOptions(d.departments ?? []);
-        setBureauDepartments(d.bureauDepartments ?? {});
+        setCombinations(d.combinations ?? []);
       })
       .catch(() => {});
     apiFetch("/api/datasources")
@@ -340,36 +345,77 @@ export default function AllRecordsPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // ── Bureau ⇄ department cascade ────────────────────────────────────────────
-  // Picking one narrows the other's dropdown. Lookups are keyed on the exact
-  // option text, so free-typed partial text falls through to the full list.
-  const [deptsByBureau, bureausByDept] = useMemo(() => {
-    const byBureau = new Map<string, string[]>(Object.entries(bureauDepartments));
-    const byDept = new Map<string, string[]>();
-    for (const [b, depts] of byBureau) {
-      for (const d of depts) {
-        if (!byDept.has(d)) byDept.set(d, []);
-        byDept.get(d)!.push(b);
-      }
-    }
-    return [byBureau, byDept] as const;
-  }, [bureauDepartments]);
+  // ── Org filter cascade ─────────────────────────────────────────────────────
+  // The four org dropdowns narrow each other in every direction: each one offers
+  // only the values that still occur once the *other* selections are applied. The
+  // date, status and search filters deliberately stay out of it — folding those in
+  // would mean re-querying the server on every keystroke.
+  const facetLists: Record<FacetField, string[]> = {
+    bureau: bureauOptions,
+    department: departmentOptions,
+    position: positionOptions,
+    level: levelOptions,
+  };
+  const selection: Record<FacetField, string> = { bureau, department, position, level };
 
-  const bureauChoices = bureausByDept.get(department) ?? bureauOptions;
-  const departmentChoices = deptsByBureau.get(bureau) ?? departmentOptions;
+  const facetIndex = useMemo(() => {
+    const built = {} as Record<FacetField, Map<string, number>>;
+    for (const field of FACET_FIELDS) built[field] = new Map();
+    bureauOptions.forEach((v, i) => built.bureau.set(v, i));
+    departmentOptions.forEach((v, i) => built.department.set(v, i));
+    positionOptions.forEach((v, i) => built.position.set(v, i));
+    levelOptions.forEach((v, i) => built.level.set(v, i));
+    return built;
+  }, [bureauOptions, departmentOptions, positionOptions, levelOptions]);
 
-  function handleBureauChange(v: string) {
-    setBureau(v);
-    // Drop a department that doesn't exist under the newly picked bureau
-    const depts = deptsByBureau.get(v);
-    if (department && depts && !depts.includes(department)) setDepartment("");
-    setPage(1);
+  // A selection only constrains anything once it matches a real option, so text
+  // typed part-way into a box neither filters the others nor gets cleared by them.
+  function constraintsFrom(sel: Record<FacetField, string>, skip?: FacetField) {
+    const out: [number, number][] = [];
+    FACET_FIELDS.forEach((field, slot) => {
+      if (field === skip || !sel[field]) return;
+      const index = facetIndex[field].get(sel[field]);
+      if (index !== undefined) out.push([slot, index]);
+    });
+    return out;
   }
 
-  function handleDepartmentChange(v: string) {
-    setDepartment(v);
-    const bureaus = bureausByDept.get(v);
-    if (bureau && bureaus && !bureaus.includes(bureau)) setBureau("");
+  const satisfies = (combo: number[], constraints: [number, number][]) =>
+    constraints.every(([slot, index]) => combo[slot] === index);
+
+  function choicesFor(field: FacetField): string[] {
+    const constraints = constraintsFrom(selection, field);
+    if (!combinations.length || !constraints.length) return facetLists[field];
+    const slot = FACET_FIELDS.indexOf(field);
+    const available = new Set<number>();
+    for (const combo of combinations) {
+      if (combo[slot] >= 0 && satisfies(combo, constraints)) available.add(combo[slot]);
+    }
+    return facetLists[field].filter((_, i) => available.has(i));
+  }
+
+  function handleFacetChange(changed: FacetField, value: string) {
+    const wanted = { ...selection, [changed]: value };
+    // Keep what the user just picked, then keep each other selection only while it
+    // is still possible alongside it — so switching bureau drops a department that
+    // doesn't exist there, and the position that went with it.
+    const next = { bureau: "", department: "", position: "", level: "" } as Record<FacetField, string>;
+    next[changed] = value;
+    if (combinations.length) {
+      for (const field of FACET_FIELDS) {
+        if (field === changed || !wanted[field]) continue;
+        const constraints = constraintsFrom({ ...next, [field]: wanted[field] });
+        if (!constraints.length || combinations.some((c) => satisfies(c, constraints))) {
+          next[field] = wanted[field];
+        }
+      }
+    } else {
+      Object.assign(next, wanted);
+    }
+    setBureau(next.bureau);
+    setDepartment(next.department);
+    setPosition(next.position);
+    setLevel(next.level);
     setPage(1);
   }
 
@@ -494,29 +540,29 @@ export default function AllRecordsPage() {
         <SearchableSelect
           placeholder="กรองหน่วยงาน/สำนัก..."
           value={bureau}
-          onChange={handleBureauChange}
-          options={bureauChoices}
+          onChange={(v) => handleFacetChange("bureau", v)}
+          options={choicesFor("bureau")}
           className="w-full sm:w-52"
         />
         <SearchableSelect
           placeholder="กรองฝ่าย/กลุ่มงาน..."
           value={department}
-          onChange={handleDepartmentChange}
-          options={departmentChoices}
+          onChange={(v) => handleFacetChange("department", v)}
+          options={choicesFor("department")}
           className="w-full sm:w-52"
         />
         <SearchableSelect
           placeholder="กรองตำแหน่ง..."
           value={position}
-          onChange={(v) => { setPosition(v); setPage(1); }}
-          options={positionOptions}
+          onChange={(v) => handleFacetChange("position", v)}
+          options={choicesFor("position")}
           className="w-full sm:w-48"
         />
         <SearchableSelect
           placeholder="กรองประเภท..."
           value={level}
-          onChange={(v) => { setLevel(v); setPage(1); }}
-          options={levelOptions}
+          onChange={(v) => handleFacetChange("level", v)}
+          options={choicesFor("level")}
           className="w-full sm:w-44"
         />
         <button
