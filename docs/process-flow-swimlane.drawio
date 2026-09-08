@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="swimlane-1" name="Process Flow (As-Is)">
-        <mxGraphModel dx="1067" dy="868" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+        <mxGraphModel dx="1100" dy="1302" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -29,16 +29,16 @@
                     <mxGeometry x="625" y="150" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="b3" value="บันทึกผลปิดสิทธิ์รายคน&lt;br&gt;พร้อมวันที่ดำเนินการ" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=12;fontColor=#1e3a5f;" parent="lane2" vertex="1">
-                    <mxGeometry x="1285" y="90" width="190" height="64" as="geometry"/>
+                    <mxGeometry x="1285" y="93" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="lane3" value="ผู้ดูแลระบบสูงสุด&#xa;(SUPER_ADMIN)" style="swimlane;html=1;horizontal=0;startSize=170;fillColor=#f8fafc;strokeColor=#94a3b8;fontSize=14;fontStyle=1;fontColor=#0f172a;verticalAlign=middle;align=center;whiteSpace=wrap;swimlaneFillColor=#ffffff;" parent="1" vertex="1">
                     <mxGeometry x="40" y="475" width="2600" height="170" as="geometry"/>
                 </mxCell>
                 <mxCell id="c2" value="ลบข้อมูลที่ไม่ถูกต้อง&lt;br&gt;(บันทึก AuditLog ก่อนลบ)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#ef4444;fontSize=12;fontColor=#7f1d1d;" parent="lane3" vertex="1">
-                    <mxGeometry x="1065" y="45" width="190" height="64" as="geometry"/>
+                    <mxGeometry x="886" y="26" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="c1" value="นำเข้าไฟล์ผลปิดสิทธิ์&lt;br&gt;แบบเป็นชุด" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=12;fontColor=#1e3a5f;" parent="lane3" vertex="1">
-                    <mxGeometry x="1285" y="45" width="190" height="64" as="geometry"/>
+                    <mxGeometry x="1286" y="45" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="lane4" value="ระบบ&#xa;(ทำงานอัตโนมัติ)" style="swimlane;html=1;horizontal=0;startSize=170;fillColor=#f8fafc;strokeColor=#94a3b8;fontSize=14;fontStyle=1;fontColor=#0f172a;verticalAlign=middle;align=center;whiteSpace=wrap;swimlaneFillColor=#ffffff;" parent="1" vertex="1">
                     <mxGeometry x="40" y="645" width="2600" height="360" as="geometry"/>
@@ -50,10 +50,10 @@
                     <mxGeometry x="845" y="150" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="d4" value="ตั้งสถานะเริ่มต้น 4 ระบบ&lt;br&gt;FMIS / eMeeting / Software /&lt;br&gt;Phonebook = ยังไม่ดำเนินการ" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;" parent="lane4" vertex="1">
-                    <mxGeometry x="1065" y="30" width="190" height="64" as="geometry"/>
+                    <mxGeometry x="1096" y="30" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="d8" value="แจ้งเตือนอัตโนมัติรายวัน&lt;br&gt;ตามเวลาที่ตั้งค่า (เริ่มต้น 08:00)&lt;br&gt;พนักงานที่พ้นสภาพวันนี้" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;dashed=1;" parent="lane4" vertex="1">
-                    <mxGeometry x="1285" y="256" width="190" height="64" as="geometry"/>
+                    <mxGeometry x="1096" y="246" width="190" height="64" as="geometry"/>
                 </mxCell>
                 <mxCell id="d2" value="เพิ่มรายคน: บันทึกข้อมูล&lt;br&gt;จับคู่ต้นทาง + AuditLog&lt;br&gt;(ไม่ส่งอีเมลแจ้งเตือน)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#8b5cf6;fontSize=12;fontColor=#3b0764;" parent="lane4" vertex="1">
                     <mxGeometry x="845" y="256" width="190" height="64" as="geometry"/>
@@ -66,6 +66,15 @@
                 </mxCell>
                 <mxCell id="d7" value="สถานะรวม:&lt;br&gt;ดำเนินการแล้ว" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#d1fae5;strokeColor=#10b981;fontSize=12;fontColor=#064e3b;fontStyle=1;" parent="lane4" vertex="1">
                     <mxGeometry x="2004" y="30" width="190" height="64" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="lane4" target="d2" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="783" y="288"/>
+                        </Array>
+                        <mxPoint x="783" y="-206" as="sourcePoint"/>
+                        <mxPoint x="818" y="288" as="targetPoint"/>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="lane5" value="ผู้ใช้งานทั่วไป&#xa;(VIEWER)" style="swimlane;html=1;horizontal=0;startSize=170;fillColor=#f8fafc;strokeColor=#94a3b8;fontSize=14;fontStyle=1;fontColor=#0f172a;verticalAlign=middle;align=center;whiteSpace=wrap;swimlaneFillColor=#ffffff;" parent="1" vertex="1">
                     <mxGeometry x="40" y="1005" width="2600" height="170" as="geometry"/>
@@ -86,13 +95,19 @@
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e3" value="หรือ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="a1" target="b2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="540" y="407"/>
+                        </Array>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;" parent="1" source="b1" target="d1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;" parent="1" source="b2" target="d2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="870" y="287"/>
+                            <mxPoint x="870" y="707"/>
+                        </Array>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#8b5cf6;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;dashed=1;" parent="1" source="d1" target="d3" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -101,19 +116,37 @@
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e8" value="ตรวจพบภายหลัง&lt;br&gt;(ทำเมื่อจำเป็น)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#ef4444;strokeWidth=1.5;fontSize=11;fontColor=#7f1d1d;endArrow=blockThin;endFill=1;dashed=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="d1" target="c2" edge="1">
-                    <mxGeometry x="0.55" relative="1" as="geometry"><mxPoint as="offset" x="0" y="0"/></mxGeometry>
+                    <mxGeometry x="0.55" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                        <Array as="points">
+                            <mxPoint x="1021" y="627"/>
+                            <mxPoint x="1021" y="627"/>
+                        </Array>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="e9" value="ทุกวัน" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#8b5cf6;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;dashed=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="d4" target="d8" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e10" value="รายคน" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="d4" target="b3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1250" y="347"/>
+                        </Array>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="e11" value="เป็นชุด" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="d4" target="c1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1421" y="689"/>
+                        </Array>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;" parent="1" source="b3" target="d5" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1696" y="347"/>
+                        </Array>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;" parent="1" source="c1" target="d5" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -143,7 +176,12 @@
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=1.5;fontSize=11;fontColor=#334155;endArrow=blockThin;endFill=1;labelBackgroundColor=#ffffff;spacing=4;" parent="1" source="d2" target="d4" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1090" y="933"/>
+                            <mxPoint x="1090" y="707"/>
+                        </Array>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="legend" value="สัญลักษณ์" style="swimlane;html=1;startSize=28;fillColor=#ffffff;strokeColor=#cbd5e1;fontSize=13;fontStyle=1;fontColor=#0f172a;verticalAlign=middle;align=left;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="40" y="1210" width="1150" height="100" as="geometry"/>
