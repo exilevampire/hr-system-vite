@@ -41,6 +41,13 @@ function isItCleared(e) {
     const itFields = [e.fmis, e.eMeeting, e.software, e.phonebook];
     return itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี" || v === "ไม่ทราบสถานะ");
 }
+function completionRatio(completed, total) {
+    if (total <= 0)
+        return 0;
+    if (completed >= total)
+        return 1;
+    return Math.floor((completed / total) * 100) / 100;
+}
 function applyHeaderStyle(cell, center = true) {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${HEADER_DARK}` } };
     cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 14, name: "TH Sarabun New" };
@@ -322,7 +329,7 @@ router.get("/employees", auth_1.authMiddleware, async (req, res) => {
         }
     }
     const totalPending = filtered.length - totalCleared;
-    const overallPct = filtered.length > 0 ? totalCleared / filtered.length : 0;
+    const overallPct = completionRatio(totalCleared, filtered.length);
     const bureauList = Object.entries(bureauMap).sort(([, a], [, b]) => b.total - a.total);
     const monthList = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => {
         const [y, m] = key.split("-").map(Number);
@@ -395,7 +402,7 @@ router.get("/employees", auth_1.authMiddleware, async (req, res) => {
         const row = ws2.getRow(idx + 8);
         row.height = 22;
         const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;
-        [bureau, data.total, data.cleared, data.total - data.cleared, data.total > 0 ? data.cleared / data.total : 0].forEach((v, ci) => {
+        [bureau, data.total, data.cleared, data.total - data.cleared, completionRatio(data.cleared, data.total)].forEach((v, ci) => {
             const cell = row.getCell(ci + 1);
             cell.value = v;
             cell.font = { name: "TH Sarabun New", size: 14 };
@@ -472,7 +479,7 @@ router.get("/employees", auth_1.authMiddleware, async (req, res) => {
     IT_BREAKDOWN_ROWS.forEach(([label, key], idx) => {
         const cnt = itBreakdown[key];
         const total = cnt.done + cnt.pending + cnt.na + cnt.unknown;
-        const pct = total > 0 ? (cnt.done + cnt.na + cnt.unknown) / total : 0;
+        const pct = completionRatio(cnt.done + cnt.na + cnt.unknown, total);
         const row = ws2.getRow(itSectionRow + 2 + idx);
         row.height = 22;
         const bg = idx % 2 === 0 ? ROW_ODD : ROW_EVEN;

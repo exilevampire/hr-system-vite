@@ -28,6 +28,12 @@ function toMonthLabel(month: string) {
   return `${THAI_MONTHS[m - 1]} ${String(y + 543).slice(2)}`;
 }
 
+function completionPercent(completed: number, total: number) {
+  if (total <= 0) return 0;
+  if (completed >= total) return 100;
+  return Math.floor((completed / total) * 100);
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,7 +165,7 @@ export default function DashboardPage() {
               <h2 className="font-semibold text-slate-700 mb-4">สัดส่วนการปิดสิทธิ์ IT</h2>
               {stats?.itStatus && (stats.itStatus.cleared + stats.itStatus.pending) > 0 ? (() => {
                 const total = stats.itStatus.cleared + stats.itStatus.pending;
-                const pct = Math.round((stats.itStatus.cleared / total) * 100);
+                const pct = completionPercent(stats.itStatus.cleared, total);
                 return (
                   <>
                     <div className="relative">
@@ -219,7 +225,8 @@ export default function DashboardPage() {
                     ["Phonebook", stats.itBreakdown.phonebook],
                   ] as [string, ITCount][]).map(([label, cnt]) => {
                     const total = cnt.done + cnt.pending + cnt.na + (cnt.unknown ?? 0);
-                    const donePct = total > 0 ? (cnt.done + cnt.na + (cnt.unknown ?? 0)) / total : 0;
+                    const completed = cnt.done + cnt.na + (cnt.unknown ?? 0);
+                    const donePct = total > 0 ? completed / total : 0;
                     return (
                       <div key={label}>
                         <div className="flex items-center justify-between mb-1.5">
@@ -245,7 +252,7 @@ export default function DashboardPage() {
                             </span>
                           </div>
                           <span className="text-xs font-semibold text-slate-500 w-12 text-right shrink-0">
-                            {Math.round(donePct * 100)}%
+                            {completionPercent(completed, total)}%
                           </span>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
