@@ -24,20 +24,20 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "superadmin@redcross.or.th" },
-    update: {},
-    create: { name: "Super Admin", email: "superadmin@redcross.or.th", password, role: "SUPER_ADMIN" },
+    update: { username: "superadmin" },
+    create: { name: "Super Admin", username: "superadmin", email: "superadmin@redcross.or.th", password, role: "SUPER_ADMIN" },
   });
 
   await prisma.user.upsert({
     where: { email: "hradmin@redcross.or.th" },
-    update: {},
-    create: { name: "HR Admin", email: "hradmin@redcross.or.th", password, role: "ADMIN" },
+    update: { username: "hradmin" },
+    create: { name: "HR Admin", username: "hradmin", email: "hradmin@redcross.or.th", password, role: "ADMIN" },
   });
 
   await prisma.user.upsert({
     where: { email: "viewer@redcross.or.th" },
-    update: {},
-    create: { name: "Viewer", email: "viewer@redcross.or.th", password, role: "VIEWER" },
+    update: { username: "viewer" },
+    create: { name: "Viewer", username: "viewer", email: "viewer@redcross.or.th", password, role: "VIEWER" },
   });
 
   console.log("✅ Seed completed");

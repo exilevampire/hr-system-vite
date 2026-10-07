@@ -1,4 +1,4 @@
-export declare const PERMISSIONS: readonly ["dashboard.view", "employees.view", "employees.create", "employees.update", "employees.delete", "employees.import", "it_status.update", "reports.export", "audit_logs.view"];
+export declare const PERMISSIONS: readonly ["dashboard.view", "employees.view", "employees.create", "employees.update", "employees.delete", "employees.import", "reports.export", "audit_logs.view"];
 export type Permission = (typeof PERMISSIONS)[number];
 export declare const DEFAULT_ADMIN_PERMISSIONS: Permission[];
 export declare const VIEWER_PERMISSIONS: Permission[];

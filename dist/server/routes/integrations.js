@@ -17,10 +17,6 @@ function employeeResponse(employee) {
     return {
         employeeId: employee.employeeId,
         fullName: employee.nameTh,
-        position: employee.position,
-        department: employee.department,
-        office: employee.bureau,
-        terminationDate: (0, integrationDates_1.formatThaiDate)(employee.endDate),
     };
 }
 async function saveLog(args) {
@@ -64,7 +60,7 @@ router.get("/terminated-employees", integrationAuth_1.integrationAuth, async (re
     const employees = await prisma_1.prisma.employee.findMany({
         where: { createdAt: { gte: (0, integrationDates_1.bangkokDayStart)(fromDate), lt: (0, integrationDates_1.bangkokDayAfter)(toDate) }, endDate: { not: null } },
         orderBy: { id: "asc" }, take: MAX_RESULTS + 1,
-        select: { employeeId: true, nameTh: true, position: true, department: true, bureau: true, endDate: true },
+        select: { employeeId: true, nameTh: true },
     });
     if (employees.length > MAX_RESULTS) {
         await saveLog({ req, requestId: id, statusCode: 422, durationMs: Date.now() - started, errorCode: "RESULT_LIMIT_EXCEEDED", recordedFrom: fromDate, recordedTo: toDate });
@@ -95,7 +91,7 @@ router.get("/terminated-employees/full-sync", integrationAuth_1.integrationAuth,
     try {
         const employees = await prisma_1.prisma.employee.findMany({
             where: { endDate: { not: null } }, orderBy: { id: "asc" }, take: MAX_FULL_SYNC_RESULTS + 1,
-            select: { employeeId: true, nameTh: true, position: true, department: true, bureau: true, endDate: true },
+            select: { employeeId: true, nameTh: true },
         });
         if (employees.length > MAX_FULL_SYNC_RESULTS)
             throw new Error("FULL_SYNC_LIMIT_EXCEEDED");

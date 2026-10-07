@@ -53,7 +53,7 @@ router.post("/setup", authMiddleware, async (req: AuthenticatedRequest, res) => 
     return;
   }
 
-  const otpauth = buildOtpauthURL(APP_ISSUER, user.email, secret);
+  const otpauth = buildOtpauthURL(APP_ISSUER, user.username ?? user.email, secret);
   const qrDataUrl = await QRCode.toDataURL(otpauth, { width: 256, margin: 2 });
 
   await prisma.user.update({ where: { id: user.id }, data: { totpSecret: secret } });
@@ -183,11 +183,11 @@ router.post("/verify", async (req, res) => {
   }
 
   const token = jwt.sign(
-    { id: user.id, email: user.email, name: user.name, role: user.role },
+    { id: user.id, username: user.username, email: user.email, name: user.name, role: user.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, permissions: resolvePermissions(user) } });
+  res.json({ token, user: { id: user.id, username: user.username, email: user.email, name: user.name, role: user.role, permissions: resolvePermissions(user) } });
 });
 
 export default router;

@@ -3,6 +3,7 @@ import { Permission } from "../lib/permissions";
 export interface AuthenticatedRequest extends Request {
     user?: {
         id: string;
+        username?: string | null;
         email: string;
         name?: string | null;
         role: string;

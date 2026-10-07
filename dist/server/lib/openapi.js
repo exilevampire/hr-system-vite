@@ -10,9 +10,8 @@ exports.integrationOpenApi = {
         securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", description: "API Key ที่ได้รับจากผู้ดูแลระบบ" } },
         schemas: {
             TerminatedEmployee: { type: "object", properties: {
-                    employeeId: { type: "string", example: "123456" }, fullName: { type: "string", example: "สมชาย ใจดี" },
-                    position: { type: "string", nullable: true }, department: { type: "string", nullable: true, description: "ฝ่าย" },
-                    office: { type: "string", nullable: true, description: "สำนักงาน" }, terminationDate: { type: "string", nullable: true, example: "05-10-2569" },
+                    employeeId: { type: "string", example: "123456", description: "รหัสพนักงาน" },
+                    fullName: { type: "string", example: "สมชาย ใจดี", description: "ชื่อ-นามสกุลภาษาไทย" },
                 } },
             Error: { type: "object", properties: { error: { type: "object", properties: { code: { type: "string" }, message: { type: "string" }, requestId: { type: "string" } } } } },
         },

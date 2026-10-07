@@ -70,10 +70,10 @@
 | Period | 30 วินาที |
 | Window tolerance | ±4 steps (รองรับนาฬิกา drift ±2 นาที) |
 | Secret encoding | Base32 |
-| QR Code | `otpauth://totp/HR-RedCross:<email>?...` |
+| QR Code | `otpauth://totp/HR-RedCross:<username-or-email>?...` |
 
 **ขั้นตอน Login เมื่อเปิด 2FA:**
-1. กรอก Email + Password → รับ `tempToken` (อายุ 5 นาที)
+1. กรอก Username หรือ Email + Password → รับ `tempToken` (อายุ 5 นาที)
 2. กรอก OTP 6 หลักจาก Authenticator app → รับ JWT token เพื่อใช้งานระบบ
 
 **Backup Codes:**
@@ -207,7 +207,8 @@ PORT=3001
 ### User
 | Field | ประเภท | คำอธิบาย |
 |---|---|---|
-| email | String (unique) | อีเมลสำหรับ login |
+| username | String (unique) | ชื่อผู้ใช้สำหรับ login (รองรับบัญชีเดิมที่ยังเป็น null ระหว่าง backfill) |
+| email | String (unique) | อีเมลสำหรับ login และรับการแจ้งเตือน |
 | password | String | bcrypt hash |
 | role | Enum | SUPER_ADMIN / ADMIN / VIEWER |
 | totpEnabled | Boolean | เปิด 2FA หรือไม่ |

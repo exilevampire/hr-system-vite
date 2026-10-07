@@ -20,6 +20,7 @@ import integrationClientsRouter from "./routes/integrationClients";
 import { integrationOpenApi } from "./lib/openapi";
 import { prisma } from "./lib/prisma";
 import { scheduleRetireNotify } from "./lib/retireCron";
+import { backfillUsernames } from "./lib/usernames";
 
 const app = express();
 const rawPort = process.env.PORT ?? "3001";
@@ -105,6 +106,7 @@ if (isProd) {
 app.listen(PORT, async () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
   try {
+    await backfillUsernames();
     const setting = await prisma.systemSetting.findUnique({ where: { key: "retire_notify_time" } });
     scheduleRetireNotify(setting?.value ?? "08:00");
   } catch (err) {

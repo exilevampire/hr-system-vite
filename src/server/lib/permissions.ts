@@ -5,7 +5,6 @@ export const PERMISSIONS = [
   "employees.update",
   "employees.delete",
   "employees.import",
-  "it_status.update",
   "reports.export",
   "audit_logs.view",
 ] as const;

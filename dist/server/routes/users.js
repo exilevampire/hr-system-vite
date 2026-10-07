@@ -8,20 +8,28 @@ const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const permissions_1 = require("../lib/permissions");
+const usernames_1 = require("../lib/usernames");
 const router = (0, express_1.Router)();
 const VALID_ROLES = ["SUPER_ADMIN", "ADMIN", "VIEWER"];
 const allowedForRole = (role, permissions) => role !== "VIEWER" || permissions.every((permission) => permissions_1.VIEWER_PERMISSIONS.includes(permission));
 router.get("/", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), async (_req, res) => {
     const users = await prisma_1.prisma.user.findMany({
-        select: { id: true, name: true, email: true, role: true, totpEnabled: true, notifyOnImport: true, notifyOnRetire: true, createdAt: true, permissionsConfigured: true, permissions: { select: { permission: true } } },
+        select: { id: true, name: true, username: true, email: true, role: true, totpEnabled: true, notifyOnImport: true, notifyOnRetire: true, createdAt: true, permissionsConfigured: true, permissions: { select: { permission: true } } },
         orderBy: { createdAt: "asc" },
     });
     res.json(users.map((user) => ({ ...user, permissions: (0, permissions_1.resolvePermissions)(user) })));
 });
 router.post("/", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), async (req, res) => {
-    const { name, email, password, role, permissions } = req.body;
-    if (!email || !password) {
-        res.status(400).json({ error: "Email และรหัสผ่านจำเป็น" });
+    const { name, password, role, permissions } = req.body;
+    const username = (0, usernames_1.normalizeUsername)(req.body.username);
+    const email = String(req.body.email ?? "").trim().toLowerCase();
+    if (!username || !email || !password) {
+        res.status(400).json({ error: "Username, Email และรหัสผ่านจำเป็น" });
+        return;
+    }
+    const usernameError = (0, usernames_1.validateUsername)(username);
+    if (usernameError) {
+        res.status(400).json({ error: usernameError });
         return;
     }
     if (typeof password !== "string" || password.length < 8) {
@@ -40,9 +48,9 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), 
         res.status(400).json({ error: "Viewer สามารถใช้ได้เฉพาะสิทธิ์แบบอ่าน" });
         return;
     }
-    const existing = await prisma_1.prisma.user.findUnique({ where: { email } });
+    const existing = await prisma_1.prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
     if (existing) {
-        res.status(400).json({ error: "Email นี้มีในระบบแล้ว" });
+        res.status(400).json({ error: existing.email === email ? "Email นี้มีในระบบแล้ว" : "Username นี้มีในระบบแล้ว" });
         return;
     }
     const hashed = await bcryptjs_1.default.hash(password, 12);
@@ -51,17 +59,19 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), 
         : role === "VIEWER" || !role ? (permissions ?? permissions_1.VIEWER_PERMISSIONS) : [];
     const user = await prisma_1.prisma.user.create({
         data: {
-            name: name || null, email, password: hashed, role: role ?? "VIEWER",
+            name: name || null, username, email, password: hashed, role: role ?? "VIEWER",
             permissionsConfigured: role !== "SUPER_ADMIN",
             permissions: { create: selectedPermissions.map((permission) => ({ permission })) },
         },
-        select: { id: true, name: true, email: true, role: true, createdAt: true },
+        select: { id: true, name: true, username: true, email: true, role: true, createdAt: true },
     });
     res.status(201).json(user);
 });
 router.patch("/:id", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), async (req, res) => {
     const { id } = req.params;
-    const { name, email, password, role, notifyOnImport, notifyOnRetire, permissions } = req.body;
+    const { name, password, role, notifyOnImport, notifyOnRetire, permissions } = req.body;
+    const username = req.body.username !== undefined ? (0, usernames_1.normalizeUsername)(req.body.username) : undefined;
+    const email = req.body.email !== undefined ? String(req.body.email).trim().toLowerCase() : undefined;
     if (role !== undefined && !VALID_ROLES.includes(role)) {
         res.status(400).json({ error: "บทบาทไม่ถูกต้อง" });
         return;
@@ -76,6 +86,18 @@ router.patch("/:id", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN
             return;
         }
     }
+    if (username !== undefined) {
+        const usernameError = (0, usernames_1.validateUsername)(username);
+        if (usernameError) {
+            res.status(400).json({ error: usernameError });
+            return;
+        }
+        const conflict = await prisma_1.prisma.user.findFirst({ where: { username, NOT: { id } } });
+        if (conflict) {
+            res.status(400).json({ error: "Username นี้มีในระบบแล้ว" });
+            return;
+        }
+    }
     if (email !== undefined) {
         const conflict = await prisma_1.prisma.user.findFirst({ where: { email, NOT: { id } } });
         if (conflict) {
@@ -86,6 +108,8 @@ router.patch("/:id", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN
     const data = {};
     if (name !== undefined)
         data.name = name || null;
+    if (username !== undefined)
+        data.username = username;
     if (email !== undefined)
         data.email = email;
     if (role !== undefined)
@@ -115,7 +139,7 @@ router.patch("/:id", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN
         const updated = await tx.user.update({
             where: { id },
             data: { ...data, ...(shouldConfigure ? { permissionsConfigured: true } : !configurableRole ? { permissionsConfigured: false } : {}) },
-            select: { id: true, name: true, email: true, role: true, notifyOnImport: true, notifyOnRetire: true, permissionsConfigured: true },
+            select: { id: true, name: true, username: true, email: true, role: true, notifyOnImport: true, notifyOnRetire: true, permissionsConfigured: true },
         });
         if (selectedPermissions !== undefined || !configurableRole) {
             await tx.userPermission.deleteMany({ where: { userId: id } });

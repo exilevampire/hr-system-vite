@@ -7,7 +7,6 @@ const navItems: { to: string; label: string; icon: string; permission?: Permissi
   { to: "/dashboard", label: "แดชบอร์ด", icon: "📊", permission: "dashboard.view" },
   { to: "/records/all", label: "ข้อมูลพนักงานที่พ้นสภาพ", icon: "📋", permission: "employees.view" },
   { to: "/records/import", label: "นำเข้าข้อมูล", icon: "📥", permission: "employees.import" },
-  { to: "/records/update-it-status", label: "อัพเดตสถานะ IT", icon: "🔄", permission: "it_status.update" },
   { to: "/records/add", label: "เพิ่มบุคคลพ้นสภาพ", icon: "➕", permission: "employees.create" },
   { to: "/logs", label: "Audit Log", icon: "📝", permission: "audit_logs.view" },
   { to: "/settings", label: "จัดการผู้ใช้งาน", icon: "⚙️", roles: ["SUPER_ADMIN"] },

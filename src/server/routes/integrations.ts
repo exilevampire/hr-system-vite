@@ -2,7 +2,7 @@ import { Router, Response } from "express";
 import crypto from "crypto";
 import { prisma } from "../lib/prisma";
 import { integrationAuth, IntegrationRequest } from "../middleware/integrationAuth";
-import { bangkokDayAfter, bangkokDayStart, formatThaiDate, parseThaiDate } from "../lib/integrationDates";
+import { bangkokDayAfter, bangkokDayStart, parseThaiDate } from "../lib/integrationDates";
 
 const router = Router();
 const MAX_RANGE_DAYS = 31;
@@ -10,14 +10,10 @@ const MAX_RESULTS = 1000;
 const MAX_FULL_SYNC_RESULTS = 10000;
 
 function requestId() { return `req_${crypto.randomUUID().replace(/-/g, "")}`; }
-function employeeResponse(employee: { employeeId: string; nameTh: string; position: string | null; department: string | null; bureau: string | null; endDate: Date | null }) {
+function employeeResponse(employee: { employeeId: string; nameTh: string }) {
   return {
     employeeId: employee.employeeId,
     fullName: employee.nameTh,
-    position: employee.position,
-    department: employee.department,
-    office: employee.bureau,
-    terminationDate: formatThaiDate(employee.endDate),
   };
 }
 
@@ -67,7 +63,7 @@ router.get("/terminated-employees", integrationAuth, async (req: IntegrationRequ
   const employees = await prisma.employee.findMany({
     where: { createdAt: { gte: bangkokDayStart(fromDate), lt: bangkokDayAfter(toDate) }, endDate: { not: null } },
     orderBy: { id: "asc" }, take: MAX_RESULTS + 1,
-    select: { employeeId: true, nameTh: true, position: true, department: true, bureau: true, endDate: true },
+    select: { employeeId: true, nameTh: true },
   });
   if (employees.length > MAX_RESULTS) {
     await saveLog({ req, requestId: id, statusCode: 422, durationMs: Date.now() - started, errorCode: "RESULT_LIMIT_EXCEEDED", recordedFrom: fromDate, recordedTo: toDate });
@@ -99,7 +95,7 @@ router.get("/terminated-employees/full-sync", integrationAuth, async (req: Integ
   try {
     const employees = await prisma.employee.findMany({
       where: { endDate: { not: null } }, orderBy: { id: "asc" }, take: MAX_FULL_SYNC_RESULTS + 1,
-      select: { employeeId: true, nameTh: true, position: true, department: true, bureau: true, endDate: true },
+      select: { employeeId: true, nameTh: true },
     });
     if (employees.length > MAX_FULL_SYNC_RESULTS) throw new Error("FULL_SYNC_LIMIT_EXCEEDED");
     await saveLog({ req, requestId: id, statusCode: 200, durationMs: Date.now() - started, resultCount: employees.length, employeeIds: employees.map((e) => e.employeeId) });

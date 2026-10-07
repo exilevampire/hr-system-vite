@@ -26,29 +26,12 @@ export declare const integrationOpenApi: {
                     readonly employeeId: {
                         readonly type: "string";
                         readonly example: "123456";
+                        readonly description: "รหัสพนักงาน";
                     };
                     readonly fullName: {
                         readonly type: "string";
                         readonly example: "สมชาย ใจดี";
-                    };
-                    readonly position: {
-                        readonly type: "string";
-                        readonly nullable: true;
-                    };
-                    readonly department: {
-                        readonly type: "string";
-                        readonly nullable: true;
-                        readonly description: "ฝ่าย";
-                    };
-                    readonly office: {
-                        readonly type: "string";
-                        readonly nullable: true;
-                        readonly description: "สำนักงาน";
-                    };
-                    readonly terminationDate: {
-                        readonly type: "string";
-                        readonly nullable: true;
-                        readonly example: "05-10-2569";
+                        readonly description: "ชื่อ-นามสกุลภาษาไทย";
                     };
                 };
             };

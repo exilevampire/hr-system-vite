@@ -226,7 +226,6 @@ export default function DashboardPage() {
                   ] as [string, ITCount][]).map(([label, cnt]) => {
                     const total = cnt.done + cnt.pending + cnt.na + (cnt.unknown ?? 0);
                     const completed = cnt.done + cnt.na + (cnt.unknown ?? 0);
-                    const donePct = total > 0 ? completed / total : 0;
                     return (
                       <div key={label}>
                         <div className="flex items-center justify-between mb-1.5">

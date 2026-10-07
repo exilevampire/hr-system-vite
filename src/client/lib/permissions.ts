@@ -1,6 +1,6 @@
 export const PERMISSIONS = [
   "dashboard.view", "employees.view", "employees.create", "employees.update",
-  "employees.delete", "employees.import", "it_status.update", "reports.export",
+  "employees.delete", "employees.import", "reports.export",
   "audit_logs.view",
 ] as const;
 
@@ -23,7 +23,6 @@ export const PERMISSION_GROUPS: { title: string; items: { value: Permission; lab
     { value: "employees.update", label: "แก้ไขข้อมูล" },
     { value: "employees.delete", label: "ลบข้อมูล" },
     { value: "employees.import", label: "นำเข้าข้อมูล Excel" },
-    { value: "it_status.update", label: "อัปเดตสถานะ IT" },
     { value: "reports.export", label: "ดาวน์โหลดรายงาน Excel" },
   ] },
   { title: "ตรวจสอบระบบ", items: [{ value: "audit_logs.view", label: "ดู Audit Log" }] },

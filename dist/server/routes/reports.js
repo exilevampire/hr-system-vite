@@ -10,7 +10,6 @@ const exceljs_1 = __importDefault(require("exceljs"));
 const router = (0, express_1.Router)();
 const HEADER_DARK = "1E3A5F";
 const HEADER_MID = "2D5F9E";
-const WHITE = "FFFFFFFF";
 const ROW_ODD = "FFEEF4FF";
 const ROW_EVEN = "FFFFFFFF";
 const GREEN_BG = "FFD1FAE5";

@@ -53,7 +53,7 @@ router.post("/setup", auth_1.authMiddleware, async (req, res) => {
         res.status(500).json({ error: "เกิดข้อผิดพลาดภายใน กรุณาลองใหม่" });
         return;
     }
-    const otpauth = (0, totp_1.buildOtpauthURL)(APP_ISSUER, user.email, secret);
+    const otpauth = (0, totp_1.buildOtpauthURL)(APP_ISSUER, user.username ?? user.email, secret);
     const qrDataUrl = await qrcode_1.default.toDataURL(otpauth, { width: 256, margin: 2 });
     await prisma_1.prisma.user.update({ where: { id: user.id }, data: { totpSecret: secret } });
     res.json({ secret, qrDataUrl });
@@ -177,7 +177,7 @@ router.post("/verify", async (req, res) => {
         res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง" });
         return;
     }
-    const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, permissions: (0, permissions_1.resolvePermissions)(user) } });
+    const token = jsonwebtoken_1.default.sign({ id: user.id, username: user.username, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+    res.json({ token, user: { id: user.id, username: user.username, email: user.email, name: user.name, role: user.role, permissions: (0, permissions_1.resolvePermissions)(user) } });
 });
 exports.default = router;

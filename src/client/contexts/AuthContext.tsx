@@ -4,6 +4,7 @@ import type { Permission } from "../lib/permissions";
 
 export interface User {
   id: string;
+  username?: string | null;
   name?: string | null;
   email: string;
   role: string;
@@ -14,7 +15,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }>;
+  login: (identifier: string, password: string, rememberMe?: boolean) => Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }>;
   verify2FA: (tempToken: string, code: string, rememberMe?: boolean) => Promise<{ error?: string }>;
   logout: () => void;
   hasPermission: (permission: Permission) => boolean;
@@ -81,19 +82,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function login(email: string, password: string, rememberMe = false): Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }> {
+  async function login(identifier: string, password: string, rememberMe = false): Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }> {
     try {
       const res = await fetchWithTimeout("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         if (res.status === 503) return { error: data.error ?? "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่ภายหลัง" };
-        return { error: data.error ?? "อีเมลหรือรหัสผ่านไม่ถูกต้อง" };
+        return { error: data.error ?? "Username, Email หรือรหัสผ่านไม่ถูกต้อง" };
       }
 
       if (data.requires2fa) {

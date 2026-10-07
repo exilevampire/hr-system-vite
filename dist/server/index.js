@@ -24,6 +24,7 @@ const integrationClients_1 = __importDefault(require("./routes/integrationClient
 const openapi_1 = require("./lib/openapi");
 const prisma_1 = require("./lib/prisma");
 const retireCron_1 = require("./lib/retireCron");
+const usernames_1 = require("./lib/usernames");
 const app = (0, express_1.default)();
 const rawPort = process.env.PORT ?? "3001";
 const PORT = isNaN(Number(rawPort)) ? rawPort : Number(rawPort);
@@ -98,6 +99,7 @@ else {
 app.listen(PORT, async () => {
     console.log(`✅ Server running at http://localhost:${PORT}`);
     try {
+        await (0, usernames_1.backfillUsernames)();
         const setting = await prisma_1.prisma.systemSetting.findUnique({ where: { key: "retire_notify_time" } });
         (0, retireCron_1.scheduleRetireNotify)(setting?.value ?? "08:00");
     }

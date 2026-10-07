@@ -109,7 +109,11 @@ export default function AccountPage() {
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-800">บัญชีของฉัน</h1>
-          <p className="text-slate-500 text-sm mt-1">{user?.email}</p>
+          <p className="text-slate-500 text-sm mt-1">
+            Username: <span className="font-medium text-slate-600">{user?.username ?? "-"}</span>
+            <span className="mx-2 text-slate-300">|</span>
+            Email: <span className="font-medium text-slate-600">{user?.email}</span>
+          </p>
         </div>
 
         {/* 2FA Card */}

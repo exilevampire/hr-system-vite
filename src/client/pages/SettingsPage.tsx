@@ -7,6 +7,7 @@ import { DEFAULT_ADMIN_PERMISSIONS, PERMISSION_GROUPS, VIEWER_PERMISSIONS, type 
 interface User {
   id: string;
   name?: string;
+  username?: string | null;
   email: string;
   role: string;
   totpEnabled: boolean;
@@ -43,6 +44,49 @@ function PermissionChecklist({ role, value, onChange }: { role: string; value: P
             </label>)}
           </div>
         </div>)}
+      </div>
+    </div>
+  );
+}
+
+function SuperAdminPermissionSummary() {
+  const systemPermissions = [
+    "จัดการผู้ใช้งานและกำหนดบทบาท",
+    "รีเซ็ต 2FA ของผู้ใช้อื่น",
+    "จัดการ Integration API และ API Key",
+  ];
+
+  return (
+    <div className="sm:col-span-2 rounded-xl border border-purple-200 bg-purple-50/50 p-4">
+      <div className="mb-3">
+        <div className="text-sm font-semibold text-slate-700">สิทธิ์การเข้าถึงของ Super Admin</div>
+        <div className="text-xs text-slate-500">ได้รับสิทธิ์ทุกอย่างโดยอัตโนมัติ จึงไม่สามารถยกเลิกสิทธิ์รายข้อได้</div>
+      </div>
+      <div className="space-y-3">
+        {PERMISSION_GROUPS.map((group) => (
+          <div key={group.title}>
+            <div className="mb-1.5 text-xs font-semibold text-slate-500">{group.title}</div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {group.items.map((item) => (
+                <label key={item.value} className="flex items-center gap-2 rounded-lg border border-purple-100 bg-white px-3 py-2 text-sm text-slate-700">
+                  <input type="checkbox" checked readOnly disabled className="h-4 w-4 accent-purple-600" />
+                  <span>{item.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div>
+          <div className="mb-1.5 text-xs font-semibold text-slate-500">จัดการระบบ</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {systemPermissions.map((label) => (
+              <label key={label} className="flex items-center gap-2 rounded-lg border border-purple-100 bg-white px-3 py-2 text-sm text-slate-700">
+                <input type="checkbox" checked readOnly disabled className="h-4 w-4 accent-purple-600" />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -155,13 +199,13 @@ export default function SettingsPage() {
 
   // Add form
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<{ name: string; email: string; password: string; role: string; permissions: Permission[] }>({ name: "", email: "", password: "", role: "VIEWER", permissions: [...VIEWER_PERMISSIONS] });
+  const [form, setForm] = useState<{ name: string; username: string; email: string; password: string; role: string; permissions: Permission[] }>({ name: "", username: "", email: "", password: "", role: "VIEWER", permissions: [...VIEWER_PERMISSIONS] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   // Edit modal
   const [editUser, setEditUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState<{ name: string; email: string; password: string; role: string; permissions: Permission[] }>({ name: "", email: "", password: "", role: "VIEWER", permissions: [] });
+  const [editForm, setEditForm] = useState<{ name: string; username: string; email: string; password: string; role: string; permissions: Permission[] }>({ name: "", username: "", email: "", password: "", role: "VIEWER", permissions: [] });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
   const [resetting2FA, setResetting2FA] = useState(false);
@@ -215,7 +259,7 @@ export default function SettingsPage() {
     setSaving(false);
     if (res.ok) {
       setShowForm(false);
-      setForm({ name: "", email: "", password: "", role: "VIEWER", permissions: [...VIEWER_PERMISSIONS] });
+      setForm({ name: "", username: "", email: "", password: "", role: "VIEWER", permissions: [...VIEWER_PERMISSIONS] });
       fetchUsers();
     } else {
       const d = await res.json();
@@ -225,7 +269,7 @@ export default function SettingsPage() {
 
   function openEdit(u: User) {
     setEditUser(u);
-    setEditForm({ name: u.name ?? "", email: u.email, password: "", role: u.role, permissions: u.permissions ?? [] });
+    setEditForm({ name: u.name ?? "", username: u.username ?? "", email: u.email, password: "", role: u.role, permissions: u.permissions ?? [] });
     setEditError("");
   }
 
@@ -257,6 +301,7 @@ export default function SettingsPage() {
     setEditError("");
     const body: Record<string, unknown> = {
       name: editForm.name,
+      username: editForm.username,
       email: editForm.email,
       role: editForm.role,
       permissions: editForm.role === "SUPER_ADMIN" ? [] : editForm.permissions,
@@ -277,7 +322,7 @@ export default function SettingsPage() {
   }
 
   async function handleReset2FA() {
-    if (!editUser || editUser.email === currentUser?.email || !editUser.totpEnabled) return;
+    if (!editUser || editUser.id === currentUser?.id || !editUser.totpEnabled) return;
     const confirmed = window.confirm(
       `ยืนยันการรีเซ็ต 2FA\n\nผู้ใช้: ${editUser.name ?? "-"}\nEmail: ${editUser.email}\n\nSecret และ Backup Codes เดิมจะถูกยกเลิกทั้งหมด`
     );
@@ -374,6 +419,15 @@ export default function SettingsPage() {
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Username *</label>
+              <input type="text" required value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })}
+                autoComplete="off" minLength={3} maxLength={50} pattern="[a-z0-9][a-z0-9._-]{2,49}"
+                placeholder="เช่น jirasak.h"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <p className="mt-1 text-xs text-slate-400">ใช้ a-z, 0-9, จุด, ขีดกลาง หรือขีดล่าง จำนวน 3-50 ตัว</p>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
               <input type="email" required value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -397,10 +451,12 @@ export default function SettingsPage() {
                 <option value="SUPER_ADMIN">Super Admin</option>
               </select>
             </div>
-            {form.role !== "SUPER_ADMIN" && <PermissionChecklist role={form.role} value={form.permissions} onChange={(permissions) => setForm({ ...form, permissions })} />}
+            {form.role === "SUPER_ADMIN"
+              ? <SuperAdminPermissionSummary />
+              : <PermissionChecklist role={form.role} value={form.permissions} onChange={(permissions) => setForm({ ...form, permissions })} />}
             <div className="sm:col-span-2 flex gap-3 justify-end">
               <button type="button"
-                onClick={() => { setShowForm(false); setForm({ name: "", email: "", password: "", role: "VIEWER", permissions: [...VIEWER_PERMISSIONS] }); setError(""); }}
+                onClick={() => { setShowForm(false); setForm({ name: "", username: "", email: "", password: "", role: "VIEWER", permissions: [...VIEWER_PERMISSIONS] }); setError(""); }}
                 className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50">
                 ยกเลิก
               </button>
@@ -422,6 +478,7 @@ export default function SettingsPage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-slate-600">ชื่อ</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-600">Username</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-600">Email</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-600">บทบาท</th>
                 <th className="px-4 py-3 text-center font-semibold text-slate-600">2FA</th>
@@ -435,6 +492,7 @@ export default function SettingsPage() {
               {users.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{u.name ?? "-"}</td>
+                  <td className="px-4 py-3 text-slate-600 font-mono text-xs">{u.username ?? "-"}</td>
                   <td className="px-4 py-3 text-slate-600">{u.email}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-1 rounded-full font-semibold ${roleColors[u.role] ?? ""}`}>
@@ -480,7 +538,7 @@ export default function SettingsPage() {
                         >
                           แก้ไข
                         </button>
-                        {u.email !== currentUser?.email && (
+                        {u.id !== currentUser?.id && (
                           <button
                             onClick={() => handleDelete(u.id)}
                             className="text-xs text-red-500 hover:underline"
@@ -539,6 +597,22 @@ export default function SettingsPage() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Username *</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.username}
+                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value.toLowerCase() })}
+                  autoComplete="off"
+                  minLength={3}
+                  maxLength={50}
+                  pattern="[a-z0-9][a-z0-9._-]{2,49}"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-slate-400">ใช้ a-z, 0-9, จุด, ขีดกลาง หรือขีดล่าง จำนวน 3-50 ตัว</p>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
                 <input
                   type="email"
@@ -564,19 +638,21 @@ export default function SettingsPage() {
                 <select
                   value={editForm.role}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value, permissions: e.target.value === "ADMIN" ? [...DEFAULT_ADMIN_PERMISSIONS] : e.target.value === "VIEWER" ? [...VIEWER_PERMISSIONS] : [] })}
-                  disabled={editUser.email === currentUser?.email}
+                  disabled={editUser.id === currentUser?.id}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
                   <option value="VIEWER">Viewer</option>
                   <option value="ADMIN">Admin</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
                 </select>
-                {editUser.email === currentUser?.email && (
+                {editUser.id === currentUser?.id && (
                   <p className="mt-1 text-xs text-slate-400">ไม่สามารถเปลี่ยนบทบาทของตัวเองได้</p>
                 )}
               </div>
 
-              {editForm.role !== "SUPER_ADMIN" && <PermissionChecklist role={editForm.role} value={editForm.permissions} onChange={(permissions) => setEditForm({ ...editForm, permissions })} />}
+              {editForm.role === "SUPER_ADMIN"
+                ? <SuperAdminPermissionSummary />
+                : <PermissionChecklist role={editForm.role} value={editForm.permissions} onChange={(permissions) => setEditForm({ ...editForm, permissions })} />}
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-4">
@@ -586,14 +662,14 @@ export default function SettingsPage() {
                       {editUser.totpEnabled ? "ผู้ใช้เปิดใช้งาน 2FA อยู่" : "ผู้ใช้ยังไม่ได้เปิดใช้งาน 2FA"}
                     </div>
                   </div>
-                  {editUser.totpEnabled && editUser.email !== currentUser?.email && (
+                  {editUser.totpEnabled && editUser.id !== currentUser?.id && (
                     <button type="button" onClick={handleReset2FA} disabled={resetting2FA}
                       className="shrink-0 px-3 py-2 text-xs font-medium rounded-lg border border-red-300 bg-white text-red-600 hover:bg-red-50 disabled:opacity-50">
                       {resetting2FA ? "กำลังรีเซ็ต..." : "Reset 2FA"}
                     </button>
                   )}
                 </div>
-                {editUser.email === currentUser?.email && editUser.totpEnabled && (
+                {editUser.id === currentUser?.id && editUser.totpEnabled && (
                   <p className="text-xs text-slate-400 mt-2">บัญชีของตัวเองต้องจัดการ 2FA จากหน้า “บัญชีของฉัน”</p>
                 )}
               </div>

@@ -87,7 +87,6 @@ const HEADER_MAP = {
     "phonebook": "phonebook",
     "วันที่ phonebook": "phonebookDate",
 };
-const SOURCE_TYPE_NAMES = { 1: "สบค.", 2: "ศล." };
 async function resolveDataSource(sourceType, sourceMonth, sourceYear) {
     const st = parseInt(String(sourceType ?? "")) || 0;
     const sm = parseInt(String(sourceMonth ?? "")) || 0;
@@ -615,136 +614,6 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
         }).catch((err) => console.error("[mailer] ส่ง email ไม่สำเร็จ:", err));
     }
 });
-// ── อัพเดตสถานะดำเนินการ IT (SUPER_ADMIN เท่านั้น) ─────────────────────────
-const IT_STATUS_HEADER_MAP = {
-    "รหัสประจำตัว": "employeeId",
-    "fmis": "fmis",
-    "วันที่ fmis": "fmisDate",
-    "emeeting": "eMeeting",
-    "วันที่ emeeting": "eMeetingDate",
-    "software": "software",
-    "วันที่ software": "softwareDate",
-    "phonebook": "phonebook",
-    "วันที่ phonebook": "phonebookDate",
-};
-router.post("/update-it-status", auth_1.authMiddleware, (0, auth_1.requirePermission)("it_status.update"), upload.single("file"), async (req, res) => {
-    const adminUser = req.body.adminUser ?? req.user?.email ?? "unknown";
-    if (!req.file) {
-        res.status(400).json({ error: "ไม่พบไฟล์" });
-        return;
-    }
-    const importBatchId = (0, crypto_1.randomUUID)();
-    const fileName = decodeFilename(req.file.originalname);
-    const buffer = req.file.buffer;
-    const isCsv = /\.csv$/i.test(req.file.originalname);
-    let rows;
-    if (isCsv) {
-        const text = buffer.toString("utf-8").replace(/^﻿/, "");
-        const lines = text.split(/\r?\n/);
-        rows = lines
-            .filter((line) => line.trim() !== "")
-            .map((line) => {
-            const cells = [];
-            let cur = "";
-            let inQuote = false;
-            for (let ci = 0; ci < line.length; ci++) {
-                const ch = line[ci];
-                if (ch === '"') {
-                    inQuote = !inQuote;
-                    continue;
-                }
-                if (ch === "," && !inQuote) {
-                    cells.push(cur);
-                    cur = "";
-                    continue;
-                }
-                cur += ch;
-            }
-            cells.push(cur);
-            return cells;
-        });
-    }
-    else {
-        const wb = XLSX.read(buffer, { type: "buffer", cellDates: false, raw: true });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-    }
-    if (rows.length < 2) {
-        res.status(400).json({ error: "ไฟล์ไม่มีข้อมูล" });
-        return;
-    }
-    const headers = rows[0].map((h) => String(h ?? "").replace(/^﻿/, "").toLowerCase().trim());
-    const colIndex = {};
-    for (let ci = 0; ci < headers.length; ci++) {
-        const mapped = IT_STATUS_HEADER_MAP[headers[ci]];
-        if (mapped)
-            colIndex[mapped] = ci;
-    }
-    if (colIndex["employeeId"] === undefined) {
-        res.status(400).json({ error: "ไม่พบคอลัมน์ รหัสประจำตัว" });
-        return;
-    }
-    let updated = 0;
-    let unchanged = 0;
-    const errors = [];
-    const updatedDetails = [];
-    const IT_FIELDS = [
-        { statusKey: "fmis", dateKey: "fmisDate", label: "FMIS" },
-        { statusKey: "eMeeting", dateKey: "eMeetingDate", label: "eMeeting" },
-        { statusKey: "software", dateKey: "softwareDate", label: "Software" },
-        { statusKey: "phonebook", dateKey: "phonebookDate", label: "Phonebook" },
-    ];
-    for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        const raw = {};
-        for (const [field, idx] of Object.entries(colIndex)) {
-            raw[field] = row[idx] ?? "";
-        }
-        const employeeId = String(raw.employeeId ?? "").trim();
-        if (!employeeId)
-            continue;
-        try {
-            const exists = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
-            if (!exists) {
-                errors.push(`แถว ${i + 1}: ไม่พบรหัสพนักงาน ${employeeId}`);
-                continue;
-            }
-            const changedFields = [];
-            const updateData = {};
-            const today = new Date();
-            const DONE = "ดำเนินการแล้ว";
-            for (const f of IT_FIELDS) {
-                const newStatus = parseITStatusForImport(raw[f.statusKey]);
-                if (newStatus === undefined)
-                    continue;
-                const existingStatus = String(exists[f.statusKey] ?? "");
-                const existingDate = exists[f.dateKey];
-                updateData[f.statusKey] = newStatus;
-                updateData[f.dateKey] = newStatus === DONE
-                    ? (parseDate(raw[f.dateKey]) ?? existingDate ?? today)
-                    : null;
-                if (newStatus !== existingStatus)
-                    changedFields.push(f.label);
-            }
-            if (changedFields.length > 0) {
-                await prisma_1.prisma.employee.update({
-                    where: { employeeId },
-                    data: { ...updateData, updatedBy: adminUser },
-                });
-                await (0, audit_1.createAuditLog)(employeeId, "UPDATE", adminUser, exists, { ...exists, ...updateData }, { source: "IMPORT", fileName, importBatchId });
-                updatedDetails.push({ employeeId, nameTh: exists.nameTh ?? employeeId, changedFields });
-                updated++;
-            }
-            else {
-                unchanged++;
-            }
-        }
-        catch (err) {
-            errors.push(`แถว ${i + 1} (${employeeId}): ${err instanceof Error ? err.message : "error"}`);
-        }
-    }
-    res.json({ updated, unchanged, errors, updatedDetails });
-});
 router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
     const [positions, bureaus, levels, departments, combinations] = await Promise.all([
         prisma_1.prisma.employee.findMany({
@@ -850,7 +719,6 @@ router.patch("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission
         ? await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear)
         : null;
     const pickStr = (val) => val !== undefined ? (String(val ?? "").trim() || "-") : undefined;
-    const pick = (val, fallback = null) => val !== undefined ? (val || fallback) : undefined;
     const fullData = role === "SUPER_ADMIN" ? {
         ...("nameTh" in body && { nameTh: body.nameTh }),
         ...("nameEn" in body && { nameEn: pickStr(body.nameEn) }),

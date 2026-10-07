@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import { authMiddleware, requireRole, AuthenticatedRequest } from "../middleware/auth";
 import bcrypt from "bcryptjs";
 import { DEFAULT_ADMIN_PERMISSIONS, VIEWER_PERMISSIONS, isPermission, resolvePermissions } from "../lib/permissions";
+import { normalizeUsername, validateUsername } from "../lib/usernames";
 
 const router = Router();
 const VALID_ROLES = ["SUPER_ADMIN", "ADMIN", "VIEWER"];
@@ -11,18 +12,22 @@ const allowedForRole = (role: string, permissions: string[]) =>
 
 router.get("/", authMiddleware, requireRole("SUPER_ADMIN"), async (_req, res) => {
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, totpEnabled: true, notifyOnImport: true, notifyOnRetire: true, createdAt: true, permissionsConfigured: true, permissions: { select: { permission: true } } },
+    select: { id: true, name: true, username: true, email: true, role: true, totpEnabled: true, notifyOnImport: true, notifyOnRetire: true, createdAt: true, permissionsConfigured: true, permissions: { select: { permission: true } } },
     orderBy: { createdAt: "asc" },
   });
   res.json(users.map((user) => ({ ...user, permissions: resolvePermissions(user) })));
 });
 
 router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) => {
-  const { name, email, password, role, permissions } = req.body;
-  if (!email || !password) {
-    res.status(400).json({ error: "Email และรหัสผ่านจำเป็น" });
+  const { name, password, role, permissions } = req.body;
+  const username = normalizeUsername(req.body.username);
+  const email = String(req.body.email ?? "").trim().toLowerCase();
+  if (!username || !email || !password) {
+    res.status(400).json({ error: "Username, Email และรหัสผ่านจำเป็น" });
     return;
   }
+  const usernameError = validateUsername(username);
+  if (usernameError) { res.status(400).json({ error: usernameError }); return; }
   if (typeof password !== "string" || password.length < 8) {
     res.status(400).json({ error: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" });
     return;
@@ -40,9 +45,9 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) =>
     return;
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
   if (existing) {
-    res.status(400).json({ error: "Email นี้มีในระบบแล้ว" });
+    res.status(400).json({ error: existing.email === email ? "Email นี้มีในระบบแล้ว" : "Username นี้มีในระบบแล้ว" });
     return;
   }
 
@@ -52,11 +57,11 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) =>
     : role === "VIEWER" || !role ? (permissions ?? VIEWER_PERMISSIONS) : [];
   const user = await prisma.user.create({
     data: {
-      name: name || null, email, password: hashed, role: role ?? "VIEWER",
+      name: name || null, username, email, password: hashed, role: role ?? "VIEWER",
       permissionsConfigured: role !== "SUPER_ADMIN",
       permissions: { create: selectedPermissions.map((permission: string) => ({ permission })) },
     },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: { id: true, name: true, username: true, email: true, role: true, createdAt: true },
   });
 
   res.status(201).json(user);
@@ -64,7 +69,9 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) =>
 
 router.patch("/:id", authMiddleware, requireRole("SUPER_ADMIN"), async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
-  const { name, email, password, role, notifyOnImport, notifyOnRetire, permissions } = req.body;
+  const { name, password, role, notifyOnImport, notifyOnRetire, permissions } = req.body;
+  const username = req.body.username !== undefined ? normalizeUsername(req.body.username) : undefined;
+  const email = req.body.email !== undefined ? String(req.body.email).trim().toLowerCase() : undefined;
 
   if (role !== undefined && !VALID_ROLES.includes(role)) {
     res.status(400).json({ error: "บทบาทไม่ถูกต้อง" });
@@ -80,6 +87,12 @@ router.patch("/:id", authMiddleware, requireRole("SUPER_ADMIN"), async (req: Aut
       return;
     }
   }
+  if (username !== undefined) {
+    const usernameError = validateUsername(username);
+    if (usernameError) { res.status(400).json({ error: usernameError }); return; }
+    const conflict = await prisma.user.findFirst({ where: { username, NOT: { id } } });
+    if (conflict) { res.status(400).json({ error: "Username นี้มีในระบบแล้ว" }); return; }
+  }
   if (email !== undefined) {
     const conflict = await prisma.user.findFirst({ where: { email, NOT: { id } } });
     if (conflict) {
@@ -90,6 +103,7 @@ router.patch("/:id", authMiddleware, requireRole("SUPER_ADMIN"), async (req: Aut
 
   const data: Record<string, unknown> = {};
   if (name !== undefined) data.name = name || null;
+  if (username !== undefined) data.username = username;
   if (email !== undefined) data.email = email;
   if (role !== undefined) data.role = role;
   if (notifyOnImport !== undefined) data.notifyOnImport = Boolean(notifyOnImport);
@@ -113,7 +127,7 @@ router.patch("/:id", authMiddleware, requireRole("SUPER_ADMIN"), async (req: Aut
     const updated = await tx.user.update({
       where: { id },
       data: { ...data, ...(shouldConfigure ? { permissionsConfigured: true } : !configurableRole ? { permissionsConfigured: false } : {}) },
-      select: { id: true, name: true, email: true, role: true, notifyOnImport: true, notifyOnRetire: true, permissionsConfigured: true },
+      select: { id: true, name: true, username: true, email: true, role: true, notifyOnImport: true, notifyOnRetire: true, permissionsConfigured: true },
     });
     if (selectedPermissions !== undefined || !configurableRole) {
       await tx.userPermission.deleteMany({ where: { userId: id } });

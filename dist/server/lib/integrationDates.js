@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseThaiDate = parseThaiDate;
 exports.bangkokDayStart = bangkokDayStart;
 exports.bangkokDayAfter = bangkokDayAfter;
-exports.formatThaiDate = formatThaiDate;
 const THAI_DATE = /^(\d{2})-(\d{2})-(\d{4})$/;
 function parseThaiDate(value) {
     if (typeof value !== "string")
@@ -27,11 +26,4 @@ function bangkokDayStart(date) {
 }
 function bangkokDayAfter(date) {
     return new Date(date.getTime() + 17 * 60 * 60 * 1000);
-}
-function formatThaiDate(date) {
-    if (!date)
-        return null;
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    return `${day}-${month}-${date.getUTCFullYear() + 543}`;
 }

@@ -6,7 +6,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login, verify2FA } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const result = await login(email, password, rememberMe);
+    const result = await login(identifier, password, rememberMe);
     setLoading(false);
     if (result.error) {
       setError(result.error);
@@ -76,14 +76,14 @@ export default function LoginPage() {
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Username หรือ Email</label>
                     <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      type="text"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
                       required
                       className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="admin@example.com"
+                      placeholder="username หรือ admin@example.com"
                     />
                   </div>
                   <div>

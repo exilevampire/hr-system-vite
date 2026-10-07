@@ -21,10 +21,3 @@ export function bangkokDayStart(date: Date): Date {
 export function bangkokDayAfter(date: Date): Date {
   return new Date(date.getTime() + 17 * 60 * 60 * 1000);
 }
-
-export function formatThaiDate(date: Date | null): string | null {
-  if (!date) return null;
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `${day}-${month}-${date.getUTCFullYear() + 543}`;
-}
