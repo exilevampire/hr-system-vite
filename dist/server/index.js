@@ -9,6 +9,7 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const path_1 = __importDefault(require("path"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const twofa_1 = __importDefault(require("./routes/twofa"));
 const employees_1 = __importDefault(require("./routes/employees"));
@@ -18,12 +19,17 @@ const users_1 = __importDefault(require("./routes/users"));
 const reports_1 = __importDefault(require("./routes/reports"));
 const datasources_1 = __importDefault(require("./routes/datasources"));
 const settings_1 = __importDefault(require("./routes/settings"));
+const integrations_1 = __importDefault(require("./routes/integrations"));
+const integrationClients_1 = __importDefault(require("./routes/integrationClients"));
+const openapi_1 = require("./lib/openapi");
 const prisma_1 = require("./lib/prisma");
 const retireCron_1 = require("./lib/retireCron");
 const app = (0, express_1.default)();
 const rawPort = process.env.PORT ?? "3001";
 const PORT = isNaN(Number(rawPort)) ? rawPort : Number(rawPort);
 const isProd = process.env.NODE_ENV === "production";
+if (process.env.TRUST_PROXY === "1")
+    app.set("trust proxy", 1);
 // ── Warn on weak JWT secret ────────────────────────────────────────────
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "change-me") {
     console.warn("⚠️  WARNING: JWT_SECRET is not set or is using the default value. Set a strong secret in .env");
@@ -54,6 +60,13 @@ const twoFALimiter = (0, express_rate_limit_1.default)({
     standardHeaders: true,
     legacyHeaders: false,
 });
+const integrationLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 60 * 1000,
+    max: 60,
+    message: { error: { code: "RATE_LIMIT_EXCEEDED", message: "เรียก API เกิน 60 ครั้งต่อนาที" } },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 // ── Routes ─────────────────────────────────────────────────────────────
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/2fa/verify", twoFALimiter);
@@ -67,6 +80,10 @@ app.use("/api/users", users_1.default);
 app.use("/api/reports", reports_1.default);
 app.use("/api/datasources", datasources_1.default);
 app.use("/api/settings", settings_1.default);
+app.use("/api/integration-clients", integrationClients_1.default);
+app.use("/api/integrations/v1", integrationLimiter, integrations_1.default);
+app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(openapi_1.integrationOpenApi, { customSiteTitle: "HR Integration API" }));
+app.get("/api-docs.json", (_req, res) => res.json(openapi_1.integrationOpenApi));
 if (isProd) {
     const clientDist = path_1.default.join(__dirname, "../client");
     app.use(express_1.default.static(clientDist));

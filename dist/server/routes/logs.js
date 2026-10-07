@@ -33,7 +33,7 @@ async function resolveDataSourceLabels(data) {
             change.new = labelById.get(change.new) ?? `ไม่พบข้อมูลต้นทาง (#${change.new})`;
     }
 }
-router.get("/", auth_1.authMiddleware, async (req, res) => {
+router.get("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("audit_logs.view"), async (req, res) => {
     const page = parseInt(String(req.query.page ?? "1"));
     const pageSize = parseInt(String(req.query.pageSize ?? "30"));
     const search = String(req.query.search ?? "").trim();

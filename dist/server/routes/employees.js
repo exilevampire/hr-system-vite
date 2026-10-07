@@ -162,7 +162,7 @@ function parseDate(val) {
     }
     return null;
 }
-router.get("/", auth_1.authMiddleware, async (req, res) => {
+router.get("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.view"), async (req, res) => {
     const page = parseInt(String(req.query.page ?? "1"));
     const pageSize = parseInt(String(req.query.pageSize ?? "20"));
     const search = String(req.query.search ?? "");
@@ -285,7 +285,7 @@ router.get("/", auth_1.authMiddleware, async (req, res) => {
     ]);
     res.json({ data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
 });
-router.post("/", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN", "ADMIN"), async (req, res) => {
+router.post("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.create"), async (req, res) => {
     const body = req.body;
     const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
     if (!body.employeeId?.trim()) {
@@ -396,7 +396,7 @@ function toDateStr(d) {
         return "";
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-router.post("/import", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN", "ADMIN"), (req, res, next) => {
+router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.import"), (req, res, next) => {
     upload.fields([{ name: "files", maxCount: 20 }, { name: "file", maxCount: 1 }])(req, res, (err) => {
         if (err?.code === "LIMIT_FILE_COUNT") {
             res.status(400).json({ error: "อัปโหลดได้สูงสุด 20 ไฟล์ต่อครั้ง" });
@@ -627,7 +627,7 @@ const IT_STATUS_HEADER_MAP = {
     "phonebook": "phonebook",
     "วันที่ phonebook": "phonebookDate",
 };
-router.post("/update-it-status", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), upload.single("file"), async (req, res) => {
+router.post("/update-it-status", auth_1.authMiddleware, (0, auth_1.requirePermission)("it_status.update"), upload.single("file"), async (req, res) => {
     const adminUser = req.body.adminUser ?? req.user?.email ?? "unknown";
     if (!req.file) {
         res.status(400).json({ error: "ไม่พบไฟล์" });
@@ -813,7 +813,7 @@ router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
         ]),
     });
 });
-router.get("/:employeeId", auth_1.authMiddleware, async (req, res) => {
+router.get("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.view"), async (req, res) => {
     const { employeeId } = req.params;
     const employee = await prisma_1.prisma.employee.findUnique({
         where: { employeeId },
@@ -825,7 +825,7 @@ router.get("/:employeeId", auth_1.authMiddleware, async (req, res) => {
     }
     res.json(employee);
 });
-router.patch("/:employeeId", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN", "ADMIN"), async (req, res) => {
+router.patch("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.update"), async (req, res) => {
     const { employeeId } = req.params;
     const body = req.body;
     const role = req.user?.role ?? "";
@@ -879,7 +879,7 @@ router.patch("/:employeeId", auth_1.authMiddleware, (0, auth_1.requireRole)("SUP
     await (0, audit_1.createAuditLog)(employeeId, "UPDATE", adminUser, old, updated);
     res.json(updated);
 });
-router.delete("/:employeeId", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), async (req, res) => {
+router.delete("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.delete"), async (req, res) => {
     const { employeeId } = req.params;
     const adminUser = req.user?.email ?? "unknown";
     const existing = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });

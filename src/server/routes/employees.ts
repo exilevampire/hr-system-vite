@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { createAuditLog } from "../lib/audit";
-import { authMiddleware, requireRole, AuthenticatedRequest } from "../middleware/auth";
+import { authMiddleware, requirePermission, AuthenticatedRequest } from "../middleware/auth";
 import { sendImportNotification } from "../lib/mailer";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -124,7 +124,7 @@ function parseDate(val: unknown): Date | null {
   return null;
 }
 
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/", authMiddleware, requirePermission("employees.view"), async (req, res) => {
   const page = parseInt(String(req.query.page ?? "1"));
   const pageSize = parseInt(String(req.query.pageSize ?? "20"));
   const search = String(req.query.search ?? "");
@@ -245,7 +245,7 @@ router.get("/", authMiddleware, async (req, res) => {
   res.json({ data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
 });
 
-router.post("/", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req: AuthenticatedRequest, res) => {
+router.post("/", authMiddleware, requirePermission("employees.create"), async (req: AuthenticatedRequest, res) => {
   const body = req.body;
   const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
 
@@ -356,7 +356,7 @@ function toDateStr(d: Date | null | undefined): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-router.post("/import", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"),
+router.post("/import", authMiddleware, requirePermission("employees.import"),
   (req, res, next) => {
     upload.fields([{ name: "files", maxCount: 20 }, { name: "file", maxCount: 1 }])(req, res, (err) => {
       if (err?.code === "LIMIT_FILE_COUNT") {
@@ -604,7 +604,7 @@ const IT_STATUS_HEADER_MAP: Record<string, string> = {
   "วันที่ phonebook": "phonebookDate",
 };
 
-router.post("/update-it-status", authMiddleware, requireRole("SUPER_ADMIN"), upload.single("file"), async (req: AuthenticatedRequest, res) => {
+router.post("/update-it-status", authMiddleware, requirePermission("it_status.update"), upload.single("file"), async (req: AuthenticatedRequest, res) => {
   const adminUser = (req.body.adminUser as string) ?? req.user?.email ?? "unknown";
 
   if (!req.file) {
@@ -805,7 +805,7 @@ router.get("/meta", authMiddleware, async (_req, res) => {
   });
 });
 
-router.get("/:employeeId", authMiddleware, async (req, res) => {
+router.get("/:employeeId", authMiddleware, requirePermission("employees.view"), async (req, res) => {
   const { employeeId } = req.params;
   const employee = await prisma.employee.findUnique({
     where: { employeeId },
@@ -818,7 +818,7 @@ router.get("/:employeeId", authMiddleware, async (req, res) => {
   res.json(employee);
 });
 
-router.patch("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN"), async (req: AuthenticatedRequest, res) => {
+router.patch("/:employeeId", authMiddleware, requirePermission("employees.update"), async (req: AuthenticatedRequest, res) => {
   const { employeeId } = req.params;
   const body = req.body;
   const role = req.user?.role ?? "";
@@ -888,7 +888,7 @@ router.patch("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN", "ADMIN")
   res.json(updated);
 });
 
-router.delete("/:employeeId", authMiddleware, requireRole("SUPER_ADMIN"), async (req: AuthenticatedRequest, res) => {
+router.delete("/:employeeId", authMiddleware, requirePermission("employees.delete"), async (req: AuthenticatedRequest, res) => {
   const { employeeId } = req.params;
   const adminUser = req.user?.email ?? "unknown";
 

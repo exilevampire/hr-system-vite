@@ -8,6 +8,7 @@ const prisma_1 = require("../lib/prisma");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const auth_1 = require("../middleware/auth");
+const permissions_1 = require("../lib/permissions");
 const router = (0, express_1.Router)();
 const JWT_SECRET = process.env.JWT_SECRET ?? "change-me";
 router.post("/login", async (req, res) => {
@@ -18,7 +19,7 @@ router.post("/login", async (req, res) => {
     }
     let user;
     try {
-        user = await prisma_1.prisma.user.findUnique({ where: { email } });
+        user = await prisma_1.prisma.user.findUnique({ where: { email }, include: { permissions: { select: { permission: true } } } });
     }
     catch (err) {
         console.error("[Auth] database error during login:", err);
@@ -42,7 +43,7 @@ router.post("/login", async (req, res) => {
         return;
     }
     const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, permissions: (0, permissions_1.resolvePermissions)(user) } });
 });
 router.get("/me", auth_1.authMiddleware, (req, res) => {
     res.json(req.user);

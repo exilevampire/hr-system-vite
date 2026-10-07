@@ -18,7 +18,7 @@ interface UpdateResult {
 }
 
 export default function UpdateITStatusPage() {
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -28,8 +28,8 @@ export default function UpdateITStatusPage() {
   const [showUpdated, setShowUpdated] = useState(false);
 
   useEffect(() => {
-    if (user?.role !== "SUPER_ADMIN") navigate("/dashboard", { replace: true });
-  }, [user, navigate]);
+    if (!hasPermission("it_status.update")) navigate("/", { replace: true });
+  }, [hasPermission, navigate]);
 
   async function handleUpload() {
     if (!file) return;

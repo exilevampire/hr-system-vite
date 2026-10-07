@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import ExcelJS from "exceljs";
 
 const router = Router();
@@ -61,7 +61,7 @@ function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {
 }
 
 // GET /api/reports/meta — unique bureaus for filter dropdown
-router.get("/meta", authMiddleware, async (_req, res) => {
+router.get("/meta", authMiddleware, requirePermission("reports.export"), async (_req, res) => {
   const rows = await prisma.employee.findMany({
     select: { bureau: true },
     distinct: ["bureau"],
@@ -72,7 +72,7 @@ router.get("/meta", authMiddleware, async (_req, res) => {
 });
 
 // GET /api/reports/employees — download styled Excel
-router.get("/employees", authMiddleware, async (req, res) => {
+router.get("/employees", authMiddleware, requirePermission("reports.export"), async (req, res) => {
   const search          = String(req.query.search          ?? "");
   const bureau          = String(req.query.bureau          ?? "");
   const position        = String(req.query.position        ?? "");

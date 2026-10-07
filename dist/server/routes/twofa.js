@@ -11,6 +11,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const auth_1 = require("../middleware/auth");
+const permissions_1 = require("../lib/permissions");
 const router = (0, express_1.Router)();
 const JWT_SECRET = process.env.JWT_SECRET ?? "change-me";
 const APP_ISSUER = "HR-RedCross";
@@ -148,7 +149,7 @@ router.post("/verify", async (req, res) => {
         res.status(401).json({ error: "Token ไม่ถูกต้อง" });
         return;
     }
-    const user = await prisma_1.prisma.user.findUnique({ where: { id: payload.id } });
+    const user = await prisma_1.prisma.user.findUnique({ where: { id: payload.id }, include: { permissions: { select: { permission: true } } } });
     if (!user || !user.totpEnabled || !user.totpSecret) {
         res.status(401).json({ error: "ไม่พบผู้ใช้หรือ 2FA ไม่ได้เปิดใช้งาน" });
         return;
@@ -177,6 +178,6 @@ router.post("/verify", async (req, res) => {
         return;
     }
     const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, permissions: (0, permissions_1.resolvePermissions)(user) } });
 });
 exports.default = router;

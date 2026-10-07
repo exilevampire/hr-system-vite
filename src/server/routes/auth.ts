@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
+import { resolvePermissions } from "../lib/permissions";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET ?? "change-me";
@@ -16,7 +17,7 @@ router.post("/login", async (req, res) => {
 
   let user;
   try {
-    user = await prisma.user.findUnique({ where: { email } });
+    user = await prisma.user.findUnique({ where: { email }, include: { permissions: { select: { permission: true } } } });
   } catch (err) {
     console.error("[Auth] database error during login:", err);
     res.status(503).json({ error: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่ภายหลัง" });
@@ -48,7 +49,7 @@ router.post("/login", async (req, res) => {
     { expiresIn: "7d" }
   );
 
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, permissions: resolvePermissions(user) } });
 });
 
 router.get("/me", authMiddleware, (req: AuthenticatedRequest, res) => {

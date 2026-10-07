@@ -1,15 +1,17 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useState } from "react";
+import type { Permission } from "../lib/permissions";
 
-const navItems = [
-  { to: "/dashboard", label: "แดชบอร์ด", icon: "📊" },
-  { to: "/records/all", label: "ข้อมูลพนักงานที่พ้นสภาพ", icon: "📋" },
-  { to: "/records/import", label: "นำเข้าข้อมูล", icon: "📥", roles: ["SUPER_ADMIN", "ADMIN"] },
-  { to: "/records/update-it-status", label: "อัพเดตสถานะ IT", icon: "🔄", roles: ["SUPER_ADMIN"] },
-  { to: "/records/add", label: "เพิ่มบุคคลพ้นสภาพ", icon: "➕", roles: ["SUPER_ADMIN", "ADMIN"] },
-  { to: "/logs", label: "Audit Log", icon: "📝", roles: ["SUPER_ADMIN", "ADMIN"] },
+const navItems: { to: string; label: string; icon: string; permission?: Permission; roles?: string[] }[] = [
+  { to: "/dashboard", label: "แดชบอร์ด", icon: "📊", permission: "dashboard.view" },
+  { to: "/records/all", label: "ข้อมูลพนักงานที่พ้นสภาพ", icon: "📋", permission: "employees.view" },
+  { to: "/records/import", label: "นำเข้าข้อมูล", icon: "📥", permission: "employees.import" },
+  { to: "/records/update-it-status", label: "อัพเดตสถานะ IT", icon: "🔄", permission: "it_status.update" },
+  { to: "/records/add", label: "เพิ่มบุคคลพ้นสภาพ", icon: "➕", permission: "employees.create" },
+  { to: "/logs", label: "Audit Log", icon: "📝", permission: "audit_logs.view" },
   { to: "/settings", label: "จัดการผู้ใช้งาน", icon: "⚙️", roles: ["SUPER_ADMIN"] },
+  { to: "/api-management", label: "จัดการ API", icon: "🔌", roles: ["SUPER_ADMIN"] },
   { to: "/account", label: "บัญชีของฉัน / 2FA", icon: "🔐" },
 ];
 
@@ -22,7 +24,7 @@ export function Sidebar({
 }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const [open, setOpen] = useState(false);
   const role = user?.role ?? "VIEWER";
 
@@ -38,7 +40,9 @@ export function Sidebar({
     role === "ADMIN"       ? "bg-blue-400 text-blue-900"   :
                              "bg-slate-400 text-slate-900";
 
-  const filtered = navItems.filter((item) => !item.roles || item.roles.includes(role));
+  const filtered = navItems.filter((item) =>
+    (!item.roles || item.roles.includes(role)) && (!item.permission || hasPermission(item.permission))
+  );
 
   // Collapsing is a desktop affordance only — on mobile the drawer slides in at
   // full width, so every "hide this when collapsed" rule is md-scoped.

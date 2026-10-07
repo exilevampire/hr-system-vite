@@ -198,9 +198,11 @@ function isFullyClosed(emp: Employee): boolean {
 }
 
 export default function AllRecordsPage() {
-  const { user } = useAuth();
-  const role = user?.role ?? "VIEWER";
-  const canEdit = role === "SUPER_ADMIN" || role === "ADMIN";
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission("employees.update");
+  const canDelete = hasPermission("employees.delete");
+  const canExport = hasPermission("reports.export");
+  const canImport = hasPermission("employees.import");
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [total, setTotal] = useState(0);
@@ -517,14 +519,14 @@ export default function AllRecordsPage() {
               </div>
             )}
           </div>
-          <button
+          {canExport && <button
             onClick={handleDownload}
             disabled={downloading}
             className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             {downloading ? "กำลังสร้างรายงาน..." : "📊 ดาวน์โหลดรายงาน"}
-          </button>
-          {canEdit && (
+          </button>}
+          {canImport && (
             <>
               <Link to="/records/import" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 📥 นำเข้าข้อมูล
@@ -806,7 +808,7 @@ export default function AllRecordsPage() {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                           </svg>
                         </button>
-                        {role === "SUPER_ADMIN" && (
+                        {canDelete && (
                           <button
                             onClick={() => handleDelete(emp.employeeId)}
                             title="ลบ"
@@ -900,7 +902,7 @@ export default function AllRecordsPage() {
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
                     </button>
-                    {role === "SUPER_ADMIN" && (
+                    {canDelete && (
                       <button
                         onClick={() => handleDelete(emp.employeeId)}
                         title="ลบ"

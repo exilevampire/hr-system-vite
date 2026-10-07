@@ -35,7 +35,7 @@ export default function LoginPage() {
       setTempToken(result.tempToken);
       setStep("otp");
     } else {
-      navigate("/dashboard");
+      navigate("/");
     }
   }
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
       setError(result.error);
       setOtpCode("");
     } else {
-      navigate("/dashboard");
+      navigate("/");
     }
   }
 

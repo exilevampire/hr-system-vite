@@ -4,7 +4,7 @@ const express_1 = require("express");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-router.get("/", auth_1.authMiddleware, async (_req, res) => {
+router.get("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("dashboard.view"), async (_req, res) => {
     const [total, allEmployees] = await Promise.all([
         prisma_1.prisma.employee.count(),
         prisma_1.prisma.employee.findMany({

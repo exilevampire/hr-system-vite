@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 
 const router = Router();
 
-router.get("/", authMiddleware, async (_req, res) => {
+router.get("/", authMiddleware, requirePermission("dashboard.view"), async (_req, res) => {
   const [total, allEmployees] = await Promise.all([
     prisma.employee.count(),
     prisma.employee.findMany({

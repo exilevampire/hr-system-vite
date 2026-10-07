@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
+import { resolvePermissions } from "../lib/permissions";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET ?? "change-me";
@@ -148,7 +149,7 @@ router.post("/verify", async (req, res) => {
     return;
   }
 
-  const user = await prisma.user.findUnique({ where: { id: payload.id } });
+  const user = await prisma.user.findUnique({ where: { id: payload.id }, include: { permissions: { select: { permission: true } } } });
   if (!user || !user.totpEnabled || !user.totpSecret) {
     res.status(401).json({ error: "ไม่พบผู้ใช้หรือ 2FA ไม่ได้เปิดใช้งาน" });
     return;
@@ -186,7 +187,7 @@ router.post("/verify", async (req, res) => {
     JWT_SECRET,
     { expiresIn: "7d" }
   );
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, permissions: resolvePermissions(user) } });
 });
 
 export default router;

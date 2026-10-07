@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import path from "path";
+import swaggerUi from "swagger-ui-express";
 
 import authRouter from "./routes/auth";
 import twofaRouter from "./routes/twofa";
@@ -14,6 +15,9 @@ import usersRouter from "./routes/users";
 import reportsRouter from "./routes/reports";
 import dataSourcesRouter from "./routes/datasources";
 import settingsRouter from "./routes/settings";
+import integrationsRouter from "./routes/integrations";
+import integrationClientsRouter from "./routes/integrationClients";
+import { integrationOpenApi } from "./lib/openapi";
 import { prisma } from "./lib/prisma";
 import { scheduleRetireNotify } from "./lib/retireCron";
 
@@ -21,6 +25,8 @@ const app = express();
 const rawPort = process.env.PORT ?? "3001";
 const PORT: number | string = isNaN(Number(rawPort)) ? rawPort : Number(rawPort);
 const isProd = process.env.NODE_ENV === "production";
+
+if (process.env.TRUST_PROXY === "1") app.set("trust proxy", 1);
 
 // ── Warn on weak JWT secret ────────────────────────────────────────────
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "change-me") {
@@ -58,6 +64,14 @@ const twoFALimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const integrationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: { code: "RATE_LIMIT_EXCEEDED", message: "เรียก API เกิน 60 ครั้งต่อนาที" } },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ── Routes ─────────────────────────────────────────────────────────────
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/2fa/verify", twoFALimiter);
@@ -72,6 +86,10 @@ app.use("/api/users", usersRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/datasources", dataSourcesRouter);
 app.use("/api/settings", settingsRouter);
+app.use("/api/integration-clients", integrationClientsRouter);
+app.use("/api/integrations/v1", integrationLimiter, integrationsRouter);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(integrationOpenApi, { customSiteTitle: "HR Integration API" }));
+app.get("/api-docs.json", (_req, res) => res.json(integrationOpenApi));
 
 if (isProd) {
   const clientDist = path.join(__dirname, "../client");

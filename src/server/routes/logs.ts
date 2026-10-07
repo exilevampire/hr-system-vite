@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 
 const router = Router();
 
@@ -32,7 +32,7 @@ async function resolveDataSourceLabels(data: { changedFields: unknown }[]) {
   }
 }
 
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/", authMiddleware, requirePermission("audit_logs.view"), async (req, res) => {
   const page = parseInt(String(req.query.page ?? "1"));
   const pageSize = parseInt(String(req.query.pageSize ?? "30"));
   const search = String(req.query.search ?? "").trim();

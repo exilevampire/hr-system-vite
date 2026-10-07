@@ -39,6 +39,7 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.3",
     "recharts": "^3.8.1",
+    "swagger-ui-express": "^5.0.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -54,6 +55,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/swagger-ui-express": "^4.1.8",
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.1.2",
     "kill-port": "^2.0.1",

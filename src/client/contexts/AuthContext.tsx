@@ -1,10 +1,13 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-interface User {
+import type { Permission } from "../lib/permissions";
+
+export interface User {
   id: string;
   name?: string | null;
   email: string;
   role: string;
+  permissions: Permission[];
 }
 
 interface AuthContextType {
@@ -14,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }>;
   verify2FA: (tempToken: string, code: string, rememberMe?: boolean) => Promise<{ error?: string }>;
   logout: () => void;
+  hasPermission: (permission: Permission) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -141,8 +145,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }
 
+  const hasPermission = useCallback((permission: Permission) =>
+    Boolean(user?.permissions?.includes(permission)), [user]);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, verify2FA, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, verify2FA, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
