@@ -8,7 +8,6 @@ const prisma_1 = require("../lib/prisma");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const auth_1 = require("../middleware/auth");
-const permissions_1 = require("../lib/permissions");
 const router = (0, express_1.Router)();
 const JWT_SECRET = process.env.JWT_SECRET ?? "change-me";
 router.post("/login", async (req, res) => {
@@ -46,8 +45,9 @@ router.post("/login", async (req, res) => {
         res.json({ requires2fa: true, tempToken });
         return;
     }
-    const token = jsonwebtoken_1.default.sign({ id: user.id, username: user.username, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user: { id: user.id, username: user.username, email: user.email, name: user.name, role: user.role, permissions: (0, permissions_1.resolvePermissions)(user) } });
+    const setupToken = jsonwebtoken_1.default.sign({ id: user.id, type: "2fa_setup" }, JWT_SECRET, { expiresIn: "15m" });
+    res.json({ requires2faSetup: true, setupToken });
+    return;
 });
 router.get("/me", auth_1.authMiddleware, (req, res) => {
     res.json(req.user);

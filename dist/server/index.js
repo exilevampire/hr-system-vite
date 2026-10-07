@@ -72,6 +72,8 @@ const integrationLimiter = (0, express_rate_limit_1.default)({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/2fa/verify", twoFALimiter);
 app.use("/api/auth/2fa/enable", twoFALimiter);
+app.use("/api/auth/2fa/setup-required", twoFALimiter);
+app.use("/api/auth/2fa/enable-required", twoFALimiter);
 app.use("/api/auth", auth_1.default);
 app.use("/api/auth/2fa", twofa_1.default);
 app.use("/api/employees", employees_1.default);

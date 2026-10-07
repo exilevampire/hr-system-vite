@@ -21,10 +21,6 @@ export default function AccountPage() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
-  // Disable flow
-  const [disableCode, setDisableCode] = useState("");
-  const [showDisable, setShowDisable] = useState(false);
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -69,24 +65,6 @@ export default function AccountPage() {
     setPhase("done");
     setEnabled(true);
     setBackupCodesRemaining(10);
-  }
-
-  async function handleDisable(e: React.FormEvent) {
-    e.preventDefault();
-    if (!disableCode.trim()) return;
-    setError("");
-    setLoading(true);
-    const res = await apiFetch("/api/auth/2fa/disable", {
-      method: "POST",
-      body: JSON.stringify({ code: disableCode.trim() }),
-    });
-    const d = await res.json();
-    setLoading(false);
-    if (!res.ok) { setError(d.error); return; }
-    setEnabled(false);
-    setBackupCodesRemaining(0);
-    setShowDisable(false);
-    setDisableCode("");
   }
 
   function handleCopyAll() {
@@ -135,7 +113,7 @@ export default function AccountPage() {
           )}
 
           {/* ── Idle / status ── */}
-          {phase === "idle" && !showDisable && (
+          {phase === "idle" && (
             <div className="mt-5">
               {enabled ? (
                 <div className="space-y-4">
@@ -148,15 +126,10 @@ export default function AccountPage() {
                   </div>
                   {backupCodesRemaining <= 3 && (
                     <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
-                      ⚠️ Backup codes ใกล้หมดแล้ว กรุณาปิด-เปิด 2FA ใหม่เพื่อสร้าง codes ชุดใหม่
+                      ⚠️ Backup codes ใกล้หมดแล้ว กรุณาติดต่อ Super Admin เพื่อรีเซ็ตและตั้งค่า 2FA ใหม่
                     </div>
                   )}
-                  <button
-                    onClick={() => { setShowDisable(true); setError(""); }}
-                    className="px-4 py-2 text-sm border border-red-300 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    ปิดใช้งาน 2FA
-                  </button>
+                  <p className="text-xs text-slate-500">ระบบกำหนดให้ทุกบัญชีเปิดใช้งาน 2FA หากต้องการตั้งค่าใหม่ กรุณาติดต่อ Super Admin เพื่อรีเซ็ต</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -179,38 +152,6 @@ export default function AccountPage() {
                 </div>
               )}
             </div>
-          )}
-
-          {/* ── Disable confirm ── */}
-          {showDisable && (
-            <form onSubmit={handleDisable} className="mt-5 space-y-4">
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                การปิด 2FA จะลบ Backup Codes ทั้งหมดออกด้วย กรุณากรอกรหัสเพื่อยืนยัน
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  รหัส OTP จาก App หรือ Backup Code
-                </label>
-                <input
-                  type="text"
-                  value={disableCode}
-                  onChange={(e) => setDisableCode(e.target.value)}
-                  placeholder="รหัส 6 หลัก หรือ XXXX-XXXX"
-                  autoFocus
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-400"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button type="button" onClick={() => { setShowDisable(false); setDisableCode(""); setError(""); }}
-                  className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50">
-                  ยกเลิก
-                </button>
-                <button type="submit" disabled={loading || !disableCode.trim()}
-                  className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-lg transition-colors">
-                  {loading ? "กำลังดำเนินการ..." : "ยืนยันการปิด 2FA"}
-                </button>
-              </div>
-            </form>
           )}
 
           {/* ── QR Code phase ── */}

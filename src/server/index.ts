@@ -77,6 +77,8 @@ const integrationLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/2fa/verify", twoFALimiter);
 app.use("/api/auth/2fa/enable", twoFALimiter);
+app.use("/api/auth/2fa/setup-required", twoFALimiter);
+app.use("/api/auth/2fa/enable-required", twoFALimiter);
 
 app.use("/api/auth", authRouter);
 app.use("/api/auth/2fa", twofaRouter);

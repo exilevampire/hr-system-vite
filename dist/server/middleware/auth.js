@@ -23,12 +23,16 @@ async function authMiddleware(req, res, next) {
         const user = await prisma_1.prisma.user.findUnique({
             where: { id: payload.id },
             select: {
-                id: true, username: true, email: true, name: true, role: true, permissionsConfigured: true,
+                id: true, username: true, email: true, name: true, role: true, totpEnabled: true, permissionsConfigured: true,
                 permissions: { select: { permission: true } },
             },
         });
         if (!user)
             throw new Error("User not found");
+        if (!user.totpEnabled) {
+            res.status(403).json({ error: "กรุณาตั้งค่า 2FA ก่อนเข้าใช้งานระบบ", code: "2FA_SETUP_REQUIRED" });
+            return;
+        }
         req.user = { id: user.id, username: user.username, email: user.email, name: user.name, role: user.role, permissions: (0, permissions_1.resolvePermissions)(user) };
         next();
     }

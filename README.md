@@ -76,6 +76,13 @@
 1. กรอก Username หรือ Email + Password → รับ `tempToken` (อายุ 5 นาที)
 2. กรอก OTP 6 หลักจาก Authenticator app → รับ JWT token เพื่อใช้งานระบบ
 
+**การบังคับใช้ 2FA:**
+- บัญชีที่ยังไม่เปิด 2FA จะได้รับ `setupToken` อายุ 15 นาทีแทน JWT ปกติ
+- `setupToken` ใช้ได้เฉพาะการสร้าง QR Code และยืนยันเปิด 2FA
+- ระบบออก JWT ปกติหลังยืนยัน OTP และแสดง Backup Codes แล้วเท่านั้น
+- Session เดิมของบัญชีที่ไม่มี 2FA ไม่สามารถเรียก Backend API ได้
+- ผู้ใช้ไม่สามารถปิด 2FA เองได้ หากต้องการตั้งค่าใหม่ต้องให้ Super Admin รีเซ็ต
+
 **Backup Codes:**
 - ระบบสร้าง backup code 10 รหัสเมื่อเปิดใช้ 2FA
 - แต่ละรหัสเป็น hex 8 หลัก รูปแบบ `XXXX-XXXX`

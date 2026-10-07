@@ -15,8 +15,11 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (identifier: string, password: string, rememberMe?: boolean) => Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }>;
+  login: (identifier: string, password: string, rememberMe?: boolean) => Promise<{ error?: string; requires2fa?: boolean; tempToken?: string; requires2faSetup?: boolean; setupToken?: string }>;
   verify2FA: (tempToken: string, code: string, rememberMe?: boolean) => Promise<{ error?: string }>;
+  setupRequired2FA: (setupToken: string) => Promise<{ error?: string; secret?: string; qrDataUrl?: string }>;
+  enableRequired2FA: (setupToken: string, code: string) => Promise<{ error?: string; backupCodes?: string[]; token?: string; user?: User }>;
+  completeRequired2FA: (token: string, user: User, rememberMe?: boolean) => void;
   logout: () => void;
   hasPermission: (permission: Permission) => boolean;
 }
@@ -82,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function login(identifier: string, password: string, rememberMe = false): Promise<{ error?: string; requires2fa?: boolean; tempToken?: string }> {
+  async function login(identifier: string, password: string, rememberMe = false): Promise<{ error?: string; requires2fa?: boolean; tempToken?: string; requires2faSetup?: boolean; setupToken?: string }> {
     try {
       const res = await fetchWithTimeout("/api/auth/login", {
         method: "POST",
@@ -100,6 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.requires2fa) {
         return { requires2fa: true, tempToken: data.tempToken };
       }
+      if (data.requires2faSetup) {
+        return { requires2faSetup: true, setupToken: data.setupToken };
+      }
 
       saveToken(data.token, rememberMe);
       setToken(data.token);
@@ -111,6 +117,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { error: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต" };
     }
+  }
+
+  async function setupRequired2FA(setupToken: string): Promise<{ error?: string; secret?: string; qrDataUrl?: string }> {
+    try {
+      const res = await fetchWithTimeout("/api/auth/2fa/setup-required", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ setupToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error ?? "ไม่สามารถเริ่มตั้งค่า 2FA ได้" };
+      return { secret: data.secret, qrDataUrl: data.qrDataUrl };
+    } catch {
+      return { error: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้" };
+    }
+  }
+
+  async function enableRequired2FA(setupToken: string, code: string): Promise<{ error?: string; backupCodes?: string[]; token?: string; user?: User }> {
+    try {
+      const res = await fetchWithTimeout("/api/auth/2fa/enable-required", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ setupToken, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error ?? "ไม่สามารถเปิดใช้งาน 2FA ได้" };
+      return { backupCodes: data.backupCodes, token: data.token, user: data.user };
+    } catch {
+      return { error: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้" };
+    }
+  }
+
+  function completeRequired2FA(sessionToken: string, sessionUser: User, rememberMe = false) {
+    saveToken(sessionToken, rememberMe);
+    setToken(sessionToken);
+    setUser(sessionUser);
   }
 
   async function verify2FA(tempToken: string, code: string, rememberMe = false): Promise<{ error?: string }> {
@@ -150,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Boolean(user?.permissions?.includes(permission)), [user]);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, verify2FA, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, token, loading, login, verify2FA, setupRequired2FA, enableRequired2FA, completeRequired2FA, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

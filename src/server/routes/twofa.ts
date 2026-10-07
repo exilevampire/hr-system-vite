@@ -26,6 +26,86 @@ function normalizeBackupCode(input: string): string {
   return input.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
 }
 
+function verifySetupToken(token: unknown): { id: string; type: string } | null {
+  if (typeof token !== "string") return null;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { id?: string; type?: string };
+    return payload.id && payload.type === "2fa_setup" ? { id: payload.id, type: payload.type } : null;
+  } catch {
+    return null;
+  }
+}
+
+function createSession(user: { id: string; username: string | null; email: string; name: string | null; role: string }) {
+  return jwt.sign(
+    { id: user.id, username: user.username, email: user.email, name: user.name, role: user.role },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+// POST /api/auth/2fa/setup-required — available only with a short-lived setup token
+router.post("/setup-required", async (req, res) => {
+  const payload = verifySetupToken(req.body.setupToken);
+  if (!payload) { res.status(401).json({ error: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่" }); return; }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.id } });
+  if (!user) { res.status(404).json({ error: "ไม่พบผู้ใช้" }); return; }
+  if (user.totpEnabled) { res.status(400).json({ error: "2FA เปิดใช้งานอยู่แล้ว" }); return; }
+
+  const secret = generateSecret();
+  const otpauth = buildOtpauthURL(APP_ISSUER, user.username ?? user.email, secret);
+  const qrDataUrl = await QRCode.toDataURL(otpauth, { width: 256, margin: 2 });
+  await prisma.user.update({ where: { id: user.id }, data: { totpSecret: secret, backupCodes: null } });
+  res.json({ secret, qrDataUrl });
+});
+
+// POST /api/auth/2fa/enable-required — enable 2FA, then issue the normal session
+router.post("/enable-required", async (req, res) => {
+  const payload = verifySetupToken(req.body.setupToken);
+  const code = String(req.body.code ?? "").trim();
+  if (!payload) { res.status(401).json({ error: "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่" }); return; }
+  if (!/^\d{6}$/.test(code)) { res.status(400).json({ error: "กรุณากรอกรหัส OTP 6 หลัก" }); return; }
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.id },
+    include: { permissions: { select: { permission: true } } },
+  });
+  if (!user || !user.totpSecret || user.totpEnabled) {
+    res.status(400).json({ error: "ไม่สามารถตั้งค่า 2FA ได้ กรุณาเข้าสู่ระบบใหม่" });
+    return;
+  }
+  if (!verifyTOTP(user.totpSecret.trim(), code)) {
+    res.status(400).json({ error: "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่" });
+    return;
+  }
+
+  const plainCodes = generateBackupCodes();
+  const hashedCodes = await Promise.all(plainCodes.map((backupCode) => bcrypt.hash(backupCode, 10)));
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { totpEnabled: true, backupCodes: JSON.stringify(hashedCodes) },
+    }),
+    prisma.securityAudit.create({
+      data: {
+        action: "ENABLE_2FA",
+        actorUserId: user.id,
+        targetUserId: user.id,
+        actorEmail: user.email,
+        targetEmail: user.email,
+        ipAddress: req.ip ?? null,
+      },
+    }),
+  ]);
+
+  res.json({
+    token: createSession(user),
+    user: { id: user.id, username: user.username, email: user.email, name: user.name, role: user.role, permissions: resolvePermissions(user) },
+    backupCodes: plainCodes.map(formatBackupCode),
+  });
+});
+
 // GET /api/auth/2fa/status
 router.get("/status", authMiddleware, async (req: AuthenticatedRequest, res) => {
   const user = await prisma.user.findUnique({
@@ -90,46 +170,8 @@ router.post("/enable", authMiddleware, async (req: AuthenticatedRequest, res) =>
 });
 
 // POST /api/auth/2fa/disable — turn off 2FA (requires TOTP or backup code)
-router.post("/disable", authMiddleware, async (req: AuthenticatedRequest, res) => {
-  const { code } = req.body;
-  if (!code) { res.status(400).json({ error: "กรุณากรอกรหัส" }); return; }
-
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (!user || !user.totpEnabled) { res.status(400).json({ error: "2FA ไม่ได้เปิดใช้งาน" }); return; }
-
-  let valid = false;
-
-  // Try TOTP (6-digit)
-  if (/^\d{6}$/.test(code.trim()) && user.totpSecret) {
-    valid = verifyTOTP(user.totpSecret.trim(), code.trim());
-  }
-
-  // Try backup code
-  if (!valid && user.backupCodes) {
-    const normalized = normalizeBackupCode(code);
-    const hashed: string[] = JSON.parse(user.backupCodes);
-    for (let i = 0; i < hashed.length; i++) {
-      if (await bcrypt.compare(normalized, hashed[i])) {
-        hashed.splice(i, 1);
-        await prisma.user.update({ where: { id: user.id }, data: { backupCodes: JSON.stringify(hashed) } });
-        valid = true;
-        break;
-      }
-    }
-  }
-
-  if (!valid) {
-    console.warn(`[2FA] disable failed for ${user.email} at ${new Date().toISOString()}`);
-    res.status(400).json({ error: "รหัสไม่ถูกต้อง" });
-    return;
-  }
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { totpEnabled: false, totpSecret: null, backupCodes: null },
-  });
-
-  res.json({ success: true });
+router.post("/disable", authMiddleware, async (_req: AuthenticatedRequest, res) => {
+  res.status(403).json({ error: "ระบบบังคับใช้ 2FA จึงไม่อนุญาตให้ปิดใช้งาน กรุณาติดต่อ Super Admin หากต้องการรีเซ็ต" });
 });
 
 // POST /api/auth/2fa/verify — second step of login (tempToken + code)
