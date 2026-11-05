@@ -82,6 +82,10 @@ router.get("/employees", auth_1.authMiddleware, (0, auth_1.requirePermission)("r
     const sourceMonthFilter = String(req.query.sourceMonth ?? "");
     const sourceYearFilter = String(req.query.sourceYear ?? "");
     const closedStatus = String(req.query.closedStatus ?? "");
+    const allowedSortFields = ["employeeId", "nameTh", "nameEn", "position", "level", "bureau", "department", "endDate", "email", "createdAt"];
+    const requestedSortBy = String(req.query.sortBy ?? "createdAt");
+    const sortBy = allowedSortFields.includes(requestedSortBy) ? requestedSortBy : "createdAt";
+    const sortDir = req.query.sortDir === "asc" ? "asc" : "desc";
     const where = {};
     const conditions = [];
     if (search) {
@@ -158,7 +162,7 @@ router.get("/employees", auth_1.authMiddleware, (0, auth_1.requirePermission)("r
     const filtered = await prisma_1.prisma.employee.findMany({
         where,
         include: { dataSource: true },
-        orderBy: [{ bureau: "asc" }, { endDate: "desc" }],
+        orderBy: [{ [sortBy]: sortDir }, { employeeId: "asc" }],
     });
     // ── Workbook ──────────────────────────────────────────────────────────
     const wb = new exceljs_1.default.Workbook();

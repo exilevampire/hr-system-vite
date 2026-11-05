@@ -455,6 +455,8 @@ export default function AllRecordsPage() {
       sourceMonth: sourceMonthFilter,
       sourceYear: sourceYearFilter,
       closedStatus,
+      sortBy,
+      sortDir,
     });
     const res = await apiFetch(`/api/reports/employees?${params}`);
     const disposition = res.headers.get("Content-Disposition");
@@ -481,16 +483,17 @@ export default function AllRecordsPage() {
           <h1 className="text-2xl font-bold text-slate-800">ข้อมูลพนักงานที่พ้นสภาพ</h1>
           <p className="text-slate-500 text-sm mt-1">ทั้งหมด {total.toLocaleString()} รายการ</p>
         </div>
-        <div className="sm:ml-auto flex gap-2 flex-wrap">
-          <div ref={colPickerRef} className="relative">
-            <button
-              onClick={() => setShowColPicker(v => !v)}
-              className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 hover:bg-slate-50 transition-colors text-slate-600"
-            >
-              ⚙️ แสดง/ซ่อนคอลัมน์
-            </button>
-            {showColPicker && (
-              <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-[180px]">
+        <div className="sm:ml-auto flex items-start gap-2 flex-wrap">
+          <div className="flex flex-col items-center gap-1">
+            <div ref={colPickerRef} className="relative">
+              <button
+                onClick={() => setShowColPicker(v => !v)}
+                className="h-10 inline-flex items-center px-4 rounded-lg text-sm font-medium border border-slate-300 hover:bg-slate-50 transition-colors text-slate-600 whitespace-nowrap"
+              >
+                ⚙️ แสดง/ซ่อนคอลัมน์
+              </button>
+              {showColPicker && (
+                <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-[180px]">
                 <div className="text-xs font-semibold text-slate-500 mb-2 px-1">แสดง/ซ่อนคอลัมน์</div>
                 {HEADERS.map((h, i) => {
                   if (i === 0 || i === 1 || i === 3) return null;
@@ -516,24 +519,36 @@ export default function AllRecordsPage() {
                   onClick={() => setVisibleCols(new Set(HEADERS.map((_, i) => i)))}
                   className="mt-2 w-full text-xs text-blue-600 hover:text-blue-800 text-center py-1"
                 >รีเซ็ตทั้งหมด</button>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
+            <span className="text-[11px] text-slate-400">เลือกคอลัมน์ที่ต้องการแสดง</span>
           </div>
-          {canExport && <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            {downloading ? "กำลังสร้างรายงาน..." : "📊 ดาวน์โหลดรายงาน"}
-          </button>}
+          {canExport && <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              title="ไฟล์รายงานจะใช้ลำดับเดียวกับตารางที่กำลังแสดง"
+              className="h-10 inline-flex items-center bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+            >
+              {downloading ? "กำลังสร้างรายงาน..." : "📊 ดาวน์โหลดรายงาน"}
+            </button>
+            <span className="text-[11px] text-slate-400">รายงานจะเรียงตามตารางปัจจุบัน</span>
+          </div>}
           {canImport && (
             <>
-              <Link to="/records/import" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                📥 นำเข้าข้อมูล
-              </Link>
-              <Link to="/records/add" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                ➕ เพิ่มบุคคลพ้นสภาพ
-              </Link>
+              <div className="flex flex-col items-center gap-1">
+                <Link to="/records/import" className="h-10 inline-flex items-center bg-green-600 hover:bg-green-700 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+                  📥 นำเข้าข้อมูล
+                </Link>
+                <span className="text-[11px] text-slate-400">นำเข้าข้อมูลจากไฟล์ Excel</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <Link to="/records/add" className="h-10 inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+                  ➕ เพิ่มบุคคลพ้นสภาพ
+                </Link>
+                <span className="text-[11px] text-slate-400">เพิ่มข้อมูลพนักงานทีละราย</span>
+              </div>
             </>
           )}
         </div>
