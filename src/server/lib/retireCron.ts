@@ -27,7 +27,7 @@ async function runRetireCheck() {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const retirees = await prisma.employee.findMany({
-      where: { endDate: { gte: now, lt: tomorrow } },
+      where: { deletedAt: null, endDate: { gte: now, lt: tomorrow } },
       select: { nameTh: true, position: true, bureau: true, department: true },
     });
 

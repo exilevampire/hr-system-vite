@@ -7,23 +7,23 @@ generator client {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  name        String?
-  username    String?  @unique(map: "User_username_key") @db.VarChar(50)
-  email       String   @unique(map: "User_email_key")
-  password    String
-  role        Role     @default(VIEWER)
-  totpSecret        String?
-  totpEnabled       Boolean  @default(false)
-  backupCodes       String?  @db.Text
-  notifyOnImport    Boolean  @default(false)
-  notifyOnRetire    Boolean  @default(false)
-  permissionsConfigured Boolean @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  permissions       UserPermission[]
-  securityActions   SecurityAudit[] @relation("SecurityAuditActor")
-  securityEvents    SecurityAudit[] @relation("SecurityAuditTarget")
+  id                    String           @id @default(cuid())
+  name                  String?
+  username              String?          @unique(map: "User_username_key") @db.VarChar(50)
+  email                 String           @unique(map: "User_email_key")
+  password              String
+  role                  Role             @default(VIEWER)
+  totpSecret            String?
+  totpEnabled           Boolean          @default(false)
+  backupCodes           String?          @db.Text
+  notifyOnImport        Boolean          @default(false)
+  notifyOnRetire        Boolean          @default(false)
+  permissionsConfigured Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  permissions           UserPermission[]
+  securityActions       SecurityAudit[]  @relation("SecurityAuditActor")
+  securityEvents        SecurityAudit[]  @relation("SecurityAuditTarget")
 
   @@map("user")
 }
@@ -70,93 +70,97 @@ model DataSource {
 }
 
 model Employee {
-  id           Int         @id @default(autoincrement())
-  employeeId   String      @unique(map: "Employee_employeeId_key")
-  dataSourceId Int?
-  dataSource   DataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull, map: "Employee_dataSourceId_fkey")
-  nameTh       String
-  nameEn       String?
-  position     String?
-  level        String?
-  department   String?
-  bureau       String?
-  startDate    DateTime?
-  endDate      DateTime?
-  receivedDate DateTime?
-  fmis         String?
-  fmisDate     DateTime?
-  eMeeting     String?
-  eMeetingDate DateTime?
+  id            Int         @id @default(autoincrement())
+  employeeId    String      @unique(map: "Employee_employeeId_key")
+  dataSourceId  Int?
+  dataSource    DataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull, map: "Employee_dataSourceId_fkey")
+  nameTh        String
+  nameEn        String?
+  position      String?
+  level         String?
+  department    String?
+  bureau        String?
+  startDate     DateTime?
+  endDate       DateTime?
+  receivedDate  DateTime?
+  fmis          String?
+  fmisDate      DateTime?
+  eMeeting      String?
+  eMeetingDate  DateTime?
   software      String?
   softwareDate  DateTime?
   phonebook     String?
   phonebookDate DateTime?
   email         String?
-  createdBy    String
-  updatedBy    String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdBy     String
+  updatedBy     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+  deletedBy     String?
+  deleteReason  String?     @db.VarChar(500)
 
   logs AuditLog[]
 
-  @@map("employee")
+  @@index([deletedAt])
   @@index([createdAt])
+  @@map("employee")
 }
 
 model IntegrationClient {
-  id                  String              @id @default(cuid())
-  name                String              @unique @db.VarChar(191)
-  keyHash             String              @unique @db.VarChar(64)
-  keyPrefix           String              @db.VarChar(24)
-  isActive             Boolean             @default(true)
-  expiresAt            DateTime?
-  ipAllowlist          Json?
-  allowFullSync        Boolean             @default(true)
-  fullSyncCompletedAt  DateTime?
-  fullSyncRequestId    String?              @db.VarChar(64)
-  lastUsedAt           DateTime?
-  createdBy            String               @db.VarChar(191)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  logs                 IntegrationApiLog[]
-  audits               IntegrationClientAudit[]
+  id                  String                   @id @default(cuid())
+  name                String                   @unique @db.VarChar(191)
+  keyHash             String                   @unique @db.VarChar(64)
+  keyPrefix           String                   @db.VarChar(24)
+  isActive            Boolean                  @default(true)
+  expiresAt           DateTime?
+  ipAllowlist         Json?
+  allowFullSync       Boolean                  @default(true)
+  fullSyncCompletedAt DateTime?
+  fullSyncRequestId   String?                  @db.VarChar(64)
+  lastUsedAt          DateTime?
+  createdBy           String                   @db.VarChar(191)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  logs                IntegrationApiLog[]
+  audits              IntegrationClientAudit[]
 
   @@index([isActive])
   @@map("integration_client")
 }
 
 model IntegrationClientAudit {
-  id          Int               @id @default(autoincrement())
-  clientId    String?
-  clientName  String            @db.VarChar(191)
-  action      String            @db.VarChar(100)
-  actorEmail  String            @db.VarChar(191)
-  ipAddress   String?           @db.VarChar(100)
-  details     Json?
-  createdAt   DateTime          @default(now())
-  client      IntegrationClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  id         Int                @id @default(autoincrement())
+  clientId   String?
+  clientName String             @db.VarChar(191)
+  action     String             @db.VarChar(100)
+  actorEmail String             @db.VarChar(191)
+  ipAddress  String?            @db.VarChar(100)
+  details    Json?
+  createdAt  DateTime           @default(now())
+  client     IntegrationClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
   @@index([clientId, createdAt])
   @@map("integration_client_audit")
 }
 
 model IntegrationApiLog {
-  id            Int                     @id @default(autoincrement())
-  requestId     String                  @unique @db.VarChar(64)
-  clientId      String?
-  clientName    String                  @db.VarChar(191)
-  endpoint      String                  @db.VarChar(255)
-  method        String                  @db.VarChar(10)
-  recordedFrom  DateTime?
-  recordedTo    DateTime?
-  resultCount   Int                     @default(0)
-  statusCode    Int
-  ipAddress     String?                 @db.VarChar(100)
-  durationMs    Int
-  errorCode     String?                 @db.VarChar(100)
-  createdAt     DateTime                @default(now())
-  client        IntegrationClient?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  items         IntegrationApiLogItem[]
+  id           Int                     @id @default(autoincrement())
+  requestId    String                  @unique @db.VarChar(64)
+  clientId     String?
+  clientName   String                  @db.VarChar(191)
+  endpoint     String                  @db.VarChar(255)
+  method       String                  @db.VarChar(10)
+  recordedFrom DateTime?
+  recordedTo   DateTime?
+  resultCount  Int                     @default(0)
+  statusCode   Int
+  ipAddress    String?                 @db.VarChar(100)
+  durationMs   Int
+  errorCode    String?                 @db.VarChar(100)
+  createdAt    DateTime                @default(now())
+  client       IntegrationClient?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  items        IntegrationApiLogItem[]
 
   @@index([clientId, createdAt])
   @@index([createdAt])
@@ -165,7 +169,7 @@ model IntegrationApiLog {
 
 model IntegrationApiLogItem {
   apiLogId   Int
-  employeeId String @db.VarChar(191)
+  employeeId String            @db.VarChar(191)
   apiLog     IntegrationApiLog @relation(fields: [apiLogId], references: [id], onDelete: Cascade)
 
   @@id([apiLogId, employeeId])

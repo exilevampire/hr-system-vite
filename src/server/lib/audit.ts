@@ -37,6 +37,12 @@ export async function createAuditLog(
       }
     }
     if (Object.keys(changedFields).length === 0) return;
+  } else if (action === "DELETE" && oldData) {
+    changedFields = {};
+    for (const key of Object.keys(oldData)) {
+      if (SKIP_FIELDS.has(key)) continue;
+      changedFields[key] = { old: oldData[key] ?? null, new: null };
+    }
   }
 
   await prisma.auditLog.create({

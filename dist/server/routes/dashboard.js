@@ -6,8 +6,9 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.get("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("dashboard.view"), async (_req, res) => {
     const [total, allEmployees] = await Promise.all([
-        prisma_1.prisma.employee.count(),
+        prisma_1.prisma.employee.count({ where: { deletedAt: null } }),
         prisma_1.prisma.employee.findMany({
+            where: { deletedAt: null },
             select: { bureau: true, endDate: true, fmis: true, eMeeting: true, software: true, phonebook: true, email: true },
         }),
     ]);

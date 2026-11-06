@@ -61,7 +61,7 @@ router.get("/terminated-employees", integrationAuth, async (req: IntegrationRequ
     return;
   }
   const employees = await prisma.employee.findMany({
-    where: { createdAt: { gte: bangkokDayStart(fromDate), lt: bangkokDayAfter(toDate) }, endDate: { not: null } },
+    where: { deletedAt: null, createdAt: { gte: bangkokDayStart(fromDate), lt: bangkokDayAfter(toDate) }, endDate: { not: null } },
     orderBy: { id: "asc" }, take: MAX_RESULTS + 1,
     select: { employeeId: true, nameTh: true },
   });
@@ -94,7 +94,7 @@ router.get("/terminated-employees/full-sync", integrationAuth, async (req: Integ
   }
   try {
     const employees = await prisma.employee.findMany({
-      where: { endDate: { not: null } }, orderBy: { id: "asc" }, take: MAX_FULL_SYNC_RESULTS + 1,
+      where: { deletedAt: null, endDate: { not: null } }, orderBy: { id: "asc" }, take: MAX_FULL_SYNC_RESULTS + 1,
       select: { employeeId: true, nameTh: true },
     });
     if (employees.length > MAX_FULL_SYNC_RESULTS) throw new Error("FULL_SYNC_LIMIT_EXCEEDED");

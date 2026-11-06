@@ -97,7 +97,7 @@ export function ThaiDatePicker({
         />
         {!disabled && value ? (
           <button type="button" onClick={(e) => { e.stopPropagation(); onChange(""); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-400 transition-colors text-lg leading-none">
+            className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-slate-300 hover:text-red-400 transition-colors text-lg leading-none">
             ×
           </button>
         ) : !disabled ? (

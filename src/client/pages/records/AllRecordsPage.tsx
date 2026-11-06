@@ -75,7 +75,7 @@ function SearchableSelect({
         {value ? (
           <button
             onClick={clear}
-            className="absolute right-2 text-slate-400 hover:text-slate-600 text-base leading-none"
+            className="absolute right-2 cursor-pointer text-slate-400 hover:text-slate-600 text-base leading-none"
           >
             ×
           </button>
@@ -89,7 +89,7 @@ function SearchableSelect({
             <button
               key={opt}
               onMouseDown={(e) => { e.preventDefault(); select(opt); }}
-              className={`w-full px-4 py-2 text-sm text-left hover:bg-blue-50 transition-colors ${
+              className={`w-full cursor-pointer px-4 py-2 text-sm text-left hover:bg-blue-50 transition-colors ${
                 opt === value ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-700"
               }`}
             >
@@ -177,8 +177,64 @@ const SORT_FIELDS: Record<number, string> = {
   10: "email",
 };
 
+const SORT_LABELS: Record<string, string> = {
+  createdAt: "วันที่บันทึกข้อมูล",
+  employeeId: "รหัสพนักงาน",
+  nameTh: "ชื่อ-สกุล (ไทย)",
+  nameEn: "ชื่อ-สกุล (อังกฤษ)",
+  position: "ตำแหน่ง",
+  level: "ประเภท",
+  bureau: "หน่วยงาน/สำนัก",
+  department: "ฝ่าย/กลุ่มงาน",
+  endDate: "วันที่พ้นสภาพ",
+  email: "Email",
+};
+
+function sortDirectionLabel(sortField: string, direction: "asc" | "desc"): string {
+  if (sortField === "createdAt" || sortField === "endDate") return direction === "asc" ? "เก่าไปใหม่" : "ใหม่ไปเก่า";
+  if (sortField === "employeeId") return direction === "asc" ? "น้อยไปมาก" : "มากไปน้อย";
+  return direction === "asc" ? "ก–ฮ / A–Z" : "ฮ–ก / Z–A";
+}
+
 // Default widths matching the natural content layout (px)
-const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 120, 180, 100, 100, 100, 115];
+const DEFAULT_WIDTHS = [80, 48, 88, 210, 210, 185, 120, 160, 175, 145, 180, 120, 120, 120, 120];
+const DEFAULT_COLUMN_ORDER = HEADERS.map((_, index) => index);
+const DEFAULT_VISIBLE_COLUMNS = HEADERS.map((_, index) => index).filter((index) => index !== 4 && index !== 10);
+const LOCKED_COLUMN_COUNT = 2;
+const COLUMN_SETTINGS_VERSION = 10;
+
+interface ColumnSettings {
+  version: number;
+  order: number[];
+  visible: number[];
+  widths: number[];
+}
+
+function loadColumnSettings(storageKey: string): ColumnSettings {
+  const defaults = { version: COLUMN_SETTINGS_VERSION, order: [...DEFAULT_COLUMN_ORDER], visible: [...DEFAULT_VISIBLE_COLUMNS], widths: [...DEFAULT_WIDTHS] };
+  try {
+    const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Partial<ColumnSettings> | null;
+    const validOrder = Array.isArray(parsed?.order)
+      && parsed.order.length === HEADERS.length
+      && new Set(parsed.order).size === HEADERS.length
+      && parsed.order.every((index) => Number.isInteger(index) && index >= 0 && index < HEADERS.length)
+      && parsed.order[0] === 0 && parsed.order[1] === 1;
+    const validWidths = Array.isArray(parsed?.widths)
+      && parsed.widths.length === HEADERS.length
+      && parsed.widths.every((width) => typeof width === "number" && Number.isFinite(width) && width >= 40);
+    const visible = Array.isArray(parsed?.visible)
+      ? parsed.visible.filter((index) => Number.isInteger(index) && index >= 0 && index < HEADERS.length)
+      : defaults.visible;
+    return {
+      version: COLUMN_SETTINGS_VERSION,
+      order: validOrder ? parsed!.order! : defaults.order,
+      visible: [...new Set([0, 1, NAME_COL_INDEX, ...visible])],
+      widths: validWidths ? parsed!.widths! : defaults.widths,
+    };
+  } catch {
+    return defaults;
+  }
+}
 
 function formatDate(d?: string | null) {
   if (!d) return "-";
@@ -192,13 +248,27 @@ function formatDate(d?: string | null) {
   return `${day}/${month}/${year + 543}`;
 }
 
+function isFutureEndDate(date?: string | null): boolean {
+  const isoDate = date?.split("T")[0];
+  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return false;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const getPart = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  const today = `${getPart("year")}-${getPart("month")}-${getPart("day")}`;
+  return isoDate > today;
+}
+
 function isFullyClosed(emp: Employee): boolean {
   const itFields = [emp.fmis, emp.eMeeting, emp.software, emp.phonebook];
   return itFields.every((v) => v === "ดำเนินการแล้ว" || v === "ไม่พบบัญชี" || v === "ไม่ทราบสถานะ");
 }
 
 export default function AllRecordsPage() {
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canEdit = hasPermission("employees.update");
   const canDelete = hasPermission("employees.delete");
   const canExport = hasPermission("reports.export");
@@ -229,8 +299,12 @@ export default function AllRecordsPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [colWidths, setColWidths] = useState<number[]>(DEFAULT_WIDTHS);
-  const [visibleCols, setVisibleCols] = useState<Set<number>>(new Set(HEADERS.map((_, i) => i).filter((i) => i !== 4 && i !== 10)));
+  const columnStorageKey = `hr-employee-table-columns-v${COLUMN_SETTINGS_VERSION}-${user?.id ?? "default"}`;
+  const initialColumnSettings = useMemo(() => loadColumnSettings(columnStorageKey), [columnStorageKey]);
+  const [colWidths, setColWidths] = useState<number[]>(initialColumnSettings.widths);
+  const [visibleCols, setVisibleCols] = useState<Set<number>>(new Set(initialColumnSettings.visible));
+  const [columnOrder, setColumnOrder] = useState<number[]>(initialColumnSettings.order);
+  const [draggedColumn, setDraggedColumn] = useState<number | null>(null);
   const [showColPicker, setShowColPicker] = useState(false);
   const colPickerRef = useRef<HTMLDivElement>(null);
   const [positionOptions, setPositionOptions] = useState<string[]>([]);
@@ -241,6 +315,37 @@ export default function AllRecordsPage() {
   const [dataSources, setDataSources] = useState<DataSourceInfo[]>([]);
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const settings: ColumnSettings = {
+      version: COLUMN_SETTINGS_VERSION,
+      order: columnOrder,
+      visible: [...visibleCols],
+      widths: colWidths,
+    };
+    localStorage.setItem(columnStorageKey, JSON.stringify(settings));
+  }, [columnStorageKey, columnOrder, visibleCols, colWidths]);
+
+  function moveColumn(targetColumn: number) {
+    if (draggedColumn === null || draggedColumn === targetColumn) return;
+    setColumnOrder((current) => {
+      const next = current.filter((index) => index !== draggedColumn);
+      const targetIndex = next.indexOf(targetColumn);
+      next.splice(targetIndex, 0, draggedColumn);
+      return next;
+    });
+    setDraggedColumn(null);
+  }
+
+  function resetColumnSettings() {
+    setColumnOrder([...DEFAULT_COLUMN_ORDER]);
+    setVisibleCols(new Set(DEFAULT_VISIBLE_COLUMNS));
+    setColWidths([...DEFAULT_WIDTHS]);
+    localStorage.removeItem(columnStorageKey);
+  }
 
   useEffect(() => {
     if (!showColPicker) return;
@@ -436,12 +541,26 @@ export default function AllRecordsPage() {
     setPage(1);
   }
 
-  async function handleDelete(employeeId: string) {
-    if (!confirm("ยืนยันการลบข้อมูลนี้?")) return;
-    await apiFetch(`/api/employees/${employeeId}`, { method: "DELETE" });
-    fetchData();
-    // Removing the last record under a bureau or position drops it from the filters
-    fetchMeta();
+  async function handleDelete(reason: string) {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const response = await apiFetch(`/api/employees/${deleteTarget.employeeId}`, {
+        method: "DELETE",
+        body: JSON.stringify({ reason }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "ไม่สามารถลบข้อมูลได้");
+      setDeleteTarget(null);
+      await fetchData();
+      // Removing the last record under a bureau or position drops it from the filters
+      await fetchMeta();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลได้");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleDownload() {
@@ -474,7 +593,55 @@ export default function AllRecordsPage() {
     setDownloading(false);
   }
 
-  const tableWidth = colWidths.reduce((a, w, i) => visibleCols.has(i) ? a + w : a, 0);
+  const visibleColumnOrder = columnOrder.filter((columnIndex) => visibleCols.has(columnIndex));
+  const tableWidth = visibleColumnOrder.reduce((totalWidth, columnIndex) => totalWidth + colWidths[columnIndex], 0);
+
+  function renderDesktopCell(emp: Employee, rowIndex: number, columnIndex: number) {
+    switch (columnIndex) {
+      case 0:
+        return <td key={columnIndex} className="sticky left-0 z-10 bg-white px-3 py-3 whitespace-nowrap overflow-hidden group-hover:bg-slate-50">
+          {canEdit && <div className="flex gap-1.5">
+            <button onClick={() => setEditingId(emp.employeeId)} title="แก้ไข" className="inline-flex cursor-pointer items-center justify-center w-7 h-7 rounded-md text-blue-600 hover:bg-blue-50 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            {canDelete && <button onClick={() => { setDeleteError(null); setDeleteTarget(emp); }} title="ลบ" className="inline-flex cursor-pointer items-center justify-center w-7 h-7 rounded-md text-red-500 hover:bg-red-50 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>}
+          </div>}
+        </td>;
+      case 1:
+        return <td key={columnIndex} style={{ left: colWidths[0] }} className="sticky z-10 bg-white px-3 py-3 text-center text-slate-400 group-hover:bg-slate-50">{(page - 1) * PAGE_SIZE + rowIndex + 1}</td>;
+      case 2:
+        return <TCell key={columnIndex} title={emp.employeeId} className="font-mono text-xs text-slate-600">{emp.employeeId}</TCell>;
+      case 3:
+        return <td key={columnIndex} className="px-3 py-3 overflow-hidden cursor-pointer" style={{ maxWidth: 0 }} title={emp.nameTh} onClick={() => setSelectedEmp(emp)}>
+          <div className="flex flex-col items-start overflow-hidden">
+            <span className="flex w-full items-center gap-1.5 overflow-hidden font-medium text-blue-700 hover:underline" title="คลิกเพื่อดูรายละเอียด">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h6" /></svg>
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap">{emp.nameTh}</span>
+            </span>
+            {isFullyClosed(emp) && <span className="mt-0.5 text-[11px] font-medium text-green-700">✓ ดำเนินการแล้ว</span>}
+          </div>
+        </td>;
+      case 4: return <TCell key={columnIndex} title={emp.nameEn ?? "-"} className="text-slate-500">{emp.nameEn ?? "-"}</TCell>;
+      case 5: return <TCell key={columnIndex} title={emp.position ?? "-"}>{emp.position ?? "-"}</TCell>;
+      case 6: return <TCell key={columnIndex} title={emp.level ?? "-"}>{emp.level ?? "-"}</TCell>;
+      case 7: return <TCell key={columnIndex} title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>;
+      case 8: return <TCell key={columnIndex} title={emp.department ?? "-"}>{emp.department ?? "-"}</TCell>;
+      case 9: return <TCell key={columnIndex} title={formatDate(emp.endDate)}>
+        <span className="inline-flex flex-col items-start">
+          <span>{formatDate(emp.endDate)}</span>
+          {isFutureEndDate(emp.endDate) && <FutureEndDateLabel />}
+        </span>
+      </TCell>;
+      case 10: return <TCell key={columnIndex} title={emp.email ?? "-"}>{emp.email ?? "-"}</TCell>;
+      case 11: return <ITStatusCell key={columnIndex} value={emp.fmis} />;
+      case 12: return <ITStatusCell key={columnIndex} value={emp.eMeeting} />;
+      case 13: return <ITStatusCell key={columnIndex} value={emp.software} />;
+      case 14: return <ITStatusCell key={columnIndex} value={emp.phonebook} />;
+      default: return null;
+    }
+  }
 
   return (
     <AppLayout>
@@ -488,66 +655,78 @@ export default function AllRecordsPage() {
             <div ref={colPickerRef} className="relative">
               <button
                 onClick={() => setShowColPicker(v => !v)}
-                className="h-10 inline-flex items-center px-4 rounded-lg text-sm font-medium border border-slate-300 hover:bg-slate-50 transition-colors text-slate-600 whitespace-nowrap"
+                className="h-10 inline-flex cursor-pointer items-center px-4 rounded-lg text-sm font-medium border border-slate-300 hover:bg-slate-50 transition-colors text-slate-600 whitespace-nowrap"
               >
-                ⚙️ แสดง/ซ่อนคอลัมน์
+                ⚙️ จัดการคอลัมน์
               </button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-[180px]">
-                <div className="text-xs font-semibold text-slate-500 mb-2 px-1">แสดง/ซ่อนคอลัมน์</div>
-                {HEADERS.map((h, i) => {
-                  if (i === 0 || i === 1 || i === 3) return null;
+                <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-[250px] max-h-[70vh] overflow-y-auto">
+                <div className="text-xs font-semibold text-slate-600 mb-1 px-1">จัดลำดับและแสดง/ซ่อนคอลัมน์</div>
+                <div className="text-[11px] text-slate-400 mb-2 px-1">ลาก ☰ เพื่อย้ายตำแหน่ง ระบบจะจดจำให้อัตโนมัติ</div>
+                {columnOrder.slice(LOCKED_COLUMN_COUNT).map((columnIndex) => {
+                  const isRequired = columnIndex === NAME_COL_INDEX;
                   return (
-                    <label key={i} className="flex items-center gap-2 px-1 py-1 rounded hover:bg-slate-50 cursor-pointer text-sm text-slate-700">
+                    <div
+                      key={columnIndex}
+                      draggable
+                      onDragStart={() => setDraggedColumn(columnIndex)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => moveColumn(columnIndex)}
+                      onDragEnd={() => setDraggedColumn(null)}
+                      className={`flex cursor-grab active:cursor-grabbing items-center gap-2 px-2 py-1.5 rounded border border-transparent hover:bg-slate-50 hover:border-slate-200 text-sm text-slate-700 ${draggedColumn === columnIndex ? "opacity-40" : ""}`}
+                    >
+                      <span className="cursor-grab active:cursor-grabbing text-slate-400 select-none" title="ลากเพื่อย้ายตำแหน่ง">☰</span>
                       <input
                         type="checkbox"
-                        checked={visibleCols.has(i)}
+                        checked={visibleCols.has(columnIndex)}
+                        disabled={isRequired}
                         onChange={() => {
-                          setVisibleCols(prev => {
-                            const next = new Set(prev);
-                            if (next.has(i)) next.delete(i); else next.add(i);
+                          setVisibleCols((previous) => {
+                            const next = new Set(previous);
+                            if (next.has(columnIndex)) next.delete(columnIndex); else next.add(columnIndex);
                             return next;
                           });
                         }}
-                        className="rounded"
+                        className="cursor-pointer rounded accent-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
                       />
-                      {h}
-                    </label>
+                      <span className="flex-1">{HEADERS[columnIndex]}</span>
+                      {isRequired && <span className="text-[10px] text-slate-400">จำเป็น</span>}
+                    </div>
                   );
                 })}
                 <button
-                  onClick={() => setVisibleCols(new Set(HEADERS.map((_, i) => i)))}
-                  className="mt-2 w-full text-xs text-blue-600 hover:text-blue-800 text-center py-1"
-                >รีเซ็ตทั้งหมด</button>
+                  onClick={resetColumnSettings}
+                  className="mt-2 w-full cursor-pointer text-xs text-blue-600 hover:text-blue-800 text-center py-1.5 border-t border-slate-100"
+                >คืนค่าคอลัมน์เริ่มต้น</button>
                 </div>
               )}
             </div>
-            <span className="text-[11px] text-slate-400">เลือกคอลัมน์ที่ต้องการแสดง</span>
+            <span className="text-[11px] text-slate-500">จัดลำดับและเลือกคอลัมน์ที่แสดง</span>
           </div>
           {canExport && <div className="flex flex-col items-center gap-1">
             <button
               onClick={handleDownload}
               disabled={downloading}
               title="ไฟล์รายงานจะใช้ลำดับเดียวกับตารางที่กำลังแสดง"
-              className="h-10 inline-flex items-center bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+              className="h-10 inline-flex cursor-pointer items-center bg-emerald-600 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
             >
               {downloading ? "กำลังสร้างรายงาน..." : "📊 ดาวน์โหลดรายงาน"}
             </button>
-            <span className="text-[11px] text-slate-400">รายงานจะเรียงตามตารางปัจจุบัน</span>
+            <span className="text-[11px] text-slate-500">รายงานจะเรียงตามตารางปัจจุบัน</span>
           </div>}
           {canImport && (
             <>
               <div className="flex flex-col items-center gap-1">
-                <Link to="/records/import" className="h-10 inline-flex items-center bg-green-600 hover:bg-green-700 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+                <Link to="/records/import" className="h-10 inline-flex cursor-pointer items-center bg-green-600 hover:bg-green-700 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
                   📥 นำเข้าข้อมูล
                 </Link>
-                <span className="text-[11px] text-slate-400">นำเข้าข้อมูลจากไฟล์ Excel</span>
+                <span className="text-[11px] text-slate-500">นำเข้าข้อมูลจากไฟล์ Excel</span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <Link to="/records/add" className="h-10 inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+                <Link to="/records/add" className="h-10 inline-flex cursor-pointer items-center bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
                   ➕ เพิ่มบุคคลพ้นสภาพ
                 </Link>
-                <span className="text-[11px] text-slate-400">เพิ่มข้อมูลพนักงานทีละราย</span>
+                <span className="text-[11px] text-slate-500">เพิ่มข้อมูลพนักงานทีละราย</span>
               </div>
             </>
           )}
@@ -592,7 +771,7 @@ export default function AllRecordsPage() {
         />
         <button
           onClick={() => setShowAdvanced((v) => !v)}
-          className={`shrink-0 px-3 py-2 text-sm rounded-lg border transition-colors ${showAdvanced ? "bg-blue-50 border-blue-300 text-blue-700" : "border-slate-300 text-slate-500 hover:bg-slate-50"}`}
+          className={`shrink-0 cursor-pointer px-3 py-2 text-sm rounded-lg border transition-colors ${showAdvanced ? "bg-blue-50 border-blue-300 text-blue-700" : "border-slate-300 text-slate-500 hover:bg-slate-50"}`}
         >
           {showAdvanced ? "ซ่อนตัวกรอง ▲" : "ตัวกรองเพิ่มเติม ▼"}
         </button>
@@ -624,7 +803,7 @@ export default function AllRecordsPage() {
                 <div key={label} className="flex flex-col gap-0.5">
                   <span className="text-xs text-slate-400 px-1">{label}</span>
                   <select value={val} onChange={(e) => { setter(e.target.value); setPage(1); }}
-                    className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    className="cursor-pointer border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     <option value="">ทั้งหมด</option>
                     <option value="ดำเนินการแล้ว">ดำเนินการแล้ว</option>
                     <option value="ยังไม่ดำเนินการ">ยังไม่ดำเนินการ</option>
@@ -648,7 +827,7 @@ export default function AllRecordsPage() {
                 <button
                   key={val}
                   onClick={() => { setClosedStatus(val); setPage(1); }}
-                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                  className={`cursor-pointer px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                     closedStatus === val
                       ? val === "closed"
                         ? "bg-green-600 border-green-600 text-white"
@@ -681,7 +860,7 @@ export default function AllRecordsPage() {
               <select
                 value={sourceTypeFilter}
                 onChange={(e) => { setSourceTypeFilter(e.target.value); setPage(1); }}
-                className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="cursor-pointer border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">ทั้งหมด</option>
                 {[...new Set(dataSources.map((d) => d.sourceType))].sort().map((t) => (
@@ -691,7 +870,7 @@ export default function AllRecordsPage() {
               <select
                 value={sourceMonthFilter}
                 onChange={(e) => { setSourceMonthFilter(e.target.value); setPage(1); }}
-                className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="cursor-pointer border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">ทุกเดือน</option>
                 {[...new Set(dataSources.map((d) => d.month))].sort((a, b) => a - b).map((m) => (
@@ -701,7 +880,7 @@ export default function AllRecordsPage() {
               <select
                 value={sourceYearFilter}
                 onChange={(e) => { setSourceYearFilter(e.target.value); setPage(1); }}
-                className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="cursor-pointer border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">ทุกปี</option>
                 {[...new Set(dataSources.map((d) => d.year))].sort((a, b) => b - a).map((y) => (
@@ -739,60 +918,75 @@ export default function AllRecordsPage() {
             {filters.map((f, i) => (
               <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200">
                 {f.label}
-                <button onClick={f.clear} className="ml-0.5 hover:text-blue-900 font-bold leading-none">×</button>
+                <button onClick={f.clear} className="ml-0.5 cursor-pointer hover:text-blue-900 font-bold leading-none">×</button>
               </span>
             ))}
-            <button onClick={clearAllFilters} className="text-xs text-slate-500 hover:text-slate-700 underline ml-1">ล้างทั้งหมด</button>
+            <button onClick={clearAllFilters} className="cursor-pointer text-xs text-slate-500 hover:text-slate-700 underline ml-1">ล้างทั้งหมด</button>
           </div>
         );
       })()}
 
+      <div className="hidden md:flex items-center justify-end mb-2 px-1">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4" /></svg>
+          เรียงตาม: <strong className="font-semibold text-slate-700">{SORT_LABELS[sortBy] ?? sortBy}</strong>
+          <span className="text-slate-400">({sortDirectionLabel(sortBy, sortDir)})</span>
+        </span>
+      </div>
+
       {/* Desktop Table */}
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="max-h-[calc(100vh-16rem)] min-h-[320px] overflow-auto">
           <table
             className="text-sm border-collapse"
             style={{ tableLayout: "fixed", width: tableWidth }}
           >
             <colgroup>
-              {colWidths.map((w, i) => visibleCols.has(i) ? <col key={i} style={{ width: w }} /> : null)}
+              {visibleColumnOrder.map((columnIndex) => <col key={columnIndex} style={{ width: colWidths[columnIndex] }} />)}
             </colgroup>
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="sticky top-0 z-30 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_#e2e8f0]">
               <tr>
-                {HEADERS.map((h, i) => {
+                {visibleColumnOrder.map((i) => {
+                  const h = HEADERS[i];
                   const field = SORT_FIELDS[i];
                   const isActive = field && sortBy === field;
-                  if (!visibleCols.has(i)) return null;
+                  const isFrozen = i < LOCKED_COLUMN_COUNT;
+                  const toggleSort = () => {
+                    if (!field) return;
+                    if (isActive) setSortDir((direction) => direction === "asc" ? "desc" : "asc");
+                    else { setSortBy(field); setSortDir("asc"); }
+                    setPage(1);
+                  };
+                  const sortTitle = field
+                    ? isActive
+                      ? `กำลังเรียง${sortDir === "asc" ? "จากน้อยไปมาก" : "จากมากไปน้อย"} — คลิกเพื่อสลับลำดับ`
+                      : `คลิกเพื่อเรียงตาม${h}`
+                    : undefined;
                   return (
                   <th
                     key={i}
-                    onClick={() => {
-                      if (!field) return;
-                      if (isActive) setSortDir(d => d === "asc" ? "desc" : "asc");
-                      else { setSortBy(field); setSortDir("asc"); }
-                      setPage(1);
+                    onClick={toggleSort}
+                    onKeyDown={(event) => {
+                      if (field && (event.key === "Enter" || event.key === " ")) {
+                        event.preventDefault();
+                        toggleSort();
+                      }
                     }}
-                    className={`px-3 py-3 text-left font-semibold text-slate-600 whitespace-nowrap relative select-none overflow-hidden ${field ? "cursor-pointer hover:bg-slate-100" : ""}`}
+                    tabIndex={field ? 0 : undefined}
+                    aria-sort={field ? (isActive ? (sortDir === "asc" ? "ascending" : "descending") : "none") : undefined}
+                    title={sortTitle}
+                    style={isFrozen ? { left: i === 0 ? 0 : colWidths[0] } : undefined}
+                    className={`px-3 py-3 text-left font-semibold whitespace-nowrap relative select-none overflow-hidden transition-colors ${isFrozen ? "sticky z-40 bg-slate-50" : ""} ${field ? "cursor-pointer hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400" : ""} ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-600"}`}
                   >
                     {i === NAME_COL_INDEX ? (
                       <span className="flex items-center gap-1.5 pr-2">
                         <span className="overflow-hidden text-ellipsis">{h}</span>
-                        <span
-                          className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-normal text-blue-500 bg-blue-50 border border-blue-200 rounded px-1 py-px leading-none"
-                          title="คลิกที่ชื่อเพื่อดูรายละเอียด"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                          </svg>
-                          กดดูข้อมูล
-                        </span>
-                        {field && <span className="ml-auto text-slate-400 text-xs">{isActive ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>}
+                        {field && <span className="ml-auto"><SortIndicator active={Boolean(isActive)} direction={sortDir} /></span>}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 overflow-hidden pr-2">
                         <span className="overflow-hidden text-ellipsis">{h}</span>
-                        {field && <span className={`shrink-0 text-xs ${isActive ? "text-blue-500" : "text-slate-300"}`}>{isActive ? (sortDir === "asc" ? "↑" : "↓") : "↕"}</span>}
+                        {field && <SortIndicator active={Boolean(isActive)} direction={sortDir} />}
                       </span>
                     )}
                     {i > 0 && (
@@ -805,71 +999,12 @@ export default function AllRecordsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={HEADERS.length} className="py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
+                <tr><td colSpan={visibleColumnOrder.length} className="py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
               ) : employees.length === 0 ? (
-                <tr><td colSpan={HEADERS.length} className="py-12 text-center text-slate-400">ไม่พบข้อมูล</td></tr>
+                <tr><td colSpan={visibleColumnOrder.length} className="py-12 text-center text-slate-400">ไม่พบข้อมูล</td></tr>
               ) : employees.map((emp, i) => (
-                <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-3 py-3 whitespace-nowrap overflow-hidden">
-                    {canEdit && (
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => setEditingId(emp.employeeId)}
-                          title="แก้ไข"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-blue-600 hover:bg-blue-50 transition-colors"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                          </svg>
-                        </button>
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(emp.employeeId)}
-                            title="ลบ"
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-red-500 hover:bg-red-50 transition-colors"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6"/>
-                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                              <path d="M10 11v6M14 11v6"/>
-                              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  {visibleCols.has(1) && <TCell className="text-slate-400 text-center">{(page - 1) * PAGE_SIZE + i + 1}</TCell>}
-                  {visibleCols.has(2) && <TCell title={emp.employeeId} className="font-mono text-xs text-slate-600">{emp.employeeId}</TCell>}
-                  <td
-                    className="px-3 py-3 overflow-hidden cursor-pointer"
-                    style={{ maxWidth: 0 }}
-                    title={emp.nameTh}
-                    onClick={() => setSelectedEmp(emp)}
-                  >
-                    <div className="flex items-center gap-1.5 overflow-hidden">
-                      <span className="font-medium text-blue-700 hover:underline overflow-hidden text-ellipsis whitespace-nowrap flex-1 min-w-0">
-                        {emp.nameTh}
-                      </span>
-                      {isFullyClosed(emp) && (
-                        <span className="shrink-0 text-xs bg-green-600 text-white px-1.5 py-px rounded font-semibold leading-tight whitespace-nowrap">
-                          ดำเนินการแล้ว
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  {visibleCols.has(4) && <TCell title={emp.nameEn ?? "-"} className="text-slate-500">{emp.nameEn ?? "-"}</TCell>}
-                  {visibleCols.has(5) && <TCell title={emp.position ?? "-"}>{emp.position ?? "-"}</TCell>}
-                  {visibleCols.has(6) && <TCell title={emp.level ?? "-"}>{emp.level ?? "-"}</TCell>}
-                  {visibleCols.has(7) && <TCell title={emp.bureau ?? "-"}>{emp.bureau ?? "-"}</TCell>}
-                  {visibleCols.has(8) && <TCell title={emp.department ?? "-"}>{emp.department ?? "-"}</TCell>}
-                  {visibleCols.has(9) && <TCell title={formatDate(emp.endDate)}>{formatDate(emp.endDate)}</TCell>}
-                  {visibleCols.has(10) && <TCell title={emp.email ?? "-"}>{emp.email ?? "-"}</TCell>}
-                  {visibleCols.has(11) && <ITStatusCell value={emp.fmis} />}
-                  {visibleCols.has(12) && <ITStatusCell value={emp.eMeeting} />}
-                  {visibleCols.has(13) && <ITStatusCell value={emp.software} />}
-                  {visibleCols.has(14) && <ITStatusCell value={emp.phonebook} />}
+                <tr key={emp.id} className="group hover:bg-slate-50 transition-colors">
+                  {visibleColumnOrder.map((columnIndex) => renderDesktopCell(emp, i, columnIndex))}
                 </tr>
               ))}
             </tbody>
@@ -896,11 +1031,9 @@ export default function AllRecordsPage() {
               {/* Header: ชื่อ + รหัส + ปุ่มแก้ไข */}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-slate-800 truncate">{emp.nameTh}</span>
-                    {isFullyClosed(emp) && (
-                      <span className="shrink-0 text-xs bg-green-600 text-white px-1.5 py-px rounded font-semibold leading-tight">ดำเนินการแล้ว</span>
-                    )}
+                  <div className="flex flex-col items-start">
+                    <span className="max-w-full font-semibold text-slate-800 truncate">{emp.nameTh}</span>
+                    {isFullyClosed(emp) && <span className="mt-0.5 text-[11px] font-medium text-green-700">✓ ดำเนินการแล้ว</span>}
                   </div>
                   <div className="text-xs text-slate-500 truncate">{emp.nameEn || "-"}</div>
                   <div className="text-xs text-slate-400 font-mono mt-0.5">{emp.employeeId}</div>
@@ -910,7 +1043,7 @@ export default function AllRecordsPage() {
                     <button
                       onClick={() => setEditingId(emp.employeeId)}
                       title="แก้ไข"
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-md text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors"
+                      className="inline-flex cursor-pointer items-center justify-center w-8 h-8 rounded-md text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -919,9 +1052,9 @@ export default function AllRecordsPage() {
                     </button>
                     {canDelete && (
                       <button
-                        onClick={() => handleDelete(emp.employeeId)}
+                        onClick={() => { setDeleteError(null); setDeleteTarget(emp); }}
                         title="ลบ"
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-500 border border-red-200 hover:bg-red-50 transition-colors"
+                        className="inline-flex cursor-pointer items-center justify-center w-8 h-8 rounded-md text-red-500 border border-red-200 hover:bg-red-50 transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6"/>
@@ -951,7 +1084,10 @@ export default function AllRecordsPage() {
                 </div>
                 <div className="flex gap-2">
                   <span className="text-slate-400 w-24 shrink-0">วันพ้นสภาพ</span>
-                  <span className="text-slate-700">{formatDate(emp.endDate)}</span>
+                  <span className="inline-flex flex-col items-start text-slate-700">
+                    <span>{formatDate(emp.endDate)}</span>
+                    {isFutureEndDate(emp.endDate) && <FutureEndDateLabel />}
+                  </span>
                 </div>
               </div>
 
@@ -1020,6 +1156,15 @@ export default function AllRecordsPage() {
         </div>
       )}
       {selectedEmp && <EmployeeDetailModal emp={selectedEmp} onClose={() => setSelectedEmp(null)} />}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          employee={deleteTarget}
+          deleting={deleting}
+          error={deleteError}
+          onCancel={() => { if (!deleting) { setDeleteTarget(null); setDeleteError(null); } }}
+          onConfirm={handleDelete}
+        />
+      )}
       {editingId && (
         <EditRecordModal
           employeeId={editingId}
@@ -1028,6 +1173,22 @@ export default function AllRecordsPage() {
         />
       )}
     </AppLayout>
+  );
+}
+
+function SortIndicator({ active, direction }: { active: boolean; direction: "asc" | "desc" }) {
+  return (
+    <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors ${active ? "bg-blue-100 text-blue-700" : "bg-transparent text-slate-400"}`} aria-hidden="true">
+      {active ? (
+        direction === "asc" ? (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M18 13l-6 6-6-6" /></svg>
+        )
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 7 5 4 2 7M5 4v16M16 17l3 3 3-3M19 20V4" /></svg>
+      )}
+    </span>
   );
 }
 
@@ -1042,6 +1203,23 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
       className="absolute right-0 top-1/2 -translate-y-1/2"
       style={{ width: 2, height: "60%", cursor: "col-resize", backgroundColor: "#cbd5e1", borderRadius: 2 }}
     />
+  );
+}
+
+function FutureEndDateLabel() {
+  return (
+    <span
+      title="ยังไม่ถึงวันที่พ้นสภาพ"
+      className="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-amber-700"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M8 2v3M16 2v3M3 9h18" />
+        <path d="M5 4h14a2 2 0 0 1 2 2v6.5M12 21H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2" />
+        <circle cx="17" cy="17" r="4" />
+        <path d="M17 15v2l1.5 1" />
+      </svg>
+      <span>ยังไม่ถึงวันที่พ้นสภาพ</span>
+    </span>
   );
 }
 
@@ -1068,28 +1246,42 @@ function TCell({
   );
 }
 
+function ITStatusIcon({ status }: { status: "done" | "pending" | "missing" | "unknown" }) {
+  const common = "h-3.5 w-3.5 shrink-0";
+  if (status === "done") {
+    return <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6" /></svg>;
+  }
+  if (status === "pending") {
+    return <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
+  }
+  if (status === "missing") {
+    return <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3" /><path d="M3 19c0-3.3 2.7-6 6-6 1.3 0 2.5.4 3.5 1.1M16 15l5 5M21 15l-5 5" /></svg>;
+  }
+  return <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9.8 9a2.5 2.5 0 1 1 3.7 2.2c-.9.5-1.5 1.1-1.5 2.3M12 17h.01" /></svg>;
+}
+
 function ITStatusCell({ value }: { value?: string | null }) {
   if (!value || value === "ไม่พบบัญชี") {
     return (
-      <td className="px-3 py-3 text-left overflow-hidden" title="ไม่พบบัญชี">
-        <span className="inline-block text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่พบบัญชี</span>
+      <td className="px-2 py-3 text-left overflow-hidden" title="ไม่พบบัญชี">
+        <span className="inline-flex items-center gap-1 text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap"><ITStatusIcon status="missing" />ไม่พบบัญชี</span>
       </td>
     );
   }
   if (value === "ไม่ทราบสถานะ") {
     return (
-      <td className="px-3 py-3 text-left overflow-hidden" title="ไม่ทราบสถานะ">
-        <span className="inline-block text-xs bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full whitespace-nowrap">ไม่ทราบสถานะ</span>
+      <td className="px-2 py-3 text-left overflow-hidden" title="ไม่ทราบสถานะ">
+        <span className="inline-flex items-center gap-1 text-xs bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full whitespace-nowrap"><ITStatusIcon status="unknown" />ไม่ทราบสถานะ</span>
       </td>
     );
   }
   const isDone = value === "ดำเนินการแล้ว";
   return (
-    <td className="px-3 py-3 text-left overflow-hidden" title={value}>
+    <td className="px-2 py-3 text-left overflow-hidden" title={value}>
       {isDone ? (
-        <span className="inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">ดำเนินการแล้ว</span>
+        <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap"><ITStatusIcon status="done" />ดำเนินการแล้ว</span>
       ) : (
-        <span className="inline-block text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full whitespace-nowrap">ยังไม่ดำเนินการ</span>
+        <span className="inline-flex items-center gap-1 text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full whitespace-nowrap"><ITStatusIcon status="pending" />ยังไม่ดำเนินการ</span>
       )}
     </td>
   );
@@ -1097,15 +1289,120 @@ function ITStatusCell({ value }: { value?: string | null }) {
 
 function ITBadge({ value }: { value?: string | null }) {
   if (!value || value === "ไม่พบบัญชี") {
-    return <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">ไม่พบบัญชี</span>;
+    return <span className="inline-flex items-center gap-1 text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full"><ITStatusIcon status="missing" />ไม่พบบัญชี</span>;
   }
   if (value === "ไม่ทราบสถานะ") {
-    return <span className="text-xs bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full">ไม่ทราบสถานะ</span>;
+    return <span className="inline-flex items-center gap-1 text-xs bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full"><ITStatusIcon status="unknown" />ไม่ทราบสถานะ</span>;
   }
   return value === "ดำเนินการแล้ว" ? (
-    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">ดำเนินการแล้ว</span>
+    <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full"><ITStatusIcon status="done" />ดำเนินการแล้ว</span>
   ) : (
-    <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">ยังไม่ดำเนินการ</span>
+    <span className="inline-flex items-center gap-1 text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full"><ITStatusIcon status="pending" />ยังไม่ดำเนินการ</span>
+  );
+}
+
+function DeleteConfirmModal({
+  employee,
+  deleting,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  employee: Employee;
+  deleting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !deleting) onCancel();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [deleting, onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-[2px]"
+      onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) onCancel(); }}
+      role="presentation"
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-title"
+        aria-describedby="delete-confirm-description"
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 ring-8 ring-red-50/60">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5" />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 id="delete-confirm-title" className="text-lg font-bold text-slate-800">ยืนยันการลบข้อมูล</h2>
+              <p id="delete-confirm-description" className="mt-1 text-sm leading-6 text-slate-500">
+                คุณต้องการลบข้อมูลพนักงานรายการนี้ใช่หรือไม่
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="truncate font-semibold text-slate-800" title={employee.nameTh}>{employee.nameTh}</p>
+            <p className="mt-0.5 text-sm text-slate-500">รหัสพนักงาน: <span className="font-mono text-slate-700">{employee.employeeId}</span></p>
+          </div>
+
+          <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
+            <svg xmlns="http://www.w3.org/2000/svg" className="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.3 2.9 1.8 17a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 2.9a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></svg>
+            <span>รายการนี้จะถูกย้ายไปถังขยะ และมีเพียง Super Admin ที่สามารถกู้คืนได้</span>
+          </div>
+
+          {error && (
+            <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <label className="mt-4 block text-sm font-medium text-slate-700" htmlFor="delete-reason">
+            เหตุผลในการลบ <span className="font-normal text-slate-400">(ไม่บังคับ)</span>
+          </label>
+          <textarea
+            id="delete-reason"
+            value={reason}
+            onChange={(event) => setReason(event.target.value.slice(0, 500))}
+            disabled={deleting}
+            rows={3}
+            placeholder="ระบุเหตุผลเพื่อใช้อ้างอิงในภายหลัง"
+            className="mt-1.5 w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+          />
+          <div className="mt-1 text-right text-[11px] text-slate-400">{reason.length}/500</div>
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-50"
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(reason.trim())}
+            disabled={deleting}
+            className="inline-flex min-w-[120px] items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:bg-red-400"
+          >
+            {deleting && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />}
+            {deleting ? "กำลังลบ..." : "ยืนยันการลบ"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1146,7 +1443,7 @@ function EmployeeDetailModal({ emp, onClose }: { emp: Employee; onClose: () => v
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors text-lg leading-none"
+            className="shrink-0 w-8 h-8 cursor-pointer flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors text-lg leading-none"
           >
             ×
           </button>

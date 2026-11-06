@@ -58,7 +58,7 @@ router.get("/terminated-employees", integrationAuth_1.integrationAuth, async (re
         return;
     }
     const employees = await prisma_1.prisma.employee.findMany({
-        where: { createdAt: { gte: (0, integrationDates_1.bangkokDayStart)(fromDate), lt: (0, integrationDates_1.bangkokDayAfter)(toDate) }, endDate: { not: null } },
+        where: { deletedAt: null, createdAt: { gte: (0, integrationDates_1.bangkokDayStart)(fromDate), lt: (0, integrationDates_1.bangkokDayAfter)(toDate) }, endDate: { not: null } },
         orderBy: { id: "asc" }, take: MAX_RESULTS + 1,
         select: { employeeId: true, nameTh: true },
     });
@@ -90,7 +90,7 @@ router.get("/terminated-employees/full-sync", integrationAuth_1.integrationAuth,
     }
     try {
         const employees = await prisma_1.prisma.employee.findMany({
-            where: { endDate: { not: null } }, orderBy: { id: "asc" }, take: MAX_FULL_SYNC_RESULTS + 1,
+            where: { deletedAt: null, endDate: { not: null } }, orderBy: { id: "asc" }, take: MAX_FULL_SYNC_RESULTS + 1,
             select: { employeeId: true, nameTh: true },
         });
         if (employees.length > MAX_FULL_SYNC_RESULTS)

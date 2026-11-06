@@ -6,8 +6,9 @@ const router = Router();
 
 router.get("/", authMiddleware, requirePermission("dashboard.view"), async (_req, res) => {
   const [total, allEmployees] = await Promise.all([
-    prisma.employee.count(),
+    prisma.employee.count({ where: { deletedAt: null } }),
     prisma.employee.findMany({
+      where: { deletedAt: null },
       select: { bureau: true, endDate: true, fmis: true, eMeeting: true, software: true, phonebook: true, email: true },
     }),
   ]);

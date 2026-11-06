@@ -11,6 +11,7 @@ const navItems: { to: string; label: string; icon: string; permission?: Permissi
   { to: "/logs", label: "Audit Log", icon: "📝", permission: "audit_logs.view" },
   { to: "/settings", label: "จัดการผู้ใช้งาน", icon: "⚙️", roles: ["SUPER_ADMIN"] },
   { to: "/api-management", label: "จัดการ API", icon: "🔌", roles: ["SUPER_ADMIN"] },
+  { to: "/records/trash", label: "ถังขยะข้อมูลพนักงาน", icon: "🗑️", roles: ["SUPER_ADMIN"] },
   { to: "/account", label: "บัญชีของฉัน / 2FA", icon: "🔐" },
 ];
 

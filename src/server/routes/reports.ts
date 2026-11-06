@@ -62,6 +62,7 @@ function applyHeaderStyle(cell: ExcelJS.Cell, center = true) {
 // GET /api/reports/meta — unique bureaus for filter dropdown
 router.get("/meta", authMiddleware, requirePermission("reports.export"), async (_req, res) => {
   const rows = await prisma.employee.findMany({
+    where: { deletedAt: null },
     select: { bureau: true },
     distinct: ["bureau"],
     orderBy: { bureau: "asc" },
@@ -94,7 +95,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   const sortBy = allowedSortFields.includes(requestedSortBy) ? requestedSortBy : "createdAt";
   const sortDir = req.query.sortDir === "asc" ? "asc" : "desc";
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { deletedAt: null };
   const conditions: unknown[] = [];
 
   if (search) {

@@ -56,6 +56,7 @@ function applyHeaderStyle(cell, center = true) {
 // GET /api/reports/meta — unique bureaus for filter dropdown
 router.get("/meta", auth_1.authMiddleware, (0, auth_1.requirePermission)("reports.export"), async (_req, res) => {
     const rows = await prisma_1.prisma.employee.findMany({
+        where: { deletedAt: null },
         select: { bureau: true },
         distinct: ["bureau"],
         orderBy: { bureau: "asc" },
@@ -86,7 +87,7 @@ router.get("/employees", auth_1.authMiddleware, (0, auth_1.requirePermission)("r
     const requestedSortBy = String(req.query.sortBy ?? "createdAt");
     const sortBy = allowedSortFields.includes(requestedSortBy) ? requestedSortBy : "createdAt";
     const sortDir = req.query.sortDir === "asc" ? "asc" : "desc";
-    const where = {};
+    const where = { deletedAt: null };
     const conditions = [];
     if (search) {
         conditions.push({

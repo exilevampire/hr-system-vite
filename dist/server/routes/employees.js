@@ -184,7 +184,7 @@ router.get("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.
     const ALLOWED_SORT = ["employeeId", "nameTh", "nameEn", "position", "level", "bureau", "department", "endDate", "email", "createdAt"];
     const sortBy = ALLOWED_SORT.includes(String(req.query.sortBy)) ? String(req.query.sortBy) : "createdAt";
     const sortDir = req.query.sortDir === "asc" ? "asc" : "desc";
-    const where = {};
+    const where = { deletedAt: null };
     const conditions = [];
     if (search) {
         conditions.push({
@@ -296,6 +296,18 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees
         return;
     }
     try {
+        const existing = await prisma_1.prisma.employee.findUnique({ where: { employeeId: body.employeeId.trim() } });
+        if (existing?.deletedAt) {
+            res.status(409).json({
+                error: "รหัสพนักงานนี้อยู่ในถังขยะ กรุณาให้ Super Admin กู้คืนข้อมูลเดิม",
+                code: "EMPLOYEE_IN_TRASH",
+            });
+            return;
+        }
+        if (existing) {
+            res.status(409).json({ error: "รหัสพนักงานซ้ำในระบบ", code: "EMPLOYEE_EXISTS" });
+            return;
+        }
         const dataSourceId = await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear);
         const employee = await prisma_1.prisma.employee.create({
             data: {
@@ -535,6 +547,9 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
                     await (0, audit_1.createAuditLog)(emp.employeeId, "CREATE", adminUser, undefined, undefined, { source: "IMPORT", fileName: filename, importBatchId });
                     created++;
                 }
+                else if (exists.deletedAt) {
+                    errors.push(`[${filename}] แถว ${i + 1} (${employeeId}): รหัสพนักงานอยู่ในถังขยะ กรุณากู้คืนก่อนนำเข้าข้อมูล`);
+                }
                 else {
                     const changedFields = [];
                     const normalize = (v) => (v ?? "").trim();
@@ -617,25 +632,25 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
 router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
     const [positions, bureaus, levels, departments, combinations] = await Promise.all([
         prisma_1.prisma.employee.findMany({
-            where: { position: { not: null } },
+            where: { deletedAt: null, position: { not: null } },
             select: { position: true },
             distinct: ["position"],
             orderBy: { position: "asc" },
         }),
         prisma_1.prisma.employee.findMany({
-            where: { bureau: { not: null } },
+            where: { deletedAt: null, bureau: { not: null } },
             select: { bureau: true },
             distinct: ["bureau"],
             orderBy: { bureau: "asc" },
         }),
         prisma_1.prisma.employee.findMany({
-            where: { level: { not: null } },
+            where: { deletedAt: null, level: { not: null } },
             select: { level: true },
             distinct: ["level"],
             orderBy: { level: "asc" },
         }),
         prisma_1.prisma.employee.findMany({
-            where: { department: { not: null } },
+            where: { deletedAt: null, department: { not: null } },
             select: { department: true },
             distinct: ["department"],
             orderBy: { department: "asc" },
@@ -646,6 +661,7 @@ router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
         // repeat across bureaus ("ฝ่ายบริหารงานทั่วไป" exists in 16 of them) and the
         // same position appears under many departments.
         prisma_1.prisma.employee.findMany({
+            where: { deletedAt: null },
             select: { bureau: true, department: true, position: true, level: true },
             distinct: ["bureau", "department", "position", "level"],
         }),
@@ -682,13 +698,57 @@ router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
         ]),
     });
 });
+router.get("/trash", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), async (req, res) => {
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize ?? "20")) || 20));
+    const search = String(req.query.search ?? "").trim();
+    const where = {
+        deletedAt: { not: null },
+        ...(search ? {
+            OR: [
+                { employeeId: { contains: search } },
+                { nameTh: { contains: search } },
+                { nameEn: { contains: search } },
+            ],
+        } : {}),
+    };
+    const [data, total] = await Promise.all([
+        prisma_1.prisma.employee.findMany({
+            where,
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+            orderBy: { deletedAt: "desc" },
+            select: {
+                employeeId: true, nameTh: true, nameEn: true, position: true,
+                bureau: true, department: true, deletedAt: true, deletedBy: true,
+                deleteReason: true,
+            },
+        }),
+        prisma_1.prisma.employee.count({ where }),
+    ]);
+    res.json({ data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
+});
+router.post("/:employeeId/restore", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), async (req, res) => {
+    const { employeeId } = req.params;
+    const existing = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
+    if (!existing || !existing.deletedAt) {
+        res.status(404).json({ error: "ไม่พบข้อมูลในถังขยะ" });
+        return;
+    }
+    const restored = await prisma_1.prisma.employee.update({
+        where: { employeeId },
+        data: { deletedAt: null, deletedBy: null, deleteReason: null, updatedBy: req.user?.email ?? "unknown" },
+    });
+    await (0, audit_1.createAuditLog)(employeeId, "UPDATE", req.user?.email ?? "unknown", existing, restored);
+    res.json(restored);
+});
 router.get("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.view"), async (req, res) => {
     const { employeeId } = req.params;
     const employee = await prisma_1.prisma.employee.findUnique({
         where: { employeeId },
         include: { dataSource: true },
     });
-    if (!employee) {
+    if (!employee || employee.deletedAt) {
         res.status(404).json({ error: "Not found" });
         return;
     }
@@ -700,7 +760,7 @@ router.patch("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission
     const role = req.user?.role ?? "";
     const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
     const old = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
-    if (!old) {
+    if (!old || old.deletedAt) {
         res.status(404).json({ error: "Not found" });
         return;
     }
@@ -750,13 +810,17 @@ router.patch("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission
 router.delete("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.delete"), async (req, res) => {
     const { employeeId } = req.params;
     const adminUser = req.user?.email ?? "unknown";
+    const deleteReason = String(req.body?.reason ?? "").trim().slice(0, 500) || null;
     const existing = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
-    if (!existing) {
+    if (!existing || existing.deletedAt) {
         res.status(404).json({ error: "Not found" });
         return;
     }
-    await (0, audit_1.createAuditLog)(employeeId, "DELETE", adminUser);
-    await prisma_1.prisma.employee.delete({ where: { employeeId } });
+    await prisma_1.prisma.employee.update({
+        where: { employeeId },
+        data: { deletedAt: new Date(), deletedBy: adminUser, deleteReason, updatedBy: adminUser },
+    });
+    await (0, audit_1.createAuditLog)(employeeId, "DELETE", adminUser, existing);
     res.json({ success: true });
 });
 exports.default = router;

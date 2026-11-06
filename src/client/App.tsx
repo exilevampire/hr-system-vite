@@ -9,6 +9,7 @@ import LogsPage from "./pages/LogsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AccountPage from "./pages/AccountPage";
 import ApiManagementPage from "./pages/ApiManagementPage";
+import TrashPage from "./pages/records/TrashPage";
 import type { Permission } from "./lib/permissions";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,7 @@ function AppRoutes() {
       <Route path="/logs" element={<PermissionRoute permission="audit_logs.view"><LogsPage /></PermissionRoute>} />
       <Route path="/settings" element={user?.role === "SUPER_ADMIN" ? <ProtectedRoute><SettingsPage /></ProtectedRoute> : <Navigate to="/" replace />} />
       <Route path="/api-management" element={user?.role === "SUPER_ADMIN" ? <ProtectedRoute><ApiManagementPage /></ProtectedRoute> : <Navigate to="/" replace />} />
+      <Route path="/records/trash" element={user?.role === "SUPER_ADMIN" ? <ProtectedRoute><TrashPage /></ProtectedRoute> : <Navigate to="/" replace />} />
       <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
     </Routes>
   );
