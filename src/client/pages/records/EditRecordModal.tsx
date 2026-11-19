@@ -2,15 +2,12 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../../lib/api";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
+import { SOURCE_TYPE_OPTIONS } from "../../lib/sourceTypes";
 
 const IT_OPTS = ["ยังไม่ดำเนินการ", "ดำเนินการแล้ว", "ไม่พบบัญชี", "ไม่ทราบสถานะ"];
 const IT_KEYS = new Set(["fmis", "eMeeting", "software", "phonebook"]);
 const IT_DATE_KEYS = ["fmisDate", "eMeetingDate", "softwareDate", "phonebookDate"];
 
-const SOURCE_TYPE_OPTIONS = [
-  { value: 1, label: "1 - สบค. (สำนักงานบริหารทรัพยากรบุคคล)" },
-  { value: 2, label: "2 - ศล. (ศูนย์บริการโลหิตแห่งชาติ)" },
-];
 const THAI_MONTHS_EDIT = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
 interface Field {

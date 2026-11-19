@@ -4,13 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../../lib/api";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
+import { SOURCE_TYPE_OPTIONS } from "../../lib/sourceTypes";
 
 const IT_OPTS = ["ยังไม่ดำเนินการ", "ดำเนินการแล้ว", "ไม่พบบัญชี", "ไม่ทราบสถานะ"];
 
-const SOURCE_TYPE_OPTIONS = [
-  { value: 1, label: "1 - สบค. (สำนักงานบริหารทรัพยากรบุคคล)" },
-  { value: 2, label: "2 - ศล. (ศูนย์บริการโลหิตแห่งชาติ)" },
-];
 const THAI_MONTHS = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
 interface Field {

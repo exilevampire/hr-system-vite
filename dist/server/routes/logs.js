@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
+const sourceTypes_1 = require("../lib/sourceTypes");
 const router = (0, express_1.Router)();
-const SOURCE_TYPE_LABELS = { 1: "สบค.", 2: "ศล." };
 const THAI_MONTHS_FULL = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 async function resolveDataSourceLabels(data) {
     const ids = new Set();
@@ -21,7 +21,7 @@ async function resolveDataSourceLabels(data) {
     if (ids.size === 0)
         return;
     const sources = await prisma_1.prisma.dataSource.findMany({ where: { id: { in: [...ids] } } });
-    const labelById = new Map(sources.map((s) => [s.id, `${SOURCE_TYPE_LABELS[s.sourceType] ?? `ต้นทาง ${s.sourceType}`} ${THAI_MONTHS_FULL[s.month] ?? s.month} ${s.year}`]));
+    const labelById = new Map(sources.map((s) => [s.id, `${(0, sourceTypes_1.sourceTypeFullName)(s.sourceType)} ${THAI_MONTHS_FULL[s.month] ?? s.month} ${s.year}`]));
     for (const log of data) {
         const fields = log.changedFields;
         const change = fields?.dataSourceId;

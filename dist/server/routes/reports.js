@@ -7,6 +7,7 @@ const express_1 = require("express");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const exceljs_1 = __importDefault(require("exceljs"));
+const sourceTypes_1 = require("../lib/sourceTypes");
 const router = (0, express_1.Router)();
 const HEADER_DARK = "1E3A5F";
 const HEADER_MID = "2D5F9E";
@@ -18,12 +19,11 @@ const ORANGE_BG = "FFFEF3C7";
 const ORANGE_FG = "FF92400E";
 const GRAY_BG = "FFE5E7EB";
 const BLUE_MID = "FFDBEAFE";
-const SOURCE_TYPE_NAMES = { 1: "สบค.", 2: "ศล." };
 const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 function formatDataSource(ds) {
     if (!ds)
         return "";
-    const name = SOURCE_TYPE_NAMES[ds.sourceType] ?? `ต้นทาง ${ds.sourceType}`;
+    const name = (0, sourceTypes_1.sourceTypeFullName)(ds.sourceType);
     return `${name} ${THAI_MONTHS_SHORT[ds.month - 1] ?? ds.month} ${ds.year}`;
 }
 function toBE(date) {
@@ -189,7 +189,7 @@ router.get("/employees", auth_1.authMiddleware, (0, auth_1.requirePermission)("r
     // Column definitions (row 2 = headers)
     ws.columns = [
         { key: "no", width: 7 },
-        { key: "dataSource", width: 18 },
+        { key: "dataSource", width: 44 },
         { key: "employeeId", width: 14 },
         { key: "nameTh", width: 28 },
         { key: "nameEn", width: 26 },
@@ -270,7 +270,7 @@ router.get("/employees", auth_1.authMiddleware, (0, auth_1.requirePermission)("r
             const cell = row.getCell(colNum);
             cell.value = val;
             cell.font = { name: "TH Sarabun New", size: 14 };
-            cell.alignment = { vertical: "middle", horizontal: CENTER_COLS.has(colNum) ? "center" : "left" };
+            cell.alignment = { vertical: "middle", horizontal: CENTER_COLS.has(colNum) ? "center" : "left", wrapText: colNum === 2 };
             cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
         });
         // สถานะการดำเนินงาน coloring (col 12 — col 11 is Email)

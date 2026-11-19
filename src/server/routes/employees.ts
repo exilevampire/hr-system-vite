@@ -6,6 +6,7 @@ import { sendImportNotification } from "../lib/mailer";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { randomUUID } from "crypto";
+import { isSupportedSourceType, sourceTypeFullName } from "../lib/sourceTypes";
 
 const router = Router();
 const upload = multer({
@@ -61,6 +62,11 @@ async function resolveDataSource(
   let ds = await prisma.dataSource.findFirst({ where: { sourceType: st, month: sm, year: sy } });
   if (!ds) ds = await prisma.dataSource.create({ data: { sourceType: st, month: sm, year: sy } });
   return ds.id;
+}
+
+function hasValidSourceType(sourceType: unknown): boolean {
+  const value = String(sourceType ?? "").trim();
+  return !value || isSupportedSourceType(Number(value));
 }
 
 const VALID_IT_STATUSES = ["ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่พบบัญชี", "ไม่ทราบสถานะ"] as const;
@@ -255,6 +261,10 @@ router.post("/", authMiddleware, requirePermission("employees.create"), async (r
     res.status(400).json({ error: "กรุณากรอกชื่อ-สกุล (ไทย)" });
     return;
   }
+  if (!hasValidSourceType(body.sourceType)) {
+    res.status(400).json({ error: "ข้อมูลต้นทางต้องเป็น 1, 2 หรือ 3" });
+    return;
+  }
 
   try {
     const existing = await prisma.employee.findUnique({ where: { employeeId: body.employeeId.trim() } });
@@ -423,6 +433,11 @@ router.post("/import", authMiddleware, requirePermission("employees.import"),
       if (!empId) {
         validationErrors.push(`ไฟล์ "${filename}" แถว ${i + 1}: ไม่มีรหัสพนักงาน`);
       }
+      const raw = mapRowToRaw(headers, row);
+      const sourceTypeValue = String(raw.sourceType ?? "").trim();
+      if (sourceTypeValue && !isSupportedSourceType(Number(sourceTypeValue))) {
+        validationErrors.push(`ไฟล์ "${filename}" แถว ${i + 1}: ข้อมูลต้นทางต้องเป็น 1, 2 หรือ 3`);
+      }
     }
 
     parsedFiles.push({ filename, headers, rows });
@@ -436,7 +451,6 @@ router.post("/import", authMiddleware, requirePermission("employees.import"),
 
   // ── Phase 2: Process ALL files ───────────────────────────────────────────
   const importBatchId = randomUUID();
-  const SOURCE_TYPE_LABELS: Record<number, string> = { 1: "สบค.", 2: "ศล." };
   const THAI_MONTHS_FULL = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
   const importedSources = new Set<string>();
 
@@ -473,7 +487,7 @@ router.post("/import", authMiddleware, requirePermission("employees.import"),
       const srcMonth = Number(raw.sourceMonth);
       const srcYear = Number(raw.sourceYear);
       if (srcType && srcMonth && srcYear) {
-        const label = `${SOURCE_TYPE_LABELS[srcType] ?? `ต้นทาง ${srcType}`} ${THAI_MONTHS_FULL[srcMonth] ?? srcMonth} ${srcYear}`;
+        const label = `${sourceTypeFullName(srcType)} ${THAI_MONTHS_FULL[srcMonth] ?? srcMonth} ${srcYear}`;
         importedSources.add(label);
       }
       const newData = {
@@ -748,6 +762,11 @@ router.patch("/:employeeId", authMiddleware, requirePermission("employees.update
   const body = req.body;
   const role = req.user?.role ?? "";
   const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
+
+  if (role === "SUPER_ADMIN" && !hasValidSourceType(body.sourceType)) {
+    res.status(400).json({ error: "ข้อมูลต้นทางต้องเป็น 1, 2 หรือ 3" });
+    return;
+  }
 
   const old = await prisma.employee.findUnique({ where: { employeeId } });
   if (!old || old.deletedAt) {

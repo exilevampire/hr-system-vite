@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
+const sourceTypes_1 = require("../lib/sourceTypes");
 const router = (0, express_1.Router)();
 router.get("/", auth_1.authMiddleware, async (_req, res) => {
     const sources = await prisma_1.prisma.dataSource.findMany({
@@ -14,6 +15,10 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), 
     const { sourceType, month, year } = req.body;
     if (!sourceType || !month || !year) {
         res.status(400).json({ error: "ต้องระบุ sourceType, month และ year" });
+        return;
+    }
+    if (!(0, sourceTypes_1.isSupportedSourceType)(Number(sourceType))) {
+        res.status(400).json({ error: "ข้อมูลต้นทางต้องเป็น 1, 2 หรือ 3" });
         return;
     }
     try {

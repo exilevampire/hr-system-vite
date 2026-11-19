@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware, requireRole } from "../middleware/auth";
+import { isSupportedSourceType } from "../lib/sourceTypes";
 
 const router = Router();
 
@@ -15,6 +16,10 @@ router.post("/", authMiddleware, requireRole("SUPER_ADMIN"), async (req, res) =>
   const { sourceType, month, year } = req.body;
   if (!sourceType || !month || !year) {
     res.status(400).json({ error: "ต้องระบุ sourceType, month และ year" });
+    return;
+  }
+  if (!isSupportedSourceType(Number(sourceType))) {
+    res.status(400).json({ error: "ข้อมูลต้นทางต้องเป็น 1, 2 หรือ 3" });
     return;
   }
   try {

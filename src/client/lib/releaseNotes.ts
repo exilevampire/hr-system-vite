@@ -1,7 +1,28 @@
-export const APP_VERSION = "1.1.0";
-export const APP_UPDATED_AT = "6 พฤศจิกายน 2569";
+export const APP_VERSION = "1.1.1";
+export const APP_UPDATED_AT = "19 พฤศจิกายน 2569";
 
 export const RELEASE_NOTES = [
+  {
+    version: "1.1.1",
+    date: "19 พฤศจิกายน 2569",
+    sections: [
+      {
+        title: "เพิ่มใหม่",
+        tone: "green" as const,
+        items: [
+          "เพิ่มข้อมูลต้นทาง โรงพยาบาลจุฬาลงกรณ์ สภากาชาดไทย",
+        ],
+      },
+      {
+        title: "ปรับปรุง",
+        tone: "blue" as const,
+        items: [
+          "ปรับชื่อข้อมูลต้นทางให้แสดงชื่อหน่วยงานเต็มในหน้ารายละเอียด รายงาน และ Audit Log",
+          "เพิ่มคำอธิบายรหัสข้อมูลต้นทาง 1, 2 และ 3 ในหน้าการนำเข้า Excel",
+        ],
+      },
+    ],
+  },
   {
     version: "1.1.0",
     date: "6 พฤศจิกายน 2569",

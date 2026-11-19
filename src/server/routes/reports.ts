@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware, requirePermission } from "../middleware/auth";
 import ExcelJS from "exceljs";
+import { sourceTypeFullName } from "../lib/sourceTypes";
 
 const router = Router();
 
@@ -16,12 +17,11 @@ const ORANGE_FG = "FF92400E";
 const GRAY_BG = "FFE5E7EB";
 const BLUE_MID = "FFDBEAFE";
 
-const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
 const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
 function formatDataSource(ds: { sourceType: number; month: number; year: number } | null | undefined): string {
   if (!ds) return "";
-  const name = SOURCE_TYPE_NAMES[ds.sourceType] ?? `ต้นทาง ${ds.sourceType}`;
+  const name = sourceTypeFullName(ds.sourceType);
   return `${name} ${THAI_MONTHS_SHORT[ds.month - 1] ?? ds.month} ${ds.year}`;
 }
 
@@ -195,7 +195,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   // Column definitions (row 2 = headers)
   ws.columns = [
     { key: "no",           width: 7   },
-    { key: "dataSource",   width: 18  },
+    { key: "dataSource",   width: 44  },
     { key: "employeeId",   width: 14  },
     { key: "nameTh",       width: 28  },
     { key: "nameEn",       width: 26  },
@@ -284,7 +284,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
       const cell = row.getCell(colNum);
       cell.value = val;
       cell.font = { name: "TH Sarabun New", size: 14 };
-      cell.alignment = { vertical: "middle", horizontal: CENTER_COLS.has(colNum) ? "center" : "left" };
+      cell.alignment = { vertical: "middle", horizontal: CENTER_COLS.has(colNum) ? "center" : "left", wrapText: colNum === 2 };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
     });
 

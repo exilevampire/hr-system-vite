@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware, requirePermission } from "../middleware/auth";
+import { sourceTypeFullName } from "../lib/sourceTypes";
 
 const router = Router();
 
-const SOURCE_TYPE_LABELS: Record<number, string> = { 1: "สบค.", 2: "ศล." };
 const THAI_MONTHS_FULL = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
 async function resolveDataSourceLabels(data: { changedFields: unknown }[]) {
@@ -20,7 +20,7 @@ async function resolveDataSourceLabels(data: { changedFields: unknown }[]) {
 
   const sources = await prisma.dataSource.findMany({ where: { id: { in: [...ids] } } });
   const labelById = new Map(
-    sources.map((s) => [s.id, `${SOURCE_TYPE_LABELS[s.sourceType] ?? `ต้นทาง ${s.sourceType}`} ${THAI_MONTHS_FULL[s.month] ?? s.month} ${s.year}`])
+    sources.map((s) => [s.id, `${sourceTypeFullName(s.sourceType)} ${THAI_MONTHS_FULL[s.month] ?? s.month} ${s.year}`])
   );
 
   for (const log of data) {

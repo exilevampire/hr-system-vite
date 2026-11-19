@@ -44,6 +44,7 @@ const mailer_1 = require("../lib/mailer");
 const multer_1 = __importDefault(require("multer"));
 const XLSX = __importStar(require("xlsx"));
 const crypto_1 = require("crypto");
+const sourceTypes_1 = require("../lib/sourceTypes");
 const router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
@@ -97,6 +98,10 @@ async function resolveDataSource(sourceType, sourceMonth, sourceYear) {
     if (!ds)
         ds = await prisma_1.prisma.dataSource.create({ data: { sourceType: st, month: sm, year: sy } });
     return ds.id;
+}
+function hasValidSourceType(sourceType) {
+    const value = String(sourceType ?? "").trim();
+    return !value || (0, sourceTypes_1.isSupportedSourceType)(Number(value));
 }
 const VALID_IT_STATUSES = ["ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่พบบัญชี", "ไม่ทราบสถานะ"];
 function normalizeITStatus(val) {
@@ -295,6 +300,10 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees
         res.status(400).json({ error: "กรุณากรอกชื่อ-สกุล (ไทย)" });
         return;
     }
+    if (!hasValidSourceType(body.sourceType)) {
+        res.status(400).json({ error: "ข้อมูลต้นทางต้องเป็น 1, 2 หรือ 3" });
+        return;
+    }
     try {
         const existing = await prisma_1.prisma.employee.findUnique({ where: { employeeId: body.employeeId.trim() } });
         if (existing?.deletedAt) {
@@ -460,6 +469,11 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
             if (!empId) {
                 validationErrors.push(`ไฟล์ "${filename}" แถว ${i + 1}: ไม่มีรหัสพนักงาน`);
             }
+            const raw = mapRowToRaw(headers, row);
+            const sourceTypeValue = String(raw.sourceType ?? "").trim();
+            if (sourceTypeValue && !(0, sourceTypes_1.isSupportedSourceType)(Number(sourceTypeValue))) {
+                validationErrors.push(`ไฟล์ "${filename}" แถว ${i + 1}: ข้อมูลต้นทางต้องเป็น 1, 2 หรือ 3`);
+            }
         }
         parsedFiles.push({ filename, headers, rows });
     }
@@ -470,7 +484,6 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
     }
     // ── Phase 2: Process ALL files ───────────────────────────────────────────
     const importBatchId = (0, crypto_1.randomUUID)();
-    const SOURCE_TYPE_LABELS = { 1: "สบค.", 2: "ศล." };
     const THAI_MONTHS_FULL = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
     const importedSources = new Set();
     let created = 0;
@@ -503,7 +516,7 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
             const srcMonth = Number(raw.sourceMonth);
             const srcYear = Number(raw.sourceYear);
             if (srcType && srcMonth && srcYear) {
-                const label = `${SOURCE_TYPE_LABELS[srcType] ?? `ต้นทาง ${srcType}`} ${THAI_MONTHS_FULL[srcMonth] ?? srcMonth} ${srcYear}`;
+                const label = `${(0, sourceTypes_1.sourceTypeFullName)(srcType)} ${THAI_MONTHS_FULL[srcMonth] ?? srcMonth} ${srcYear}`;
                 importedSources.add(label);
             }
             const newData = {
@@ -759,6 +772,10 @@ router.patch("/:employeeId", auth_1.authMiddleware, (0, auth_1.requirePermission
     const body = req.body;
     const role = req.user?.role ?? "";
     const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
+    if (role === "SUPER_ADMIN" && !hasValidSourceType(body.sourceType)) {
+        res.status(400).json({ error: "ข้อมูลต้นทางต้องเป็น 1, 2 หรือ 3" });
+        return;
+    }
     const old = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
     if (!old || old.deletedAt) {
         res.status(404).json({ error: "Not found" });

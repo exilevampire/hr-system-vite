@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 import { EditRecordModal } from "./EditRecordModal";
+import { SOURCE_TYPE_FULL_NAMES, SOURCE_TYPE_OPTIONS, SOURCE_TYPE_SHORT_NAMES } from "../../lib/sourceTypes";
 import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
 // ── Searchable dropdown ──────────────────────────────────────────────────────
@@ -110,13 +111,12 @@ interface DataSourceInfo {
   year: number;
 }
 
-const SOURCE_TYPE_NAMES: Record<number, string> = { 1: "สบค.", 2: "ศล." };
 const THAI_MONTHS = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 const THAI_MONTHS_SHORT = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
 function formatDataSource(ds?: DataSourceInfo | null): string {
   if (!ds) return "-";
-  const name = SOURCE_TYPE_NAMES[ds.sourceType] ?? `ต้นทาง ${ds.sourceType}`;
+  const name = SOURCE_TYPE_FULL_NAMES[ds.sourceType] ?? `ต้นทาง ${ds.sourceType}`;
   return `${name} ${THAI_MONTHS_SHORT[ds.month] ?? ds.month} ${ds.year}`;
 }
 
@@ -863,8 +863,8 @@ export default function AllRecordsPage() {
                 className="cursor-pointer border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">ทั้งหมด</option>
-                {[...new Set(dataSources.map((d) => d.sourceType))].sort().map((t) => (
-                  <option key={t} value={String(t)}>{SOURCE_TYPE_NAMES[t] ?? `ต้นทาง ${t}`}</option>
+                {SOURCE_TYPE_OPTIONS.map(({ value }) => (
+                  <option key={value} value={String(value)}>{SOURCE_TYPE_SHORT_NAMES[value]}</option>
                 ))}
               </select>
               <select
@@ -909,7 +909,7 @@ export default function AllRecordsPage() {
         if (itDateFrom) filters.push({ label: `วันที่ IT ≥ ${itDateFrom}`, clear: () => { setItDateFrom(""); setPage(1); } });
         if (itDateTo) filters.push({ label: `วันที่ IT ≤ ${itDateTo}`, clear: () => { setItDateTo(""); setPage(1); } });
         if (closedStatus) filters.push({ label: `สถานะ: ${closedStatus}`, clear: () => { setClosedStatus(""); setPage(1); } });
-        if (sourceTypeFilter) filters.push({ label: `ต้นทาง: ${SOURCE_TYPE_NAMES[Number(sourceTypeFilter)] ?? sourceTypeFilter}`, clear: () => { setSourceTypeFilter(""); setPage(1); } });
+        if (sourceTypeFilter) filters.push({ label: `ต้นทาง: ${SOURCE_TYPE_SHORT_NAMES[Number(sourceTypeFilter)] ?? sourceTypeFilter}`, clear: () => { setSourceTypeFilter(""); setPage(1); } });
         if (sourceMonthFilter) filters.push({ label: `เดือน: ${THAI_MONTHS[Number(sourceMonthFilter)] ?? sourceMonthFilter}`, clear: () => { setSourceMonthFilter(""); setPage(1); } });
         if (sourceYearFilter) filters.push({ label: `ปี: ${sourceYearFilter}`, clear: () => { setSourceYearFilter(""); setPage(1); } });
         if (filters.length === 0) return null;
