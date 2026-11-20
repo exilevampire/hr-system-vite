@@ -4,17 +4,35 @@ import { useEffect, useState } from "react";
 import type { Permission } from "../lib/permissions";
 import { APP_UPDATED_AT, APP_VERSION, RELEASE_NOTES } from "../lib/releaseNotes";
 
-const navItems: { to: string; label: string; icon: string; permission?: Permission; roles?: string[] }[] = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: string;
+  permission?: Permission;
+  roles?: string[];
+}
+
+const primaryNavItems: NavItem[] = [
   { to: "/dashboard", label: "แดชบอร์ด", icon: "📊", permission: "dashboard.view" },
-  { to: "/records/all", label: "ข้อมูลพนักงานที่พ้นสภาพ", icon: "📋", permission: "employees.view" },
+  { to: "/records/all", label: "ข้อมูลเจ้าหน้าที่ที่พ้นสภาพ", icon: "📋", permission: "employees.view" },
   { to: "/records/import", label: "นำเข้าข้อมูล", icon: "📥", permission: "employees.import" },
-  { to: "/records/add", label: "เพิ่มบุคคลพ้นสภาพ", icon: "➕", permission: "employees.create" },
   { to: "/logs", label: "Audit Log", icon: "📝", permission: "audit_logs.view" },
-  { to: "/settings", label: "จัดการผู้ใช้งาน", icon: "⚙️", roles: ["SUPER_ADMIN"] },
+];
+
+const managementNavItems: NavItem[] = [
+  { to: "/records/add", label: "เพิ่มบุคคลพ้นสภาพ", icon: "➕", permission: "employees.create" },
+  { to: "/settings", label: "จัดการผู้ใช้งาน", icon: "👥", roles: ["SUPER_ADMIN"] },
   { to: "/api-management", label: "จัดการ API", icon: "🔌", roles: ["SUPER_ADMIN"] },
-  { to: "/records/trash", label: "ถังขยะข้อมูลพนักงาน", icon: "🗑️", roles: ["SUPER_ADMIN"] },
+  { to: "/reference-data", label: "แก้ไขข้อมูลพื้นฐาน", icon: "🏢", roles: ["SUPER_ADMIN"] },
+  { to: "/records/trash", label: "ถังขยะข้อมูลเจ้าหน้าที่", icon: "🗑️", roles: ["SUPER_ADMIN"] },
   { to: "/account", label: "บัญชีของฉัน / 2FA", icon: "🔐" },
 ];
+
+const MANAGEMENT_MENU_STORAGE_VERSION = 1;
+
+function isItemActive(pathname: string, item: NavItem): boolean {
+  return pathname === item.to || pathname.startsWith(item.to + "/");
+}
 
 export function Sidebar({
   collapsed,
@@ -32,6 +50,11 @@ export function Sidebar({
     () => localStorage.getItem("releaseNotesSeenVersion") !== APP_VERSION
   );
   const role = user?.role ?? "VIEWER";
+  const managementStorageKey = `hr-sidebar-management-open-v${MANAGEMENT_MENU_STORAGE_VERSION}-${user?.id ?? "default"}`;
+  const managementPathActive = managementNavItems.some((item) => isItemActive(pathname, item));
+  const [managementOpen, setManagementOpen] = useState(
+    () => managementPathActive || localStorage.getItem(managementStorageKey) !== "false"
+  );
 
   const initials = (() => {
     const name = user?.name ?? user?.email ?? "";
@@ -45,9 +68,18 @@ export function Sidebar({
     role === "ADMIN"       ? "bg-blue-400 text-blue-900"   :
                              "bg-slate-400 text-slate-900";
 
-  const filtered = navItems.filter((item) =>
-    (!item.roles || item.roles.includes(role)) && (!item.permission || hasPermission(item.permission))
-  );
+  const canSeeItem = (item: NavItem) =>
+    (!item.roles || item.roles.includes(role)) && (!item.permission || hasPermission(item.permission));
+  const primaryItems = primaryNavItems.filter(canSeeItem);
+  const managementItems = managementNavItems.filter(canSeeItem);
+
+  useEffect(() => {
+    if (managementPathActive) {
+      setManagementOpen(true);
+      return;
+    }
+    setManagementOpen(localStorage.getItem(managementStorageKey) !== "false");
+  }, [managementPathActive, managementStorageKey]);
 
   // Collapsing is a desktop affordance only — on mobile the drawer slides in at
   // full width, so every "hide this when collapsed" rule is md-scoped.
@@ -62,6 +94,14 @@ export function Sidebar({
     setShowReleaseNotes(true);
     setHasUnreadReleaseNotes(false);
     localStorage.setItem("releaseNotesSeenVersion", APP_VERSION);
+  }
+
+  function toggleManagementMenu() {
+    setManagementOpen((current) => {
+      const next = !current;
+      localStorage.setItem(managementStorageKey, String(next));
+      return next;
+    });
   }
 
   return (
@@ -107,8 +147,8 @@ export function Sidebar({
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4">
-          {filtered.map((item) => {
-            const active = pathname === item.to || pathname.startsWith(item.to + "/");
+          {primaryItems.map((item) => {
+            const active = isItemActive(pathname, item);
             return (
               <Link
                 key={item.to}
@@ -124,6 +164,47 @@ export function Sidebar({
               </Link>
             );
           })}
+
+          {managementItems.length > 0 && (
+            <div className="mt-2 border-t border-blue-800 pt-2">
+              <button
+                type="button"
+                onClick={toggleManagementMenu}
+                title={collapsed ? "การจัดการและตั้งค่า" : undefined}
+                aria-expanded={managementOpen}
+                aria-controls="sidebar-management-menu"
+                className={`flex w-full cursor-pointer items-center gap-3 px-6 py-3 text-sm font-semibold text-blue-100 transition-colors hover:bg-blue-800
+                  ${collapsed ? "md:justify-center md:gap-0 md:px-0" : ""}
+                  ${managementPathActive ? "bg-blue-800/70 text-white" : ""}`}
+              >
+                <span className="shrink-0" aria-hidden="true">⚙️</span>
+                <span className={`min-w-0 flex-1 truncate text-left ${hideWhenCollapsed}`}>การจัดการและตั้งค่า</span>
+                <span className={`text-xs text-blue-300 transition-transform ${hideWhenCollapsed} ${managementOpen ? "rotate-180" : ""}`} aria-hidden="true">⌄</span>
+              </button>
+
+              {managementOpen && (
+                <div id="sidebar-management-menu">
+                  {managementItems.map((item) => {
+                    const active = isItemActive(pathname, item);
+                    return (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setOpen(false)}
+                        title={collapsed ? item.label : undefined}
+                        className={`flex items-center gap-3 py-2.5 text-sm font-medium transition-colors pl-10 pr-5
+                          ${collapsed ? "md:justify-center md:gap-0 md:px-0" : ""}
+                          ${active ? "bg-blue-700 text-white" : "text-blue-200 hover:bg-blue-800 hover:text-white"}`}
+                      >
+                        <span className="shrink-0 text-xs" aria-hidden="true">{item.icon}</span>
+                        <span className={`truncate ${hideWhenCollapsed}`}>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         <div className={`py-4 border-t border-blue-700 px-6 ${collapsed ? "md:px-2" : ""}`}>

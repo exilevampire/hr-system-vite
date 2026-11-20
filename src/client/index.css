@@ -34,3 +34,32 @@ input[type="radio"]:disabled,
 ::-webkit-scrollbar-track { background: #f1f5f9; }
 ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* Emphasized horizontal scrollbar for the wide employee table. */
+.table-horizontal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+  scrollbar-gutter: stable;
+}
+
+.table-horizontal-scrollbar::-webkit-scrollbar {
+  height: 12px;
+}
+
+.table-horizontal-scrollbar::-webkit-scrollbar-track {
+  margin-inline: 6px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+}
+
+.table-horizontal-scrollbar::-webkit-scrollbar-thumb {
+  min-width: 44px;
+  background: #94a3b8;
+  border: 3px solid #f1f5f9;
+  border-radius: 999px;
+}
+
+.table-horizontal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

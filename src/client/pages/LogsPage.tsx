@@ -20,7 +20,7 @@ const PAGE_SIZE = 30;
 const FIELD_LABELS: Record<string, string> = {
   nameTh: "ชื่อ-สกุล (ไทย)",
   nameEn: "ชื่อ-สกุล (อังกฤษ)",
-  employeeId: "รหัสพนักงาน",
+  employeeId: "รหัสเจ้าหน้าที่",
   dataSourceId: "ข้อมูลต้นทาง",
   position: "ตำแหน่ง",
   level: "ประเภท",
@@ -168,7 +168,7 @@ export default function LogsPage() {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
               <input
                 type="text"
-                placeholder="ค้นหารหัสพนักงาน หรือ ชื่อ..."
+                placeholder="ค้นหารหัสเจ้าหน้าที่ หรือ ชื่อ..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

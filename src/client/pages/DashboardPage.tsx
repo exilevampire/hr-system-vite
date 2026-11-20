@@ -101,7 +101,7 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">แดชบอร์ด</h1>
-        <p className="text-slate-500 text-sm mt-1">สรุปภาพรวมข้อมูลพนักงานที่พ้นสภาพ</p>
+        <p className="text-slate-500 text-sm mt-1">สรุปภาพรวมข้อมูลเจ้าหน้าที่ที่พ้นสภาพ</p>
       </div>
 
       {loading ? (
@@ -109,7 +109,7 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <StatCard label="พนักงานทั้งหมด" value={stats?.total ?? 0} icon="👥" color="blue" />
+            <StatCard label="เจ้าหน้าที่ทั้งหมด" value={stats?.total ?? 0} icon="👥" color="blue" />
             <StatCard label="ดำเนินการแล้ว" value={stats?.itStatus?.cleared ?? 0} icon="✅" color="green" />
             <StatCard label="อยู่ระหว่างดำเนินการ" value={stats?.itStatus?.pending ?? 0} icon="⏳" color="yellow" />
             <StatCard label="หน่วยงาน" value={stats?.allByBureau?.length ?? 0} icon="🏢" color="purple" />
@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-slate-700">
-                  พนักงานแยกตามหน่วยงาน
+                  เจ้าหน้าที่แยกตามหน่วยงาน
                   <span className="ml-2 text-xs font-normal text-slate-400">(Top 10)</span>
                 </h2>
                 {(stats?.allByBureau?.length ?? 0) > 10 && (
@@ -269,7 +269,7 @@ export default function DashboardPage() {
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-slate-700">
-                  แนวโน้มรายเดือน (พนักงานที่พ้นสภาพ)
+                  แนวโน้มรายเดือน (เจ้าหน้าที่ที่พ้นสภาพ)
                   <span className="ml-2 text-xs font-normal text-slate-400">(12 เดือนล่าสุด)</span>
                 </h2>
                 {(stats?.allByMonth?.length ?? 0) > 0 && (
@@ -314,7 +314,7 @@ export default function DashboardPage() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
               <div>
-                <h2 className="font-semibold text-slate-800">พนักงานแยกตามหน่วยงาน</h2>
+                <h2 className="font-semibold text-slate-800">เจ้าหน้าที่แยกตามหน่วยงาน</h2>
                 <p className="text-xs text-slate-400 mt-0.5">ทั้งหมด {stats.allByBureau?.length ?? 0} หน่วยงาน</p>
               </div>
               <button onClick={() => setShowBureauModal(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none px-1">×</button>
@@ -361,7 +361,7 @@ export default function DashboardPage() {
               )}
             </div>
             <div className="px-6 py-3 border-t border-slate-100 shrink-0 flex items-center justify-between text-xs text-slate-400">
-              <span>รวมพนักงานทั้งหมด {stats.total.toLocaleString()} คน</span>
+              <span>รวมเจ้าหน้าที่ทั้งหมด {stats.total.toLocaleString()} คน</span>
               <button onClick={() => setShowBureauModal(false)} className="px-4 py-1.5 border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">ปิด</button>
             </div>
           </div>
@@ -377,7 +377,7 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
               <div>
-                <h2 className="font-semibold text-slate-800">แนวโน้มรายเดือน (พนักงานที่พ้นสภาพ)</h2>
+                <h2 className="font-semibold text-slate-800">แนวโน้มรายเดือน (เจ้าหน้าที่ที่พ้นสภาพ)</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {selectedYear === "all"
                     ? `ข้อมูลทั้งหมด ${availableYears.length} ปี (${availableYears[0]}–${availableYears[availableYears.length - 1]} พ.ศ.)`

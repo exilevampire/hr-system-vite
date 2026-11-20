@@ -18,6 +18,14 @@ interface ImportResult {
   updatedDetails: UpdatedDetail[];
 }
 
+const IMPORT_DROPDOWN_LABELS = [
+  "ข้อมูลต้นทาง",
+  "เดือน",
+  "ประเภท",
+  "หน่วยงาน/สำนัก",
+  "สถานะระบบ IT",
+] as const;
+
 export default function ImportPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -30,6 +38,7 @@ export default function ImportPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showUpdated, setShowUpdated] = useState(false);
+  const [templateDownloading, setTemplateDownloading] = useState(false);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -55,6 +64,31 @@ export default function ImportPage() {
 
   function removeFile(name: string) {
     setFiles((prev) => prev.filter((f) => f.name !== name));
+  }
+
+  async function downloadTemplate() {
+    setTemplateDownloading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/employees/import-template", { headers: authHeaders() });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error ?? "ไม่สามารถดาวน์โหลดไฟล์ตัวอย่างได้");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Import_Template.xlsx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "ไม่สามารถดาวน์โหลดไฟล์ตัวอย่างได้");
+    } finally {
+      setTemplateDownloading(false);
+    }
   }
 
   async function handleImport() {
@@ -104,33 +138,71 @@ export default function ImportPage() {
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-800">นำเข้าข้อมูล Excel</h1>
-          <p className="text-slate-500 text-sm mt-1">อัปโหลดไฟล์ Excel เพื่อนำเข้าข้อมูลพนักงานหลายรายการพร้อมกัน</p>
+          <p className="text-slate-500 text-sm mt-1">อัปโหลดไฟล์ Excel เพื่อนำเข้าข้อมูลเจ้าหน้าที่หลายรายการพร้อมกัน</p>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-700 flex items-start justify-between gap-4">
-          <div>
-            <p className="font-semibold mb-2">📋 รูปแบบไฟล์ Excel ที่รองรับ:</p>
-            <p className="text-xs text-blue-700 font-mono">
-              ข้อมูลต้นทาง | เดือน | ปี | วันที่ได้รับข้อมูล | รหัสประจำตัว | ชื่อ-สกุล | Name-Eng | ตำแหน่ง | ประเภท | ฝ่าย/กลุ่มงาน | หน่วยงาน/สำนัก | วันที่พ้นสภาพ | อีเมล | FMIS | วันที่ FMIS | eMeeting | วันที่ eMeeting | Software | วันที่ Software | Phonebook | วันที่ Phonebook
-            </p>
-            <p className="text-xs text-blue-700 mt-1.5">
-              คอลัมน์ที่ต้องมี: <span className="font-semibold">รหัสประจำตัว</span> และ <span className="font-semibold">ชื่อ-สกุล</span> (คอลัมน์อื่นไม่จำเป็นต้องกรอก)
-            </p>
-            <p className="text-xs text-blue-700 mt-0.5">
-              ข้อมูลต้นทาง: <span className="font-semibold">1 = สำนักงานบริหารทรัพยากรบุคคล (สบค.), 2 = ศูนย์บริการโลหิตแห่งชาติ (ศล.), 3 = โรงพยาบาลจุฬาลงกรณ์ สภากาชาดไทย</span>
-            </p>
-            <p className="text-xs text-blue-700 mt-0.5">
-              สถานะดำเนินการ: ใส่ <span className="font-semibold">ดำเนินการแล้ว / ยังไม่ดำเนินการ / ไม่พบบัญชี / ไม่ทราบสถานะ</span> หรือปล่อยว่าง (ปล่อยว่าง = ไม่เปลี่ยนแปลงค่าเดิม)
-            </p>
+        <section aria-labelledby="import-format-title" className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 id="import-format-title" className="font-semibold">📋 รูปแบบไฟล์สำหรับนำเข้า</h2>
+              <p className="mt-1 text-xs leading-5 text-blue-700">
+                ดาวน์โหลดไฟล์ตัวอย่างและกรอกข้อมูลตามหัวคอลัมน์ รองรับไฟล์ .xlsx, .xls และ .csv
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={downloadTemplate}
+              disabled={templateDownloading}
+              className="shrink-0 cursor-pointer whitespace-nowrap rounded-lg bg-blue-100 px-3 py-2 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 disabled:cursor-wait disabled:opacity-60"
+            >
+              {templateDownloading ? "กำลังสร้างไฟล์..." : "⬇️ ดาวน์โหลดไฟล์ตัวอย่าง"}
+            </button>
           </div>
-          <a
-            href="/Import_Template.xlsx"
-            download
-            className="shrink-0 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
-          >
-            ⬇️ ดาวน์โหลดไฟล์ตัวอย่าง
-          </a>
-        </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-blue-100 bg-white/70 p-3">
+              <h3 className="text-xs font-semibold text-slate-700">ข้อมูลที่จำเป็น</h3>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">รหัสประจำตัว</span>
+                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">ชื่อ-สกุล</span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-500">ข้อมูลอื่นสามารถเว้นว่างได้</p>
+            </div>
+
+            <div className="rounded-lg border border-blue-100 bg-white/70 p-3">
+              <h3 className="text-xs font-semibold text-slate-700">ช่องที่มีรายการให้เลือก</h3>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {IMPORT_DROPDOWN_LABELS.map((label) => (
+                  <span key={label} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-blue-100 bg-white/70 p-3 sm:col-span-2">
+              <h3 className="text-xs font-semibold text-slate-700">รหัสข้อมูลต้นทาง</h3>
+              <ol className="mt-2 space-y-1.5 text-xs leading-5 text-slate-600">
+                <li className="flex items-start gap-2">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700">1</span>
+                  <span>สำนักงานบริหารทรัพยากรบุคคล (สบค.)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700">2</span>
+                  <span>ศูนย์บริการโลหิตแห่งชาติ (ศล.)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700">3</span>
+                  <span>โรงพยาบาลจุฬาลงกรณ์ สภากาชาดไทย</span>
+                </li>
+              </ol>
+            </div>
+          </div>
+
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+            <span className="font-semibold">หมายเหตุสถานะ IT:</span> เลือกสถานะจาก Dropdown หากเว้นว่าง ระบบจะไม่เปลี่ยนแปลงสถานะเดิม
+          </p>
+        </section>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           {/* Drop zone — ซ่อนหลัง import สำเร็จ */}

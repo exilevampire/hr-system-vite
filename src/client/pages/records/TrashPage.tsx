@@ -72,7 +72,7 @@ export default function TrashPage() {
   return (
     <AppLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">ถังขยะข้อมูลพนักงาน</h1>
+        <h1 className="text-2xl font-bold text-slate-800">ถังขยะข้อมูลเจ้าหน้าที่</h1>
         <p className="mt-1 text-sm text-slate-500">รายการที่ลบจะไม่แสดงใน Dashboard รายงาน และ Integration API</p>
       </div>
 
@@ -86,7 +86,7 @@ export default function TrashPage() {
         <input
           value={search}
           onChange={(event) => { setSearch(event.target.value); setPage(1); }}
-          placeholder="ค้นหารหัส หรือชื่อพนักงาน..."
+          placeholder="ค้นหารหัส หรือชื่อเจ้าหน้าที่..."
           className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 sm:max-w-md"
         />
         <span className="text-sm text-slate-500 sm:ml-auto">ทั้งหมด {total.toLocaleString()} รายการ</span>

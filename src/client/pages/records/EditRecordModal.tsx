@@ -335,7 +335,7 @@ export function EditRecordModal({ employeeId, onClose, onSaved }: {
         {/* Sticky header */}
         <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-4 border-b border-slate-200 sticky top-0 bg-white z-10 rounded-t-2xl">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">แก้ไขข้อมูลพนักงาน</h2>
+            <h2 className="text-xl font-bold text-slate-800">แก้ไขข้อมูลเจ้าหน้าที่</h2>
             <div className="flex items-center gap-3 mt-1">
               <p className="text-slate-500 text-sm">รหัส: {employeeId}</p>
               {!isSuperAdmin && (

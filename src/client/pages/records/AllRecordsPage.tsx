@@ -9,12 +9,14 @@ import { ThaiDatePicker } from "../../components/ThaiDatePicker";
 
 // ── Searchable dropdown ──────────────────────────────────────────────────────
 function SearchableSelect({
+  id,
   placeholder,
   value,
   onChange,
   options,
   className = "",
 }: {
+  id: string;
   placeholder: string;
   value: string;
   onChange: (val: string) => void;
@@ -66,6 +68,7 @@ function SearchableSelect({
     <div ref={containerRef} className={`relative ${className}`}>
       <div className="relative flex items-center">
         <input
+          id={id}
           type="text"
           value={query}
           onChange={handleInput}
@@ -143,7 +146,42 @@ interface Employee {
   email?: string;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200] as const;
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_STORAGE_VERSION = 1;
+const SCROLL_EDGE_TOLERANCE = 4;
+
+function loadPageSize(storageKey: string): number {
+  try {
+    const storedValue = Number(localStorage.getItem(storageKey));
+    return PAGE_SIZE_OPTIONS.includes(storedValue as (typeof PAGE_SIZE_OPTIONS)[number])
+      ? storedValue
+      : DEFAULT_PAGE_SIZE;
+  } catch {
+    return DEFAULT_PAGE_SIZE;
+  }
+}
+
+function savePageSize(storageKey: string, pageSize: number) {
+  try {
+    localStorage.setItem(storageKey, String(pageSize));
+  } catch {
+    // The table remains usable with the default value if browser storage is unavailable.
+  }
+}
+
+function syncHorizontalScroll(source: HTMLDivElement, target: HTMLDivElement) {
+  const sourceMax = Math.max(0, source.scrollWidth - source.clientWidth);
+  const targetMax = Math.max(0, target.scrollWidth - target.clientWidth);
+  const progress = sourceMax > 0 ? Math.min(1, Math.max(0, source.scrollLeft / sourceMax)) : 0;
+  const targetScrollLeft = progress >= 1 - SCROLL_EDGE_TOLERANCE / Math.max(1, sourceMax)
+    ? targetMax
+    : progress * targetMax;
+
+  if (Math.abs(target.scrollLeft - targetScrollLeft) > 0.5) {
+    target.scrollLeft = targetScrollLeft;
+  }
+}
 
 function getPageNumbers(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -179,7 +217,7 @@ const SORT_FIELDS: Record<number, string> = {
 
 const SORT_LABELS: Record<string, string> = {
   createdAt: "วันที่บันทึกข้อมูล",
-  employeeId: "รหัสพนักงาน",
+  employeeId: "รหัสเจ้าหน้าที่",
   nameTh: "ชื่อ-สกุล (ไทย)",
   nameEn: "ชื่อ-สกุล (อังกฤษ)",
   position: "ตำแหน่ง",
@@ -273,10 +311,12 @@ export default function AllRecordsPage() {
   const canDelete = hasPermission("employees.delete");
   const canExport = hasPermission("reports.export");
   const canImport = hasPermission("employees.import");
+  const pageSizeStorageKey = `hr-employee-table-page-size-v${PAGE_SIZE_STORAGE_VERSION}-${user?.id ?? "default"}`;
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(() => loadPageSize(pageSizeStorageKey));
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState("");
   const [bureau, setBureau] = useState("");
@@ -318,6 +358,20 @@ export default function AllRecordsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const tableRightEdgeRef = useRef<HTMLDivElement>(null);
+  const tableBottomSentinelRef = useRef<HTMLDivElement>(null);
+  const floatingScrollRef = useRef<HTMLDivElement>(null);
+  const [tableInView, setTableInView] = useState(false);
+  const [tableBottomInView, setTableBottomInView] = useState(false);
+  const [horizontalScroll, setHorizontalScroll] = useState({ hasOverflow: false, atStart: true });
+  const [tableRightEdgeInView, setTableRightEdgeInView] = useState(true);
+  const [floatingScrollMetrics, setFloatingScrollMetrics] = useState({ left: 0, width: 0, scrollWidth: 0 });
+
+  useEffect(() => {
+    setPageSize(loadPageSize(pageSizeStorageKey));
+    setPage(1);
+  }, [pageSizeStorageKey]);
 
   useEffect(() => {
     const settings: ColumnSettings = {
@@ -426,7 +480,7 @@ export default function AllRecordsPage() {
     setLoading(true);
     const params = new URLSearchParams({
       page: String(page),
-      pageSize: String(PAGE_SIZE),
+      pageSize: String(pageSize),
       search,
       bureau,
       position,
@@ -452,11 +506,11 @@ export default function AllRecordsPage() {
     setEmployees(data.data ?? []);
     setTotal(data.total ?? 0);
     setLoading(false);
-  }, [page, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, softwareStatus, phonebookStatus, itDateFrom, itDateTo, sourceTypeFilter, sourceMonthFilter, sourceYearFilter, closedStatus, sortBy, sortDir]);
+  }, [page, pageSize, search, bureau, position, level, department, endDateFrom, endDateTo, fmisStatus, eMeetingStatus, softwareStatus, phonebookStatus, itDateFrom, itDateTo, sourceTypeFilter, sourceMonthFilter, sourceYearFilter, closedStatus, sortBy, sortDir]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = Math.ceil(total / pageSize);
 
   // ── Org filter cascade ─────────────────────────────────────────────────────
   // The four org dropdowns narrow each other in every direction: each one offers
@@ -596,6 +650,80 @@ export default function AllRecordsPage() {
   const visibleColumnOrder = columnOrder.filter((columnIndex) => visibleCols.has(columnIndex));
   const tableWidth = visibleColumnOrder.reduce((totalWidth, columnIndex) => totalWidth + colWidths[columnIndex], 0);
 
+  const updateHorizontalScrollState = useCallback((scroller: HTMLDivElement) => {
+    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    const next = {
+      hasOverflow: maxScrollLeft > 1,
+      atStart: scroller.scrollLeft <= SCROLL_EDGE_TOLERANCE,
+    };
+    setHorizontalScroll((current) =>
+      current.hasOverflow === next.hasOverflow && current.atStart === next.atStart
+        ? current
+        : next
+    );
+  }, []);
+
+  useEffect(() => {
+    const scroller = tableScrollRef.current;
+    if (!scroller) return;
+
+    const updateMeasurements = () => {
+      const rect = scroller.getBoundingClientRect();
+      setFloatingScrollMetrics((current) => {
+        const next = { left: rect.left, width: rect.width, scrollWidth: scroller.scrollWidth };
+        return current.left === next.left && current.width === next.width && current.scrollWidth === next.scrollWidth
+          ? current
+          : next;
+      });
+      updateHorizontalScrollState(scroller);
+    };
+
+    updateMeasurements();
+    const resizeObserver = new ResizeObserver(updateMeasurements);
+    resizeObserver.observe(scroller);
+    const intersectionObserver = new IntersectionObserver(([entry]) => setTableInView(entry.isIntersecting));
+    intersectionObserver.observe(scroller);
+    const rightEdgeIntersectionObserver = tableRightEdgeRef.current
+      ? new IntersectionObserver(([entry]) => setTableRightEdgeInView(entry.isIntersecting), {
+          root: scroller,
+          threshold: 0.5,
+        })
+      : null;
+    if (tableRightEdgeRef.current) rightEdgeIntersectionObserver?.observe(tableRightEdgeRef.current);
+    const bottomIntersectionObserver = tableBottomSentinelRef.current
+      ? new IntersectionObserver(([entry]) => setTableBottomInView(entry.isIntersecting), { threshold: 0.01 })
+      : null;
+    if (tableBottomSentinelRef.current) bottomIntersectionObserver?.observe(tableBottomSentinelRef.current);
+    window.addEventListener("resize", updateMeasurements);
+
+    return () => {
+      resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+      rightEdgeIntersectionObserver?.disconnect();
+      bottomIntersectionObserver?.disconnect();
+      window.removeEventListener("resize", updateMeasurements);
+    };
+  }, [tableWidth, updateHorizontalScrollState]);
+
+  useEffect(() => {
+    if (tableInView && horizontalScroll.hasOverflow && tableScrollRef.current && floatingScrollRef.current) {
+      syncHorizontalScroll(tableScrollRef.current, floatingScrollRef.current);
+    }
+  }, [tableInView, horizontalScroll.hasOverflow, floatingScrollMetrics.scrollWidth]);
+
+  function handleTableHorizontalScroll(event: React.UIEvent<HTMLDivElement>) {
+    const scroller = event.currentTarget;
+    if (floatingScrollRef.current) syncHorizontalScroll(scroller, floatingScrollRef.current);
+    updateHorizontalScrollState(scroller);
+  }
+
+  function handleFloatingHorizontalScroll(event: React.UIEvent<HTMLDivElement>) {
+    const scroller = tableScrollRef.current;
+    if (!scroller) return;
+    syncHorizontalScroll(event.currentTarget, scroller);
+    updateHorizontalScrollState(scroller);
+  }
+
   function renderDesktopCell(emp: Employee, rowIndex: number, columnIndex: number) {
     switch (columnIndex) {
       case 0:
@@ -610,7 +738,7 @@ export default function AllRecordsPage() {
           </div>}
         </td>;
       case 1:
-        return <td key={columnIndex} style={{ left: colWidths[0] }} className="sticky z-10 bg-white px-3 py-3 text-center text-slate-400 group-hover:bg-slate-50">{(page - 1) * PAGE_SIZE + rowIndex + 1}</td>;
+        return <td key={columnIndex} style={{ left: colWidths[0] }} className="sticky z-10 bg-white px-3 py-3 text-center text-slate-400 group-hover:bg-slate-50">{(page - 1) * pageSize + rowIndex + 1}</td>;
       case 2:
         return <TCell key={columnIndex} title={emp.employeeId} className="font-mono text-xs text-slate-600">{emp.employeeId}</TCell>;
       case 3:
@@ -647,7 +775,7 @@ export default function AllRecordsPage() {
     <AppLayout>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">ข้อมูลพนักงานที่พ้นสภาพ</h1>
+          <h1 className="text-2xl font-bold text-slate-800">ข้อมูลเจ้าหน้าที่ที่พ้นสภาพ</h1>
           <p className="text-slate-500 text-sm mt-1">ทั้งหมด {total.toLocaleString()} รายการ</p>
         </div>
         <div className="sm:ml-auto flex items-start gap-2 flex-wrap">
@@ -726,52 +854,72 @@ export default function AllRecordsPage() {
                 <Link to="/records/add" className="h-10 inline-flex cursor-pointer items-center bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
                   ➕ เพิ่มบุคคลพ้นสภาพ
                 </Link>
-                <span className="text-[11px] text-slate-500">เพิ่มข้อมูลพนักงานทีละราย</span>
+                <span className="text-[11px] text-slate-500">เพิ่มข้อมูลเจ้าหน้าที่ทีละราย</span>
               </div>
             </>
           )}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex flex-col sm:flex-row gap-3">
-        <input
-          type="text"
-          placeholder="ค้นหารหัส / ชื่อ-สกุล (ไทย / อังกฤษ) / Email..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="flex-1 border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <SearchableSelect
-          placeholder="กรองหน่วยงาน/สำนัก..."
-          value={bureau}
-          onChange={(v) => handleFacetChange("bureau", v)}
-          options={choicesFor("bureau")}
-          className="w-full sm:w-52"
-        />
-        <SearchableSelect
-          placeholder="กรองฝ่าย/กลุ่มงาน..."
-          value={department}
-          onChange={(v) => handleFacetChange("department", v)}
-          options={choicesFor("department")}
-          className="w-full sm:w-52"
-        />
-        <SearchableSelect
-          placeholder="กรองตำแหน่ง..."
-          value={position}
-          onChange={(v) => handleFacetChange("position", v)}
-          options={choicesFor("position")}
-          className="w-full sm:w-48"
-        />
-        <SearchableSelect
-          placeholder="กรองประเภท..."
-          value={level}
-          onChange={(v) => handleFacetChange("level", v)}
-          options={choicesFor("level")}
-          className="w-full sm:w-44"
-        />
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex flex-col sm:flex-row sm:items-end gap-3">
+        <div className="flex w-full flex-col gap-1 sm:min-w-64 sm:flex-1">
+          <label htmlFor="employee-search" className="px-1 text-xs font-medium text-slate-500">ค้นหาเจ้าหน้าที่</label>
+          <input
+            id="employee-search"
+            type="text"
+            placeholder="รหัส / ชื่อ-สกุล (ไทย / อังกฤษ) / Email"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex w-full flex-col gap-1 sm:w-52">
+          <label htmlFor="bureau-filter" className="px-1 text-xs font-medium text-slate-500">หน่วยงาน/สำนัก</label>
+          <SearchableSelect
+            id="bureau-filter"
+            placeholder="ทั้งหมด"
+            value={bureau}
+            onChange={(v) => handleFacetChange("bureau", v)}
+            options={choicesFor("bureau")}
+            className="w-full"
+          />
+        </div>
+        <div className="flex w-full flex-col gap-1 sm:w-52">
+          <label htmlFor="department-filter" className="px-1 text-xs font-medium text-slate-500">ฝ่าย/กลุ่มงาน</label>
+          <SearchableSelect
+            id="department-filter"
+            placeholder="ทั้งหมด"
+            value={department}
+            onChange={(v) => handleFacetChange("department", v)}
+            options={choicesFor("department")}
+            className="w-full"
+          />
+        </div>
+        <div className="flex w-full flex-col gap-1 sm:w-48">
+          <label htmlFor="position-filter" className="px-1 text-xs font-medium text-slate-500">ตำแหน่ง</label>
+          <SearchableSelect
+            id="position-filter"
+            placeholder="ทั้งหมด"
+            value={position}
+            onChange={(v) => handleFacetChange("position", v)}
+            options={choicesFor("position")}
+            className="w-full"
+          />
+        </div>
+        <div className="flex w-full flex-col gap-1 sm:w-44">
+          <label htmlFor="level-filter" className="px-1 text-xs font-medium text-slate-500">ประเภทเจ้าหน้าที่</label>
+          <SearchableSelect
+            id="level-filter"
+            placeholder="ทั้งหมด"
+            value={level}
+            onChange={(v) => handleFacetChange("level", v)}
+            options={choicesFor("level")}
+            className="w-full"
+          />
+        </div>
         <button
           onClick={() => setShowAdvanced((v) => !v)}
-          className={`shrink-0 cursor-pointer px-3 py-2 text-sm rounded-lg border transition-colors ${showAdvanced ? "bg-blue-50 border-blue-300 text-blue-700" : "border-slate-300 text-slate-500 hover:bg-slate-50"}`}
+          className={`h-10 shrink-0 cursor-pointer px-3 py-2 text-sm rounded-lg border transition-colors ${showAdvanced ? "bg-blue-50 border-blue-300 text-blue-700" : "border-slate-300 text-slate-500 hover:bg-slate-50"}`}
         >
           {showAdvanced ? "ซ่อนตัวกรอง ▲" : "ตัวกรองเพิ่มเติม ▼"}
         </button>
@@ -926,7 +1074,21 @@ export default function AllRecordsPage() {
         );
       })()}
 
-      <div className="hidden md:flex items-center justify-end mb-2 px-1">
+      <div className="hidden md:flex items-center justify-between gap-3 mb-2 px-1">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium shadow-sm transition-opacity ${
+            horizontalScroll.hasOverflow
+              ? "border-blue-200 bg-blue-50 text-blue-700 opacity-100"
+              : "pointer-events-none opacity-0"
+          }`}
+          aria-hidden={!horizontalScroll.hasOverflow}
+        >
+          {horizontalScroll.atStart
+            ? "เลื่อนไปทางขวาเพื่อดูข้อมูลเพิ่มเติม →"
+            : tableRightEdgeInView
+              ? "← เลื่อนไปทางซ้ายเพื่อย้อนดูข้อมูล"
+              : "← มีข้อมูลเพิ่มเติมทั้งสองด้าน →"}
+        </span>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4" /></svg>
           เรียงตาม: <strong className="font-semibold text-slate-700">{SORT_LABELS[sortBy] ?? sortBy}</strong>
@@ -935,8 +1097,8 @@ export default function AllRecordsPage() {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="max-h-[calc(100vh-16rem)] min-h-[320px] overflow-auto">
+      <div className="relative hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div ref={tableScrollRef} onScroll={handleTableHorizontalScroll} className="table-horizontal-scrollbar relative overflow-x-auto" aria-busy={loading}>
           <table
             className="text-sm border-collapse"
             style={{ tableLayout: "fixed", width: tableWidth }}
@@ -997,8 +1159,8 @@ export default function AllRecordsPage() {
                 })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
+            <tbody className={`divide-y divide-slate-100 transition-opacity ${loading && employees.length > 0 ? "pointer-events-none opacity-55" : ""}`}>
+              {loading && employees.length === 0 ? (
                 <tr><td colSpan={visibleColumnOrder.length} className="py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
               ) : employees.length === 0 ? (
                 <tr><td colSpan={visibleColumnOrder.length} className="py-12 text-center text-slate-400">ไม่พบข้อมูล</td></tr>
@@ -1009,12 +1171,39 @@ export default function AllRecordsPage() {
               ))}
             </tbody>
           </table>
+          <div
+            ref={tableRightEdgeRef}
+            className="pointer-events-none absolute top-0 h-px w-1"
+            style={{ left: Math.max(0, tableWidth - 4) }}
+            aria-hidden="true"
+          />
         </div>
+        <div ref={tableBottomSentinelRef} className="h-px" aria-hidden="true" />
+        {horizontalScroll.hasOverflow && !horizontalScroll.atStart && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-50 w-10 bg-gradient-to-r from-slate-400/25 to-transparent" aria-hidden="true" />
+        )}
+        {horizontalScroll.hasOverflow && !tableRightEdgeInView && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-50 w-12 bg-gradient-to-l from-blue-500/25 to-transparent" aria-hidden="true" />
+        )}
       </div>
 
+      {tableInView && horizontalScroll.hasOverflow && floatingScrollMetrics.width > 0 && !selectedEmp && !editingId && !deleteTarget && (
+        <div
+          ref={floatingScrollRef}
+          onScroll={handleFloatingHorizontalScroll}
+          className={`table-horizontal-scrollbar fixed bottom-3 z-[70] h-4 overflow-x-auto rounded-full bg-slate-100/95 shadow-lg ring-1 ring-slate-200 backdrop-blur-sm transition-opacity duration-200 ${tableBottomInView ? "pointer-events-none opacity-0" : "opacity-100"}`}
+          style={{ left: floatingScrollMetrics.left, width: floatingScrollMetrics.width }}
+          role="region"
+          aria-label="แถบเลื่อนตารางแนวนอน"
+          aria-hidden={tableBottomInView}
+        >
+          <div className="h-px" style={{ width: floatingScrollMetrics.scrollWidth }} />
+        </div>
+      )}
+
       {/* Mobile Cards */}
-      <div className="md:hidden space-y-3">
-        {loading ? (
+      <div className={`md:hidden space-y-3 transition-opacity ${loading && employees.length > 0 ? "pointer-events-none opacity-55" : ""}`} aria-busy={loading}>
+        {loading && employees.length === 0 ? (
           <div className="text-center py-12 text-slate-400">กำลังโหลด...</div>
         ) : employees.length === 0 ? (
           <div className="text-center py-12 text-slate-400">ไม่พบข้อมูล</div>
@@ -1119,9 +1308,38 @@ export default function AllRecordsPage() {
 
       {total > 0 && (
         <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
-          <span className="text-sm text-slate-500">
-            แสดง {((page - 1) * PAGE_SIZE + 1).toLocaleString()}–{Math.min(page * PAGE_SIZE, total).toLocaleString()} จาก {total.toLocaleString()} รายการ
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-slate-500">
+              แสดง {((page - 1) * pageSize + 1).toLocaleString()}–{Math.min(page * pageSize, total).toLocaleString()} จาก {total.toLocaleString()} รายการ
+            </span>
+            <span
+              className={`inline-flex min-w-[92px] items-center gap-1.5 text-xs font-medium text-blue-600 transition-opacity ${loading ? "opacity-100" : "opacity-0"}`}
+              role="status"
+              aria-live="polite"
+              aria-hidden={!loading}
+            >
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" aria-hidden="true" />
+              กำลังโหลด...
+            </span>
+            <label className="inline-flex items-center gap-2 text-sm text-slate-500">
+              แสดงต่อหน้า
+              <select
+                value={pageSize}
+                onChange={(event) => {
+                  const nextPageSize = Number(event.target.value);
+                  setPageSize(nextPageSize);
+                  savePageSize(pageSizeStorageKey, nextPageSize);
+                  setPage(1);
+                }}
+                className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="จำนวนรายการต่อหน้า"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>{size} รายการ</option>
+                ))}
+              </select>
+            </label>
+          </div>
           {totalPages > 1 && (
             <div className="flex items-center gap-1">
               <button
@@ -1346,14 +1564,14 @@ function DeleteConfirmModal({
             <div className="min-w-0 flex-1">
               <h2 id="delete-confirm-title" className="text-lg font-bold text-slate-800">ยืนยันการลบข้อมูล</h2>
               <p id="delete-confirm-description" className="mt-1 text-sm leading-6 text-slate-500">
-                คุณต้องการลบข้อมูลพนักงานรายการนี้ใช่หรือไม่
+                คุณต้องการลบข้อมูลเจ้าหน้าที่รายการนี้ใช่หรือไม่
               </p>
             </div>
           </div>
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="truncate font-semibold text-slate-800" title={employee.nameTh}>{employee.nameTh}</p>
-            <p className="mt-0.5 text-sm text-slate-500">รหัสพนักงาน: <span className="font-mono text-slate-700">{employee.employeeId}</span></p>
+            <p className="mt-0.5 text-sm text-slate-500">รหัสเจ้าหน้าที่: <span className="font-mono text-slate-700">{employee.employeeId}</span></p>
           </div>
 
           <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">

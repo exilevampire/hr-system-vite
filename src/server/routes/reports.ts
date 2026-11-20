@@ -175,7 +175,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   wb.properties.date1904 = false;
 
   // ── Sheet 1: Employee list ────────────────────────────────────────────
-  const ws = wb.addWorksheet("รายงานพนักงาน", {
+  const ws = wb.addWorksheet("รายงานเจ้าหน้าที่", {
     pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, margins: { left: 0.5, right: 0.5, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 } },
     properties: { defaultRowHeight: 18 },
   });
@@ -186,7 +186,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   const titleCell = ws.getCell("A1");
   const now = new Date();
   const reportDate = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear() + 543}`;
-  titleCell.value = `รายงานข้อมูลพนักงานพ้นสภาพ  —  ณ วันที่ ${reportDate}  (${filtered.length.toLocaleString()} รายการ)`;
+  titleCell.value = `รายงานข้อมูลเจ้าหน้าที่พ้นสภาพ  —  ณ วันที่ ${reportDate}  (${filtered.length.toLocaleString()} รายการ)`;
   titleCell.font = { name: "TH Sarabun New", size: 14, bold: true, color: { argb: `FF${HEADER_DARK}` } };
   titleCell.alignment = { vertical: "middle", horizontal: "center" };
   titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE_MID } };
@@ -196,7 +196,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   ws.columns = [
     { key: "no",           width: 7   },
     { key: "dataSource",   width: 44  },
-    { key: "employeeId",   width: 14  },
+    { key: "employeeId",   width: 18  },
     { key: "nameTh",       width: 28  },
     { key: "nameEn",       width: 26  },
     { key: "position",     width: 22  },
@@ -220,7 +220,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   const DATE_SUB_COLS = new Set([14, 16, 18, 20]);
 
   const HEADERS = [
-    "ลำดับ", "ข้อมูลต้นทาง", "รหัสพนักงาน", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
+    "ลำดับ", "ข้อมูลต้นทาง", "รหัสเจ้าหน้าที่", "ชื่อ-สกุล (ไทย)", "ชื่อ-สกุล (อังกฤษ)",
     "ตำแหน่ง", "ประเภท", "หน่วยงาน/สำนัก", "ฝ่าย/กลุ่มงาน", "วันพ้นสภาพ",
     "Email",
     "สถานะการดำเนินงาน",
@@ -257,7 +257,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
     const values = [
       idx + 1,                              // 1  ลำดับ
       formatDataSource(e.dataSource),        // 2  ข้อมูลต้นทาง
-      e.employeeId,                         // 3  รหัสพนักงาน
+      e.employeeId,                         // 3  รหัสเจ้าหน้าที่
       e.nameTh,                             // 4  ชื่อ-สกุล (ไทย)
       e.nameEn ?? "",                       // 5  ชื่อ-สกุล (อังกฤษ)
       e.position ?? "",                     // 6  ตำแหน่ง
@@ -302,7 +302,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   ws2.properties.defaultRowHeight = 20;
   ws2.columns = [
     { key: "a", width: 32 },
-    { key: "b", width: 16 },
+    { key: "b", width: 18 },
     { key: "c", width: 14 },
     { key: "d", width: 14 },
     { key: "e", width: 14 },
@@ -372,7 +372,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   s2SectionHeader(2, "  ภาพรวม");
 
   // Stat headers
-  const statHeaders = ["พนักงานทั้งหมด", "ดำเนินการแล้ว", "อยู่ระหว่างดำเนินการ", "% ดำเนินการแล้ว", "จำนวนหน่วยงาน", "มีข้อมูลอีเมล"];
+  const statHeaders = ["เจ้าหน้าที่ทั้งหมด", "ดำเนินการแล้ว", "อยู่ระหว่างดำเนินการ", "% ดำเนินการแล้ว", "จำนวนหน่วยงาน", "มีข้อมูลอีเมล"];
   const statHRow = ws2.getRow(3);
   statHRow.height = 28;
   statHeaders.forEach((h, i) => {
@@ -398,12 +398,12 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
   });
   statRow.getCell(4).numFmt = "0%";
 
-  // ── Section 2: พนักงานแยกตามหน่วยงาน ────────────────────────────
-  s2SectionHeader(6, "  พนักงานแยกตามหน่วยงาน");
+  // ── Section 2: เจ้าหน้าที่แยกตามหน่วยงาน ────────────────────────────
+  s2SectionHeader(6, "  เจ้าหน้าที่แยกตามหน่วยงาน");
 
   const bureauHRow = ws2.getRow(7);
   bureauHRow.height = 28;
-  ["หน่วยงาน/สำนัก", "จำนวนพนักงาน", "ดำเนินการแล้ว", "อยู่ระหว่างดำเนินการ", "% ดำเนินการแล้ว"].forEach((h, i) => {
+  ["หน่วยงาน/สำนัก", "จำนวนเจ้าหน้าที่", "ดำเนินการแล้ว", "อยู่ระหว่างดำเนินการ", "% ดำเนินการแล้ว"].forEach((h, i) => {
     const cell = bureauHRow.getCell(i + 1);
     cell.value = h;
     applyHeaderStyle(cell, i > 0);
@@ -439,7 +439,7 @@ router.get("/employees", authMiddleware, requirePermission("reports.export"), as
 
   // ── Section 3: แนวโน้มรายเดือน ───────────────────────────────────
   const monthSectionRow = bureauList.length + 10;
-  s2SectionHeader(monthSectionRow, "  แนวโน้มรายเดือน (พนักงานที่พ้นสภาพ)", 2);
+  s2SectionHeader(monthSectionRow, "  แนวโน้มรายเดือน (เจ้าหน้าที่ที่พ้นสภาพ)", 2);
 
   const monthHRow = ws2.getRow(monthSectionRow + 1);
   monthHRow.height = 28;

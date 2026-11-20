@@ -3,14 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.integrationOpenApi = void 0;
 exports.integrationOpenApi = {
     openapi: "3.0.3",
-    info: { title: "HR Integration API", version: "1.0.0", description: "API สำหรับส่งข้อมูลพนักงานพ้นสภาพให้ระบบภายนอก วันที่ใช้รูปแบบ DD-MM-YYYY ปี พ.ศ." },
+    info: { title: "HR Integration API", version: "1.0.0", description: "API สำหรับส่งข้อมูลเจ้าหน้าที่พ้นสภาพให้ระบบภายนอก วันที่ใช้รูปแบบ DD-MM-YYYY ปี พ.ศ." },
     servers: [{ url: "/api/integrations/v1" }],
     security: [{ bearerAuth: [] }],
     components: {
         securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", description: "API Key ที่ได้รับจากผู้ดูแลระบบ" } },
         schemas: {
             TerminatedEmployee: { type: "object", properties: {
-                    employeeId: { type: "string", example: "123456", description: "รหัสพนักงาน" },
+                    employeeId: { type: "string", example: "123456", description: "รหัสเจ้าหน้าที่" },
                     fullName: { type: "string", example: "สมชาย ใจดี", description: "ชื่อ-นามสกุลภาษาไทย" },
                 } },
             Error: { type: "object", properties: { error: { type: "object", properties: { code: { type: "string" }, message: { type: "string" }, requestId: { type: "string" } } } } },
@@ -18,7 +18,7 @@ exports.integrationOpenApi = {
     },
     paths: {
         "/health": { get: { summary: "ตรวจสอบสถานะ API และฐานข้อมูล", responses: { "200": { description: "พร้อมใช้งาน" }, "401": { description: "API Key ไม่ถูกต้อง" } } } },
-        "/terminated-employees": { get: { summary: "ค้นหาพนักงานพ้นสภาพตามช่วงวันที่บันทึก", parameters: [
+        "/terminated-employees": { get: { summary: "ค้นหาเจ้าหน้าที่พ้นสภาพตามช่วงวันที่บันทึก", parameters: [
                     { name: "recordedFrom", in: "query", required: true, schema: { type: "string", example: "01-10-2569" }, description: "วันที่เริ่มต้น DD-MM-YYYY ปี พ.ศ." },
                     { name: "recordedTo", in: "query", required: true, schema: { type: "string", example: "05-10-2569" }, description: "วันที่สิ้นสุด DD-MM-YYYY ปี พ.ศ. ช่วงสูงสุด 31 วัน" },
                 ], responses: {

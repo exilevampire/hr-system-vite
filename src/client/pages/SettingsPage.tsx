@@ -370,7 +370,7 @@ export default function SettingsPage() {
       {isSuperAdmin && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
           <h2 className="font-semibold text-slate-700 mb-1">ตั้งค่าระบบแจ้งเตือน</h2>
-          <p className="text-xs text-slate-400 mb-4">กำหนดเวลาส่งอีเมลแจ้งเตือนพนักงานพ้นสภาพประจำวัน</p>
+          <p className="text-xs text-slate-400 mb-4">กำหนดเวลาส่งอีเมลแจ้งเตือนเจ้าหน้าที่พ้นสภาพประจำวัน</p>
           <div className="flex items-center gap-3 flex-wrap">
             <label className="text-sm font-medium text-slate-700 whitespace-nowrap">เวลาส่งอีเมลแจ้งเตือนพ้นสภาพ</label>
             <input

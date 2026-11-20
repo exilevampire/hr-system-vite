@@ -194,8 +194,8 @@ export default function AddRecordPage() {
     <AppLayout>
       <div className="max-w-3xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-800">เพิ่มข้อมูลพนักงาน</h1>
-          <p className="text-slate-500 text-sm mt-1">กรอกข้อมูลพนักงานที่พ้นสภาพ</p>
+          <h1 className="text-2xl font-bold text-slate-800">เพิ่มข้อมูลเจ้าหน้าที่</h1>
+          <p className="text-slate-500 text-sm mt-1">กรอกข้อมูลเจ้าหน้าที่ที่พ้นสภาพ</p>
         </div>
 
         {apiError && (

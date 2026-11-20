@@ -17,7 +17,7 @@ export const VIEWER_PERMISSIONS: Permission[] = [
 
 export const PERMISSION_GROUPS: { title: string; items: { value: Permission; label: string }[] }[] = [
   { title: "หน้าหลัก", items: [{ value: "dashboard.view", label: "ดูแดชบอร์ด" }] },
-  { title: "ข้อมูลพนักงานพ้นสภาพ", items: [
+  { title: "ข้อมูลเจ้าหน้าที่พ้นสภาพ", items: [
     { value: "employees.view", label: "ดูข้อมูล" },
     { value: "employees.create", label: "เพิ่มข้อมูล" },
     { value: "employees.update", label: "แก้ไขข้อมูล" },

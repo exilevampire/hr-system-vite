@@ -4,6 +4,8 @@
     "module": "CommonJS",
     "lib": ["ES2020"],
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,

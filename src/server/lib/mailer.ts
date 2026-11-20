@@ -32,10 +32,10 @@ export async function sendImportNotification(
   const html = `
 <div style="font-family:Sarabun,Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
   <div style="background:#1e40af;padding:20px 24px;">
-    <h2 style="color:#fff;margin:0;font-size:18px;">📋 แจ้งเตือน: นำเข้าข้อมูลพนักงานพ้นสภาพ</h2>
+    <h2 style="color:#fff;margin:0;font-size:18px;">📋 แจ้งเตือน: นำเข้าข้อมูลเจ้าหน้าที่พ้นสภาพ</h2>
   </div>
   <div style="padding:24px;">
-    <p style="color:#374151;margin:0 0 16px;">มีการนำเข้าข้อมูลพนักงานพ้นสภาพใหม่เข้าสู่ระบบเรียบร้อยแล้ว</p>
+    <p style="color:#374151;margin:0 0 16px;">มีการนำเข้าข้อมูลเจ้าหน้าที่พ้นสภาพใหม่เข้าสู่ระบบเรียบร้อยแล้ว</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       <tr style="background:#f8fafc;">
         <td style="padding:10px 12px;color:#6b7280;border:1px solid #e2e8f0;">ต้นทางข้อมูล</td>
@@ -72,7 +72,7 @@ export async function sendImportNotification(
     </div>
   </div>
   <div style="background:#f8fafc;padding:12px 24px;border-top:1px solid #e2e8f0;">
-    <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">อีเมล์นี้ส่งอัตโนมัติจากระบบข้อมูลพนักงานพ้นสภาพ — กรุณาอย่าตอบกลับ</p>
+    <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">อีเมล์นี้ส่งอัตโนมัติจากระบบข้อมูลเจ้าหน้าที่พ้นสภาพ — กรุณาอย่าตอบกลับ</p>
   </div>
 </div>`;
 
@@ -120,10 +120,10 @@ export async function sendRetireNotification(
   const html = `
 <div style="font-family:Sarabun,Arial,sans-serif;max-width:640px;margin:0 auto;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
   <div style="background:#1e40af;padding:20px 24px;">
-    <h2 style="color:#fff;margin:0;font-size:18px;">📋 แจ้งเตือน: พนักงานพ้นสภาพประจำวันที่ ${dateStr}</h2>
+    <h2 style="color:#fff;margin:0;font-size:18px;">📋 แจ้งเตือน: เจ้าหน้าที่พ้นสภาพประจำวันที่ ${dateStr}</h2>
   </div>
   <div style="padding:24px;">
-    <p style="color:#374151;margin:0 0 16px;">มีพนักงานพ้นสภาพในวันนี้จำนวน <strong>${employees.length} ราย</strong></p>
+    <p style="color:#374151;margin:0 0 16px;">มีเจ้าหน้าที่พ้นสภาพในวันนี้จำนวน <strong>${employees.length} ราย</strong></p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       <thead>
         <tr style="background:#f1f5f9;">
@@ -140,14 +140,14 @@ export async function sendRetireNotification(
     </div>
   </div>
   <div style="background:#f8fafc;padding:12px 24px;border-top:1px solid #e2e8f0;">
-    <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">อีเมล์นี้ส่งอัตโนมัติจากระบบข้อมูลพนักงานพ้นสภาพ — กรุณาอย่าตอบกลับ</p>
+    <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">อีเมล์นี้ส่งอัตโนมัติจากระบบข้อมูลเจ้าหน้าที่พ้นสภาพ — กรุณาอย่าตอบกลับ</p>
   </div>
 </div>`;
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
     to: recipients.join(", "),
-    subject: `[RedCrossRetire] พนักงานพ้นสภาพประจำวัน (${employees.length} ราย)`,
+    subject: `[RedCrossRetire] เจ้าหน้าที่พ้นสภาพประจำวัน (${employees.length} ราย)`,
     html,
   });
 }

@@ -3,7 +3,7 @@ export declare const integrationOpenApi: {
     readonly info: {
         readonly title: "HR Integration API";
         readonly version: "1.0.0";
-        readonly description: "API สำหรับส่งข้อมูลพนักงานพ้นสภาพให้ระบบภายนอก วันที่ใช้รูปแบบ DD-MM-YYYY ปี พ.ศ.";
+        readonly description: "API สำหรับส่งข้อมูลเจ้าหน้าที่พ้นสภาพให้ระบบภายนอก วันที่ใช้รูปแบบ DD-MM-YYYY ปี พ.ศ.";
     };
     readonly servers: readonly [{
         readonly url: "/api/integrations/v1";
@@ -26,7 +26,7 @@ export declare const integrationOpenApi: {
                     readonly employeeId: {
                         readonly type: "string";
                         readonly example: "123456";
-                        readonly description: "รหัสพนักงาน";
+                        readonly description: "รหัสเจ้าหน้าที่";
                     };
                     readonly fullName: {
                         readonly type: "string";
@@ -72,7 +72,7 @@ export declare const integrationOpenApi: {
         };
         readonly "/terminated-employees": {
             readonly get: {
-                readonly summary: "ค้นหาพนักงานพ้นสภาพตามช่วงวันที่บันทึก";
+                readonly summary: "ค้นหาเจ้าหน้าที่พ้นสภาพตามช่วงวันที่บันทึก";
                 readonly parameters: readonly [{
                     readonly name: "recordedFrom";
                     readonly in: "query";

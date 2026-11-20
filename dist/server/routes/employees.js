@@ -43,6 +43,9 @@ const auth_1 = require("../middleware/auth");
 const mailer_1 = require("../lib/mailer");
 const multer_1 = __importDefault(require("multer"));
 const XLSX = __importStar(require("xlsx"));
+const exceljs_1 = __importDefault(require("exceljs"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const crypto_1 = require("crypto");
 const sourceTypes_1 = require("../lib/sourceTypes");
 const router = (0, express_1.Router)();
@@ -104,6 +107,8 @@ function hasValidSourceType(sourceType) {
     return !value || (0, sourceTypes_1.isSupportedSourceType)(Number(value));
 }
 const VALID_IT_STATUSES = ["ดำเนินการแล้ว", "ยังไม่ดำเนินการ", "ไม่พบบัญชี", "ไม่ทราบสถานะ"];
+const IMPORT_TEMPLATE_LAST_ROW = 200;
+const IMPORT_TEMPLATE_LIST_SHEET = "รายการตัวเลือก";
 function normalizeITStatus(val) {
     const s = String(val ?? "").trim();
     if (VALID_IT_STATUSES.includes(s))
@@ -167,8 +172,8 @@ function parseDate(val) {
     return null;
 }
 router.get("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.view"), async (req, res) => {
-    const page = parseInt(String(req.query.page ?? "1"));
-    const pageSize = parseInt(String(req.query.pageSize ?? "20"));
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")) || 1);
+    const pageSize = Math.min(200, Math.max(1, parseInt(String(req.query.pageSize ?? "20")) || 20));
     const search = String(req.query.search ?? "");
     const bureau = String(req.query.bureau ?? "");
     const position = String(req.query.position ?? "");
@@ -293,7 +298,7 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees
     const body = req.body;
     const adminUser = body.adminUser ?? req.user?.email ?? "unknown";
     if (!body.employeeId?.trim()) {
-        res.status(400).json({ error: "กรุณากรอกรหัสพนักงาน" });
+        res.status(400).json({ error: "กรุณากรอกรหัสเจ้าหน้าที่" });
         return;
     }
     if (!body.nameTh?.trim()) {
@@ -308,13 +313,13 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees
         const existing = await prisma_1.prisma.employee.findUnique({ where: { employeeId: body.employeeId.trim() } });
         if (existing?.deletedAt) {
             res.status(409).json({
-                error: "รหัสพนักงานนี้อยู่ในถังขยะ กรุณาให้ Super Admin กู้คืนข้อมูลเดิม",
+                error: "รหัสเจ้าหน้าที่นี้อยู่ในถังขยะ กรุณาให้ Super Admin กู้คืนข้อมูลเดิม",
                 code: "EMPLOYEE_IN_TRASH",
             });
             return;
         }
         if (existing) {
-            res.status(409).json({ error: "รหัสพนักงานซ้ำในระบบ", code: "EMPLOYEE_EXISTS" });
+            res.status(409).json({ error: "รหัสเจ้าหน้าที่ซ้ำในระบบ", code: "EMPLOYEE_EXISTS" });
             return;
         }
         const dataSourceId = await resolveDataSource(body.sourceType, body.sourceMonth, body.sourceYear);
@@ -349,7 +354,7 @@ router.post("/", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees
     catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
         if (msg.includes("Unique constraint")) {
-            res.status(400).json({ error: "รหัสพนักงานซ้ำในระบบ" });
+            res.status(400).json({ error: "รหัสเจ้าหน้าที่ซ้ำในระบบ" });
             return;
         }
         console.error("[POST /employees]", err);
@@ -459,7 +464,7 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
             validationErrors.push(`ไฟล์ "${filename}": ไม่พบคอลัมน์ "รหัสประจำตัว"`);
             continue;
         }
-        // ตรวจสอบทุก row ต้องมีรหัสพนักงาน
+        // ตรวจสอบทุก row ต้องมีรหัสเจ้าหน้าที่
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             const hasAnyData = row.some((v) => String(v ?? "").trim() !== "");
@@ -467,7 +472,7 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
                 continue; // row ว่างทั้งหมด → ข้ามได้
             const empId = String(row[empIdColIdx] ?? "").trim();
             if (!empId) {
-                validationErrors.push(`ไฟล์ "${filename}" แถว ${i + 1}: ไม่มีรหัสพนักงาน`);
+                validationErrors.push(`ไฟล์ "${filename}" แถว ${i + 1}: ไม่มีรหัสเจ้าหน้าที่`);
             }
             const raw = mapRowToRaw(headers, row);
             const sourceTypeValue = String(raw.sourceType ?? "").trim();
@@ -561,7 +566,7 @@ router.post("/import", auth_1.authMiddleware, (0, auth_1.requirePermission)("emp
                     created++;
                 }
                 else if (exists.deletedAt) {
-                    errors.push(`[${filename}] แถว ${i + 1} (${employeeId}): รหัสพนักงานอยู่ในถังขยะ กรุณากู้คืนก่อนนำเข้าข้อมูล`);
+                    errors.push(`[${filename}] แถว ${i + 1} (${employeeId}): รหัสเจ้าหน้าที่อยู่ในถังขยะ กรุณากู้คืนก่อนนำเข้าข้อมูล`);
                 }
                 else {
                     const changedFields = [];
@@ -710,6 +715,149 @@ router.get("/meta", auth_1.authMiddleware, async (_req, res) => {
             levelAt(r.level),
         ]),
     });
+});
+router.get("/import-template", auth_1.authMiddleware, (0, auth_1.requirePermission)("employees.import"), async (_req, res) => {
+    try {
+        const [levels, bureaus] = await Promise.all([
+            prisma_1.prisma.employee.findMany({
+                where: { deletedAt: null, level: { not: null } },
+                select: { level: true },
+                distinct: ["level"],
+                orderBy: { level: "asc" },
+            }),
+            prisma_1.prisma.employee.findMany({
+                where: { deletedAt: null, bureau: { not: null } },
+                select: { bureau: true },
+                distinct: ["bureau"],
+                orderBy: { bureau: "asc" },
+            }),
+        ]);
+        const cleanOptions = (values) => [...new Set(values.map((value) => value?.trim()).filter((value) => !!value && value !== "-"))];
+        const levelOptions = cleanOptions(levels.map(({ level }) => level));
+        const bureauOptions = cleanOptions(bureaus.map(({ bureau }) => bureau));
+        const templateCandidates = [
+            path_1.default.resolve(process.cwd(), "public", "Import_Template.xlsx"),
+            path_1.default.resolve(process.cwd(), "dist", "client", "Import_Template.xlsx"),
+        ];
+        const templatePath = templateCandidates.find((candidate) => fs_1.default.existsSync(candidate));
+        if (!templatePath) {
+            res.status(500).json({ error: "ไม่พบไฟล์ตัวอย่างสำหรับนำเข้า" });
+            return;
+        }
+        const sourceWorkbook = XLSX.readFile(templatePath, { cellStyles: true });
+        const sourceSheet = sourceWorkbook.Sheets.Template ?? sourceWorkbook.Sheets[sourceWorkbook.SheetNames[0]];
+        if (!sourceSheet) {
+            res.status(500).json({ error: "รูปแบบไฟล์ตัวอย่างไม่ถูกต้อง" });
+            return;
+        }
+        const sourceRows = XLSX.utils.sheet_to_json(sourceSheet, {
+            header: 1,
+            range: `A1:U${IMPORT_TEMPLATE_LAST_ROW}`,
+            defval: null,
+            blankrows: true,
+        });
+        const workbook = new exceljs_1.default.Workbook();
+        const templateSheet = workbook.addWorksheet("Template", {
+            properties: { defaultRowHeight: 20.1 },
+            pageSetup: {
+                margins: { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 },
+            },
+        });
+        for (let row = 0; row < IMPORT_TEMPLATE_LAST_ROW; row += 1) {
+            templateSheet.addRow(sourceRows[row] ?? Array(21).fill(null));
+        }
+        const sourceColumns = sourceSheet["!cols"] ?? [];
+        for (let column = 1; column <= 21; column += 1) {
+            templateSheet.getColumn(column).width = sourceColumns[column - 1]?.wch ?? 15;
+        }
+        templateSheet.getRow(1).height = 24;
+        templateSheet.getRow(2).height = 60;
+        templateSheet.getCell("B2").value = "เลือกเดือน 1-12";
+        templateSheet.getCell("I2").value = "เลือกจาก Dropdown (ข้อมูลล่าสุดในระบบ)";
+        templateSheet.getCell("K2").value = "เลือกจาก Dropdown (ข้อมูลล่าสุดในระบบ)";
+        const border = {
+            top: { style: "thin", color: { argb: "FFD1D5DB" } },
+            left: { style: "thin", color: { argb: "FFD1D5DB" } },
+            bottom: { style: "thin", color: { argb: "FFD1D5DB" } },
+            right: { style: "thin", color: { argb: "FFD1D5DB" } },
+        };
+        for (let row = 1; row <= IMPORT_TEMPLATE_LAST_ROW; row += 1) {
+            const currentRow = templateSheet.getRow(row);
+            if (row > 2)
+                currentRow.height = 20.1;
+            for (let column = 1; column <= 21; column += 1) {
+                const cell = currentRow.getCell(column);
+                cell.border = border;
+                cell.alignment = {
+                    vertical: "middle",
+                    horizontal: row === 1 ? "center" : "left",
+                    wrapText: row <= 2,
+                };
+                if (row === 1) {
+                    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1D4ED8" } };
+                    cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+                }
+                else if (row === 2) {
+                    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFD966" } };
+                    cell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FFFF0000" } };
+                }
+                else {
+                    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
+                    cell.font = { name: "Arial", size: 10, color: { argb: "FF1F2937" } };
+                }
+            }
+        }
+        const listSheet = workbook.addWorksheet(IMPORT_TEMPLATE_LIST_SHEET, { state: "veryHidden" });
+        const sourceTypeOptions = Object.keys(sourceTypes_1.SOURCE_TYPE_FULL_NAMES).map(Number).sort((a, b) => a - b);
+        listSheet.addRow(["เดือน", "ประเภท", "หน่วยงาน/สำนัก", "ข้อมูลต้นทาง", "สถานะดำเนินการ"]);
+        const optionRowCount = Math.max(12, levelOptions.length, bureauOptions.length, 1);
+        for (let index = 0; index < optionRowCount; index += 1) {
+            listSheet.addRow([
+                index < 12 ? index + 1 : null,
+                levelOptions[index] ?? null,
+                bureauOptions[index] ?? null,
+                sourceTypeOptions[index] ?? null,
+                VALID_IT_STATUSES[index] ?? null,
+            ]);
+        }
+        workbook.definedNames.add(`'${IMPORT_TEMPLATE_LIST_SHEET}'!$A$2:$A$13`, "ImportMonths");
+        workbook.definedNames.add(`'${IMPORT_TEMPLATE_LIST_SHEET}'!$B$2:$B$${Math.max(2, levelOptions.length + 1)}`, "ImportLevels");
+        workbook.definedNames.add(`'${IMPORT_TEMPLATE_LIST_SHEET}'!$C$2:$C$${Math.max(2, bureauOptions.length + 1)}`, "ImportBureaus");
+        workbook.definedNames.add(`'${IMPORT_TEMPLATE_LIST_SHEET}'!$D$2:$D$${sourceTypeOptions.length + 1}`, "ImportSourceTypes");
+        workbook.definedNames.add(`'${IMPORT_TEMPLATE_LIST_SHEET}'!$E$2:$E$${VALID_IT_STATUSES.length + 1}`, "ImportITStatuses");
+        const applyListValidation = (column, formulaName, prompt) => {
+            for (let row = 3; row <= IMPORT_TEMPLATE_LAST_ROW; row += 1) {
+                templateSheet.getCell(`${column}${row}`).dataValidation = {
+                    type: "list",
+                    allowBlank: true,
+                    formulae: [formulaName],
+                    showInputMessage: true,
+                    promptTitle: "เลือกจากรายการ",
+                    prompt,
+                    showErrorMessage: true,
+                    errorStyle: "stop",
+                    errorTitle: "ข้อมูลไม่ถูกต้อง",
+                    error: "กรุณาเลือกค่าจากรายการที่กำหนด",
+                };
+            }
+        };
+        applyListValidation("A", "ImportSourceTypes", "เลือกข้อมูลต้นทาง 1, 2 หรือ 3");
+        applyListValidation("B", "ImportMonths", "เลือกเดือน 1–12");
+        applyListValidation("I", "ImportLevels", "เลือกประเภทจากข้อมูลล่าสุดในระบบ");
+        applyListValidation("K", "ImportBureaus", "เลือกหน่วยงาน/สำนักจากข้อมูลล่าสุดในระบบ");
+        for (const column of ["N", "P", "R", "T"]) {
+            applyListValidation(column, "ImportITStatuses", "เลือกสถานะดำเนินการ");
+        }
+        const output = await workbook.xlsx.writeBuffer();
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        res.setHeader("Content-Disposition", "attachment; filename=Import_Template.xlsx");
+        res.setHeader("Cache-Control", "no-store");
+        res.send(Buffer.from(output));
+    }
+    catch (error) {
+        console.error("[Import template] generation failed:", error);
+        res.status(500).json({ error: "ไม่สามารถสร้างไฟล์ตัวอย่างได้" });
+    }
 });
 router.get("/trash", auth_1.authMiddleware, (0, auth_1.requireRole)("SUPER_ADMIN"), async (req, res) => {
     const page = Math.max(1, parseInt(String(req.query.page ?? "1")) || 1);
